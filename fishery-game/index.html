@@ -60,6 +60,17 @@ h2{font-size:1rem;margin:18px 0 8px;font-weight:900}
 #veil .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%}
 #veil h3{margin:0 0 10px;font-size:1.2rem}
 .ln{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:1px dashed var(--line)}
+#veil .box{max-height:88vh;overflow:auto}
+.stage{position:relative}
+#banner{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;opacity:0}
+#banner.show{animation:pop 2.6s ease-out forwards}
+#banner b{display:block;font-size:2.1rem;font-weight:900;letter-spacing:.08em;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+#banner span{display:block;font-size:1.05rem;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}12%{opacity:1;transform:scale(1.15)}22%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
+.tag{font-size:.68rem;font-weight:900;border-radius:5px;padding:1px 6px;margin-left:6px;color:#1b1030;vertical-align:middle;white-space:nowrap}
+.perkline{width:100%;font-size:.78rem;color:var(--sub)}
+.rank{cursor:pointer}
+.hb{display:flex;gap:6px}
 img.ic{width:48px;height:27px;object-fit:contain;vertical-align:middle;margin-right:6px}
 .dex img.ic{width:56px;height:32px;margin:0;grid-row:span 2}
 .dex .off{filter:brightness(0) opacity(.35)}
@@ -73,13 +84,14 @@ img.ic{width:48px;height:27px;object-fit:contain;vertical-align:middle;margin-ri
 .help .k{background:var(--panel2);border-radius:6px;padding:1px 7px;font-weight:900;white-space:nowrap}
 .dots{color:var(--sub);text-align:center;margin:10px 0 0;font-size:.8rem}
 .rank .nx{font-size:.78rem}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}#banner.show{animation:none;opacity:1}}
 </style>
 
 <header>
-  <h1>海風フィッシャリー</h1><button class="ghost" id="help">遊び方</button>
+  <h1>海風フィッシャリー</h1><span class="hb"><button class="ghost" id="snd">音 ON</button><button class="ghost" id="help">遊び方</button></span>
   <div class="hud"><span><b id="day" class="num">1</b>日目</span><span id="clock" class="num">6:00</span><span id="money" class="num">¥500</span></div>
-  <div class="rank"><span id="rank">見習い漁師</span><div class="bar"><i id="goal"></i></div><span class="nx" id="goalv"></span></div>
+  <div class="rank" id="rankbox" role="button" tabindex="0" aria-label="ランクと特典を見る"><span id="rank">見習い漁師</span><div class="bar"><i id="goal"></i></div><span class="nx" id="goalv"></span></div>
+  <div class="perkline" id="perk"></div>
 </header>
 
 <nav role="tablist">
@@ -90,7 +102,7 @@ img.ic{width:48px;height:27px;object-fit:contain;vertical-align:middle;margin-ri
 </nav>
 
 <section id="p-fish">
-  <canvas id="cv" width="480" height="250"></canvas>
+  <div class="stage"><canvas id="cv" width="480" height="250"></canvas><div id="banner"><b></b><span></span></div></div>
   <div id="msg" aria-live="polite"></div>
   <div class="meters">
     <div class="meter"><span>テンション</span><div class="bar"><i id="tens"></i></div></div>
@@ -149,7 +161,24 @@ const UP=[
   {k:'cool',n:'クーラーボックス',d:'魚箱+5、鮮度が落ちにくい',c:[500,1500,4000,10000,24000]},
   {k:'mkt',n:'市場コネ',d:'売値+5%',c:[1000,3000,8000,20000,50000]}];
 const BOATS=[{n:'小型ボート',c:3000,d:'沖合に出られる'},{n:'大型漁船',c:25000,d:'深海に出られる'}];
-const RANKS=[[0,'見習い漁師'],[300,'釣り初心者'],[1000,'駆け出し漁師'],[3000,'港の人気者'],[8000,'一人前の漁師'],[20000,'ベテラン漁師'],[50000,'船長'],[120000,'船団長'],[300000,'網元'],[600000,'海の名士'],[1000000,'漁業王']];
+// [必要売上, 名前, 特典, 説明]  特典: gold祝い金 cap魚箱 sell売値% rare珍しい魚 tens糸の強さ% reel巻き上げ%
+const RANKS=[
+  [0,'見習い漁師',{},''],
+  [300,'釣り初心者',{gold:300,cap:2},'祝い金¥300・魚箱+2'],
+  [1000,'駆け出し漁師',{gold:800,sell:3},'祝い金¥800・売値+3%'],
+  [3000,'港の人気者',{gold:2000,rare:1},'祝い金¥2,000・珍しい魚が寄りやすい'],
+  [8000,'一人前の漁師',{gold:4000,sell:3,cap:3},'祝い金¥4,000・売値+3%・魚箱+3'],
+  [20000,'ベテラン漁師',{gold:8000,tens:10},'祝い金¥8,000・テンションが上がりにくい'],
+  [50000,'船長',{gold:15000,sell:4,reel:10},'祝い金¥15,000・売値+4%・巻き上げ+10%'],
+  [120000,'船団長',{gold:30000,cap:5},'祝い金¥30,000・魚箱+5'],
+  [300000,'網元',{gold:60000,sell:5,rare:1},'祝い金¥60,000・売値+5%・珍しい魚がさらに寄る'],
+  [600000,'海の名士',{gold:100000,tens:15,reel:10},'祝い金¥100,000・糸が強く、巻き上げも速く'],
+  [1000000,'漁業王',{gold:300000,sell:10},'祝い金¥300,000・売値+10%']];
+const avgP=s=>(s.min+s.max)/2*s.p;
+const AVG=AREAS.map((_,a)=>{const l=SP.filter(s=>s.a===a);return l.reduce((x,s)=>x+s.w*avgP(s),0)/l.reduce((x,s)=>x+s.w,0)});
+const tier=sp=>sp.w<=3?3:sp.w<=6?2:sp.w<=12?1:0;
+const TIER=[null,{n:'レア',c:'#6cc4ff'},{n:'超レア',c:'#c08cff'},{n:'伝説',c:'#ffd24a'}];
+const tag=sp=>{const t=tier(sp);return t?`<span class="tag" style="background:${TIER[t].c}">${TIER[t].n}</span>`:''};
 const GOAL=1000000, ATTEMPT_MIN=40, DAY_END=1080, MAX_CREW=10;
 
 /* ---------- state ---------- */
@@ -159,16 +188,32 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,seen:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1){s.mult=s.mult||{};s.prev=s.prev||{};SP.forEach(x=>{if(!(x.n in s.mult))s.mult[x.n]=1;if(!(x.n in s.prev))s.prev[x.n]=s.mult[x.n]});s.catches=s.catches||0;return s}}catch(e){}return null}
+  return{v:1,seen:0,mute:0,rankGot:0,crewToday:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1){s.mult=s.mult||{};s.prev=s.prev||{};SP.forEach(x=>{if(!(x.n in s.mult))s.mult[x.n]=1;if(!(x.n in s.prev))s.prev[x.n]=s.mult[x.n]});s.catches=s.catches||0;s.crewToday=s.crewToday||0;s.mute=s.mute||0;if(s.rankGot===undefined)s.rankGot=RANKS.filter(r=>(s.earned||0)>=r[0]).length-1;return s}}catch(e){}return null}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(G))}catch(e){}}
 let G=load()||fresh();
-const cap=()=>8+5*G.lv.cool;
-const S={st:'idle',t:0,sp:null,size:0,f:null,holding:false,ok:false};
+const cap=()=>8+5*G.lv.cool+perks().cap;
+const S={tier:0,st:'idle',t:0,sp:null,size:0,f:null,holding:false,ok:false};
 
 /* ---------- rank ---------- */
 const rankIdx=()=>RANKS.filter(r=>G.earned>=r[0]).length-1;
-function earn(n){const b=rankIdx();G.earned+=n;const a=rankIdx();if(a>b)toast(`ランクアップ！「${RANKS[a][1]}」`)}
+function perks(){const o={cap:0,sell:0,rare:0,tens:0,reel:0};for(let i=0;i<=rankIdx();i++){const p=RANKS[i][2];for(const k in o)o[k]+=p[k]||0}return o}
+function earn(n){
+  const b=rankIdx();G.earned+=n;const a=rankIdx();
+  if(a>b){
+    let gold=0;for(let i=Math.max(b+1,G.rankGot+1);i<=a;i++)gold+=RANKS[i][2].gold||0;
+    G.rankGot=Math.max(G.rankGot,a);G.money+=gold;
+    const r=RANKS[a];banner('ランクアップ！',`${r[1]}　${r[3]}`,'#ffd24a');toast(`ランクアップ！「${r[1]}」 ${r[3]}`);sfx(3);save();
+  }
+}
+function showRanks(){
+  const ri=rankIdx(),pk=perks();
+  const tot=[pk.sell&&`売値+${pk.sell}%`,pk.cap&&`魚箱+${pk.cap}`,pk.rare&&`珍しい魚が寄りやすい(+${pk.rare})`,pk.tens&&`糸が強い(テンション-${pk.tens}%)`,pk.reel&&`巻き上げ+${pk.reel}%`].filter(Boolean).join('、')||'まだありません';
+  $('#box').innerHTML=`<h3>ランクと特典</h3><p style="color:var(--sub);font-size:.85rem;margin:0 0 10px">ランクが上がると、祝い金と特典がもらえます。<br>現在の特典：${tot}</p>
+    <div class="list">${RANKS.map((r,i)=>i?`<div class="item" style="${i===ri?'outline:2px solid var(--accent)':''}"><div class="t">${i<=ri?'✓ ':''}${r[1]}</div><div class="s num" style="grid-row:span 2;text-align:right">${yen(r[0])}〜</div><div class="s">${r[3]}</div></div>`:'').join('')}</div>
+    <button class="big" id="rk" style="margin-top:12px">閉じる</button>`;
+  $('#veil').hidden=false;$('#rk').onclick=()=>$('#veil').hidden=true;
+}
 let toastT;
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,4000)}
 
@@ -176,13 +221,14 @@ function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeou
 function price(fi){
   const sp=SP.find(s=>s.n===fi.n);
   const big=fi.size>=sp.max*.9?1.5:1;
-  return Math.round(fi.size*sp.p*G.mult[fi.n]*(fi.fresh/100)*(1+.05*G.lv.mkt)*big);
+  return Math.round(fi.size*sp.p*G.mult[fi.n]*(fi.fresh/100)*(1+.05*G.lv.mkt+perks().sell/100)*big);
 }
 
 /* ---------- fishing core ---------- */
-function pickSpecies(){
-  const list=SP.filter(s=>s.a===G.area);
-  const ws=list.map(s=>s.w*(s.w<=12?1+.25*G.lv.bait:1));
+function pickSpecies(area=G.area){
+  const list=SP.filter(s=>s.a===area);
+  const bt=G.lv.bait+perks().rare;
+  const ws=list.map(s=>s.w*(s.w<=12?1+.25*bt:1));
   let r=Math.random()*ws.reduce((a,b)=>a+b,0);
   for(let i=0;i<list.length;i++){r-=ws[i];if(r<=0)return list[i]}
   return list[0];
@@ -203,21 +249,23 @@ function press(){
   label();
 }
 function release(){S.holding=false}
-function hook(){
+function rollFish(){
   const sp=pickSpecies();
-  const size=Math.round(sp.min+(sp.max-sp.min)*Math.pow(Math.random(),1.8));
-  const ratio=(size-sp.min)/(sp.max-sp.min);
-  S.sp=sp;S.size=size;
+  S.sp=sp;S.size=Math.round(sp.min+(sp.max-sp.min)*Math.pow(Math.random(),1.8));S.tier=tier(sp);
+}
+function hook(){
+  const sp=S.sp,ratio=(S.size-sp.min)/(sp.max-sp.min);
   S.f={pw:sp.s*(.8+.4*ratio),prog:35,tens:0,struggle:false,timer:rnd(.6,1.2)};
-  S.st='fight';S.holding=false;say('ヒット！ 巻いて寄せよう。暴れたら離してテンションを逃がす。');
+  S.st='fight';S.holding=false;
+  say(S.tier>=1?'ヒット！ これは大物だ…！ 慎重に巻け！':'ヒット！ 巻いて寄せよう。暴れたら離してテンションを逃がす。');
 }
 function fightStep(dt){
-  const f=S.f,rod=G.lv.rod,line=G.lv.line;const eas=G.catches<10?.5:G.catches<30?.75:1;
+  const f=S.f,rod=G.lv.rod,line=G.lv.line,pk=perks();const eas=G.catches<10?.5:G.catches<30?.75:1;
   f.timer-=dt;
   if(f.timer<=0){f.struggle=!f.struggle;f.timer=f.struggle?rnd(.6,1.4):rnd(.8,1.8)}
   if(S.holding){
-    f.prog+=16*(1+.3*rod)*(eas<1?1.25:1)/(.5+.5*f.pw)*(f.struggle?.3:1)*dt;
-    f.tens+=(f.struggle?60:20)*(.6+.4*f.pw)*eas/(1+.25*line)*dt;
+    f.prog+=16*(1+.3*rod+pk.reel/100)*(eas<1?1.25:1)/(.5+.5*f.pw)*(f.struggle?.3:1)*dt;
+    f.tens+=(f.struggle?60:20)*(.6+.4*f.pw)*eas*(1-pk.tens/100)/(1+.25*line)*dt;
   }else{
     f.tens-=45*dt;
     f.prog-=(f.struggle?10*f.pw*eas:2*eas)*dt;
@@ -232,14 +280,17 @@ function fightStep(dt){
 function landed(){
   const sp=S.sp;
   G.fish.push({n:sp.n,size:S.size,fresh:100});G.catches++;
+  const newSp=!G.dex[sp.n];
   const d=G.dex[sp.n]||(G.dex[sp.n]={c:0,best:0});
-  const rec=S.size>d.best;d.c++;d.best=Math.max(d.best,S.size);
-  const big=S.size>=sp.max*.9;
-  say(`${sp.n} ${S.size}cm を釣った！${big?'大物！':''}${rec?' 自己記録！':''}（${yen(price(G.fish[G.fish.length-1]))}）`);
+  const rec=!newSp&&S.size>d.best;d.c++;d.best=Math.max(d.best,S.size);
+  const big=S.size>=sp.max*.9,t=tier(sp);
+  const left=SP.filter(s=>s.a===sp.a&&!G.dex[s.n]).length;
+  say(`${t?TIER[t].n+'！ ':''}${sp.n} ${S.size}cm を釣った！${big?'大物！':''}${newSp?` 新種！（この海域 あと${left}種）`:''}${rec?' 自己記録！':''}（${yen(price(G.fish[G.fish.length-1]))}）`);
+  celebrate(sp,S.size,newSp,big);
   S.ok=true;end(true);
 }
 function end(){
-  S.holding=false;G.min+=ATTEMPT_MIN;S.st='result';S.t=0;save();hud();renderAll();label();
+  S.holding=false;G.min+=ATTEMPT_MIN;S.st='result';S.t=0;crewRound();save();hud();renderAll();label();
 }
 function next(){
   if(G.min>=DAY_END){dayEnd();return}
@@ -251,30 +302,81 @@ function label(){
   b.classList.toggle('down',S.st==='fight'&&S.holding);
 }
 
+/* ---------- effects ---------- */
+const FX={flash:0,shake:0,rain:0,col:'#fff'},PT=[];
+const TIP={x:120,y:72};
+let banT;
+function banner(a,b,c){const e=$('#banner');e.querySelector('b').textContent=a;e.querySelector('span').textContent=b;e.style.color=c;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');clearTimeout(banT);banT=setTimeout(()=>e.classList.remove('show'),2800)}
+let AC;
+const JING=[[660,880],[523,659,784],[523,659,784,1047],[523,659,784,1047,1319],[523,659,784,1047,1319,1568,2093]];
+function sfx(l){
+  if(G.mute)return;
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();
+    const t0=AC.currentTime;
+    JING[Math.min(l,4)].forEach((fr,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.value=fr;const s=t0+i*.09;
+      g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.16,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+.3);
+      o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+.32)});
+  }catch(e){}
+}
+function vibe(t){try{navigator.vibrate&&navigator.vibrate(t>=2?[60,40,60,40,120]:[60])}catch(e){}}
+function burst(n,c,t){
+  for(let i=0;i<n;i++){const a=rnd(-Math.PI,0)+rnd(-.3,.3),v=rnd(80,260+t*60);
+    PT.push({x:TIP.x+50,y:112,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:320,life:rnd(.9,1.8),c:Math.random()<.3?'#fff':c,r:rnd(1.5,3.5+t),s:Math.random()<.4})}
+  if(PT.length>400)PT.splice(0,PT.length-400);
+}
+function celebrate(sp,size,newSp,big){
+  const t=tier(sp),c=t?TIER[t].c:newSp?'#5fdc9c':'#ffb454';
+  if(t||newSp||big)banner(t?`${'★'.repeat(t)} ${TIER[t].n}！`:newSp?'新種発見！':'大物！',`${sp.n} ${size}cm${newSp&&t?'　新種！':''}`,c);
+  burst(t?30+t*45:newSp?40:big?30:10,c,t);
+  FX.col=c;FX.flash=t?.45+t*.1:newSp?.3:0;FX.shake=t>=2?.7:0;FX.rain=t===3?2.5:0;
+  sfx(t?t+1:newSp?1:0);if(t)vibe(t);
+}
+
+/* ---------- crew ---------- */
+const CREW=[];
+const COLS=['#e85d4a','#4aa3e8','#59c27a','#e8b94a','#a86be8','#e87aa8','#4ac2c2','#d9d9d9','#8fa84a','#e8844a'];
+const HATS=['#2b3a4a','#c0392b','#f0e6c8','#2f6f5e','#6b4a3c'];
+const crewX=i=>150+i*32;
+function syncCrew(init){while(CREW.length<G.crew)CREW.push({i:CREW.length,pop:init?1:0,q:[],ev:null});CREW.length=G.crew}
+function crewVal(sp){return Math.round(AREAS[G.boat].base/9*(avgP(sp)/AVG[G.boat])*rnd(.7,1.3))}
+function crewRound(){CREW.forEach(cr=>{if(Math.random()<.5){const sp=pickSpecies(G.boat);cr.q.push({delay:rnd(.1,2.2),t:0,sp,val:crewVal(sp)})}})}
+function payCrew(e){if(e.paid)return;e.paid=1;G.money+=e.val;G.crewToday+=e.val;earn(e.val);save();hud();renderAll()}
+function flushCrew(){CREW.forEach(cr=>{if(cr.ev)payCrew(cr.ev);cr.q.forEach(payCrew);cr.ev=null;cr.q=[]})}
+function crewSim(n){let sum=0;for(let k=0;k<n;k++)CREW.forEach(()=>{if(Math.random()<.5)sum+=crewVal(pickSpecies(G.boat))});if(sum){G.money+=sum;G.crewToday+=sum;earn(sum)}}
+function crewStep(dt){
+  CREW.forEach(cr=>{
+    if(cr.pop<1)cr.pop=Math.min(1,cr.pop+dt/.6);
+    if(!cr.ev&&cr.q.length)cr.ev=cr.q.shift();
+    const e=cr.ev;if(!e)return;
+    if(e.delay>0){e.delay-=dt;return}
+    e.t+=dt;if(!e.paid&&e.t>=1.2)payCrew(e);if(e.t>=2.4)cr.ev=null;
+  });
+}
+
 /* ---------- day cycle ---------- */
 function veilOpen(){return !$('#veil').hidden}
 function dayEnd(){
   const area=AREAS[G.boat];
-  const haul=G.crew?Math.round(G.crew*area.base*rnd(.7,1.3)):0;
+  flushCrew();
+  const haul=G.crewToday;
   const wage=G.crew*area.wage;
   const rot=[];
   const decay=Math.max(8,30-5*G.lv.cool);
   G.fish.forEach(f=>f.fresh-=decay);
   const spoiled=G.fish.filter(f=>f.fresh<=0).length;
   G.fish=G.fish.filter(f=>f.fresh>0);
-  G.money+=haul;earn(haul);
   const pay=Math.min(wage,G.money);G.money-=pay;
   SP.forEach(s=>{G.prev[s.n]=G.mult[s.n];G.mult[s.n]=clamp(G.mult[s.n]+rnd(-.15,.15)+(1-G.mult[s.n])*.2,.6,1.6)});
   const hot=SP.slice().sort((a,b)=>(G.mult[b.n]/G.prev[b.n])-(G.mult[a.n]/G.prev[a.n]))[0];
   $('#box').innerHTML=`<h3>${G.day}日目 終了</h3>
-    <div class="ln"><span>従業員の水揚げ（${G.crew}人）</span><b class="num up">+${yen(haul)}</b></div>
+    <div class="ln"><span>従業員の水揚げ（${G.crew}人・今日の合計）</span><b class="num up">+${yen(haul)}</b></div>
     <div class="ln"><span>給料</span><b class="num down">-${yen(pay)}</b></div>
     <div class="ln"><span>傷んで捨てた魚</span><b class="num">${spoiled}匹</b></div>
     <div class="ln"><span>明日の注目</span><b>${hot.n}が値上がり</b></div>
     <p style="color:var(--sub);font-size:.85rem">売れ残りの魚は一晩ごとに鮮度が落ち、値段も下がります。</p>
     <button class="big" id="nextday">${G.day+1}日目の朝へ</button>`;
   $('#veil').hidden=false;
-  $('#nextday').onclick=()=>{G.day++;G.min=360;S.st='idle';$('#veil').hidden=true;say('');save();hud();renderAll();label()};
+  $('#nextday').onclick=()=>{G.crewToday=0;G.day++;G.min=360;S.st='idle';$('#veil').hidden=true;say('');save();hud();renderAll();label()};
 }
 
 /* ---------- fish art ---------- */
@@ -322,12 +424,13 @@ function hud(){
   $('#rank').textContent=RANKS[ri][1];
   $('#goal').style.width=(nx?(G.earned-RANKS[ri][0])/(nx[0]-RANKS[ri][0])*100:100)+'%';
   $('#goalv').textContent=nx?`次は「${nx[1]}」あと${yen(nx[0]-G.earned)}`:'最高ランク！';
+  $('#perk').textContent=nx?`次の特典：${nx[3]}（タップで一覧）`:'すべての特典を獲得！';
   document.querySelector('[data-tab=sell]').textContent=G.fish.length?`市場(${G.fish.length})`:'市場';
   hint();
   $('#cap').textContent=`${G.fish.length}/${cap()}`;
 }
 function renderAreas(){
-  $('#areas').innerHTML=AREAS.map((a,i)=>`<button class="chip" data-area="${i}" aria-pressed="${G.area===i}">${i>G.boat?'🔒 ':''}${a.name}</button>`).join('');
+  $('#areas').innerHTML=AREAS.map((a,i)=>`<button class="chip" data-area="${i}" aria-pressed="${G.area===i}">${i>G.boat?'🔒 ':''}${a.name} <span class="num">${SP.filter(s=>s.a===i&&G.dex[s.n]).length}/${SP.filter(s=>s.a===i).length}</span></button>`).join('');
   $('#areas').querySelectorAll('button').forEach(b=>b.onclick=()=>{const i=+b.dataset.area;if(i>G.boat){openTab('shop');toast('「船」を買うと出られます');return}if(S.st!=='idle'){toast('釣りの合間に切り替えてね');return}G.area=i;save();renderAreas()});
 }
 function renderSell(){
@@ -335,7 +438,7 @@ function renderSell(){
   const total=sorted.reduce((a,x)=>a+x.p,0);
   const items=sorted.map(({f,i,p})=>{
     const sp=SP.find(s=>s.n===f.n);
-    return `<div class="item"><div class="t">${ico(sp)}${f.n} <span class="num">${f.size}cm</span>${f.size>=sp.max*.9?' ★':''}</div>
+    return `<div class="item"><div class="t">${ico(sp)}${f.n}${tag(sp)} <span class="num">${f.size}cm</span>${f.size>=sp.max*.9?' ★':''}</div>
       <button class="buy" data-i="${i}">${yen(p)}</button><div class="s">鮮度 <span class="num">${f.fresh}%</span></div></div>`}).join('');
   const market=SP.filter(s=>s.a<=G.boat).map(s=>{
     const m=G.mult[s.n],d=m-G.prev[s.n];
@@ -363,7 +466,7 @@ function renderShop(){
   const cc=Math.round(1500*Math.pow(1.6,G.crew)/100)*100,w=AREAS[G.boat].wage,h=AREAS[G.boat].base;
   const crew=`<div class="item"><div class="t">漁師を雇う <span class="num">${G.crew}/${MAX_CREW}人</span></div>
     <button class="buy" data-crew="1" ${G.crew>=MAX_CREW||G.money<cc?'disabled':''}>${G.crew>=MAX_CREW?'—':yen(cc)}</button>
-    <div class="s">1人あたり 水揚げ約${yen(h)}/日、給料${yen(w)}/日</div></div>`;
+    <div class="s">いっしょに釣りに出て、1人あたり1日約${yen(h)}を稼ぐ。給料${yen(w)}/日</div></div>`;
   $('#p-shop').innerHTML=`<h2>道具</h2><div class="list">${ups}</div><h2>船</h2><div class="list">${boat}</div><h2>人</h2><div class="list">${crew}</div>
     <h2>データ</h2><button class="ghost" id="reset">最初からやり直す</button>`;
   const sh=$('#p-shop');
@@ -376,7 +479,7 @@ function renderDex(){
   const got=SP.filter(s=>G.dex[s.n]).length;
   $('#p-dex').innerHTML=`<h2>図鑑 <span class="num">${got}/${SP.length}</span></h2><div class="dex">`+SP.map(s=>{
     const d=G.dex[s.n];
-    return `<div class="item"><img class="ic ${d?'':'off'}" src="${icon(s)}" alt=""><div class="t">${d?s.n:'？？？'}</div><div class="s">${d?`最大 <span class="num">${d.best}cm</span> ×${d.c}`:AREAS[s.a].name}</div></div>`}).join('')+'</div>';
+    return `<div class="item"><img class="ic ${d?'':'off'}" src="${icon(s)}" alt=""><div class="t">${d?s.n:'？？？'}${tag(s)}</div><div class="s">${d?`最大 <span class="num">${d.best}cm</span> ×${d.c}`:AREAS[s.a].name}</div></div>`}).join('')+'</div>';
 }
 function renderAll(){renderAreas();renderSell();renderShop();renderDex();hud()}
 function openTab(k){
@@ -396,9 +499,10 @@ const HELP=[
  {t:'ようこそ！',b:'<p>魚を釣って、売って、船と仲間を増やす釣り船経営ゲームです。</p><p>目標は、売上を増やして最高ランク「漁業王」になること。まずは釣りから始めましょう。</p>'},
  {t:'釣り方',b:'<ol><li><span class="k">投げる</span>を押して浮きを待つ</li><li>浮きが沈んで「！」が出たら、すぐ<span class="k">アワセ！</span></li><li>ヒットしたら<span class="k">巻く</span>ボタンを押し続けて寄せる</li><li>魚が暴れている間は<b>指を離す</b>。落ち着いたらまた巻く</li></ol><p>テンションが満タンになると糸が切れ、寄せ具合が満タンになると釣れます。パソコンならスペースキーでも操作できます。</p>'},
  {t:'魚を売る',b:'<p>釣った魚は魚箱に入ります（容量があります）。<span class="k">市場</span>タブで売ってお金にしましょう。</p><p>値段は、大きさ・鮮度・今日の相場で決まります。売れ残りは夜のたびに鮮度が落ちるので、早めに売るのがおすすめです。</p>'},
- {t:'設備を強化する',b:'<p><span class="k">設備</span>タブでお金を使って強化できます。</p><ol><li><b>釣り竿</b>：巻き上げが速くなる</li><li><b>釣り糸</b>：テンションが上がりにくい</li><li><b>エサ</b>：アタリが早く、珍しい魚が寄る</li><li><b>クーラーボックス</b>：魚箱が広がり、鮮度も保てる</li><li><b>漁師を雇う</b>：毎晩、水揚げが入る（給料もかかる）</li></ol>'},
+ {t:'設備を強化する',b:'<p><span class="k">設備</span>タブでお金を使って強化できます。</p><ol><li><b>釣り竿</b>：巻き上げが速くなる</li><li><b>釣り糸</b>：テンションが上がりにくい</li><li><b>エサ</b>：アタリが早く、珍しい魚が寄る</li><li><b>クーラーボックス</b>：魚箱が広がり、鮮度も保てる</li><li><b>漁師を雇う</b>：釣り場でいっしょに釣って稼いでくれる（給料もかかる）</li></ol>'},
  {t:'沖合・深海へ行くには',b:'<ol><li><span class="k">設備</span>タブの「船」で<b>小型ボート（¥3,000）</b>を買うと<b>沖合</b>へ</li><li>さらに<b>大型漁船（¥25,000）</b>を買うと<b>深海</b>へ</li><li>買ったら<span class="k">釣り</span>タブの海域ボタンで行き先を選ぶ</li></ol><p>沖合や深海には、高く売れる大きな魚がいます。釣りタブには、あといくら必要かも表示されます。</p>'},
- {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜に給料の支払いと水揚げがあり、相場も変わります。</p><p>売上が増えるとランクが上がります。画面上部のバーで、次のランクまでの距離が分かります。それでは、いってらっしゃい！</p>'}];
+ {t:'レアな魚',b:'<p>海域ごとに、めったに釣れないレアな魚がいます。<span class="tag" style="background:#6cc4ff">レア</span><span class="tag" style="background:#c08cff">超レア</span><span class="tag" style="background:#ffd24a">伝説</span></p><p>レアな魚がかかると、アタリの時点で気配が違います。釣り上げると派手な演出が出ます。図鑑でまだ釣っていない魚を探しましょう。エサの強化やランクの特典で、珍しい魚が寄りやすくなります。</p>'},
+ {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜に給料の支払いがあり、相場も変わります。</p><p>売上が増えるとランクが上がり、<b>祝い金と特典</b>（売値アップ、魚箱拡大など）がもらえます。画面上部のランクをタップすると一覧が見られます。それでは、いってらっしゃい！</p>'}];
 function showHelp(i=0){
   const h=HELP[i],last=i===HELP.length-1;
   $('#box').innerHTML=`<div class="help"><h3>${h.t}</h3>${h.b}<div class="row"><button class="ghost" id="hp" ${i?'':'disabled'}>戻る</button><button class="big" id="hn" style="flex:1;width:auto">${last?'はじめる':'次へ'}</button></div><p class="dots">${i+1} / ${HELP.length}</p></div>`;
@@ -407,16 +511,44 @@ function showHelp(i=0){
   $('#hn').onclick=()=>{if(!last){showHelp(i+1);return}G.seen=1;save();$('#veil').hidden=true;openTab('fish');say('「投げる」を押して釣りを始めよう。')};
 }
 $('#help').onclick=()=>{if(S.st==='idle'||S.st==='result')showHelp(0);else toast('釣りの合間に開いてね')};
+$('#rankbox').onclick=()=>{if(!veilOpen())showRanks()};
+$('#rankbox').onkeydown=e=>{if(e.key==='Enter'&&!veilOpen())showRanks()};
+const snd=$('#snd');snd.textContent=G.mute?'音 OFF':'音 ON';
+snd.onclick=()=>{G.mute=G.mute?0:1;snd.textContent=G.mute?'音 OFF':'音 ON';save();if(!G.mute)sfx(0)};
 const act=$('#act');
 act.addEventListener('pointerdown',e=>{e.preventDefault();press()});
 ['pointerup','pointerleave','pointercancel'].forEach(ev=>act.addEventListener(ev,()=>{release();label()}));
-addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!/INPUT|TEXTAREA/.test(e.target.tagName)&&e.target.tagName!=='BUTTON'){e.preventDefault();press()}});
+addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!/INPUT|TEXTAREA/.test(e.target.tagName)&&e.target.tagName!=='BUTTON'&&e.target.id!=='rankbox'){e.preventDefault();press()}});
 addEventListener('keyup',e=>{if(e.code==='Space'){release();label()}});
-$('#home').onclick=()=>{if(S.st==='idle'||S.st==='result'){G.min=DAY_END;S.st='result';S.t=1;dayEnd()}};
+$('#home').onclick=()=>{if(S.st==='idle'||S.st==='result'){if(S.st==='idle')crewSim(Math.ceil((DAY_END-G.min)/ATTEMPT_MIN));G.min=DAY_END;S.st='result';S.t=1;dayEnd()}};
 
 /* ---------- scene ---------- */
 const cv=$('#cv'),cx=cv.getContext('2d');
+function person(c,x,y,col,hat,s){
+  c.save();c.translate(x,y);c.scale(s,s);
+  c.fillStyle='#2b3a4a';c.fillRect(-3.5,-9,3,9);c.fillRect(.5,-9,3,9);
+  c.fillStyle=col;c.fillRect(-5,-24,10,15);
+  c.fillStyle='#f1c9a0';c.beginPath();c.arc(0,-29,5,0,7);c.fill();
+  c.fillStyle=hat;c.fillRect(-6.5,-33,13,2.5);c.beginPath();c.arc(0,-33,5,Math.PI,0);c.fill();
+  c.restore();
+}
+function glow(c,x,y,r,col,a){const g=c.createRadialGradient(x,y,2,x,y,r);g.addColorStop(0,col);g.addColorStop(1,col+'00');c.save();c.globalAlpha=a;c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.restore()}
+function drawCrew(cr,ts){
+  const x=crewX(cr.i),e=cr.ev&&cr.ev.delay<=0?cr.ev:null;
+  cx.save();cx.globalAlpha=cr.pop;cx.translate(0,-(1-cr.pop)*24);
+  person(cx,x,120,COLS[cr.i%10],HATS[cr.i%5],.8);
+  const rx=x+24,ry=86,bx=x+30;let by=148+Math.sin(ts/600+cr.i*1.7)*2;
+  if(e&&e.t<.5)by+=5;
+  cx.strokeStyle='#d9c7a8';cx.lineWidth=2;cx.beginPath();cx.moveTo(x+4,104);cx.lineTo(rx,ry);cx.stroke();
+  cx.strokeStyle='rgba(255,255,255,.7)';cx.lineWidth=1;cx.beginPath();cx.moveTo(rx,ry);cx.lineTo(bx,by);cx.stroke();
+  if(!e||e.t<.3){cx.fillStyle=cr.i%2?'#ff5a4e':'#ffd24a';cx.beginPath();cx.arc(bx,by,3.2,0,7);cx.fill()}
+  if(e&&e.t>=.3&&e.t<1.3){const u=(e.t-.3)/1,fx=bx+(x+8-bx)*u,fy=by+(ry-by)*u-Math.sin(u*Math.PI)*22;drawSp(cx,e.sp,fx,fy,24)}
+  if(e&&e.t>=1.2){cx.globalAlpha=cr.pop*clamp(1-(e.t-1.2)/1.2,0,1);cx.fillStyle='#ffd24a';cx.font='900 13px sans-serif';cx.textAlign='center';cx.fillText('+'+yen(e.val),x+6,78-(e.t-1.2)*14)}
+  cx.restore();
+}
 function draw(ts){
+  cx.save();
+  if(FX.shake>0)cx.translate(rnd(-1,1)*FX.shake*8,rnd(-1,1)*FX.shake*8);
   const p=clamp((G.min-360)/720,0,1);
   const hue=p<.7?200:200-(p-.7)/.3*185,lit=62-p*32;
   cx.fillStyle=`hsl(${hue},55%,${lit}%)`;cx.fillRect(0,0,480,130);
@@ -425,42 +557,59 @@ function draw(ts){
   cx.fillStyle=sea;cx.fillRect(0,130,480,120);
   cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1.5;
   for(let r=0;r<5;r++){cx.beginPath();for(let x=0;x<=480;x+=8){const y=146+r*20+Math.sin(x/38+ts/700+r)*3;x?cx.lineTo(x,y):cx.moveTo(x,y)}cx.stroke()}
-  cx.fillStyle='#5b4332';
-  if(G.area===0){cx.fillRect(0,120,130,14);cx.fillRect(14,134,8,40);cx.fillRect(100,134,8,40)}
-  else{cx.font='64px serif';cx.textBaseline='alphabetic';cx.fillText(G.area===1?'🚤':'🚢',2,140)}
-  const tip={x:118,y:84};
-  cx.strokeStyle='#d9c7a8';cx.lineWidth=3;cx.beginPath();cx.moveTo(62,128);cx.lineTo(tip.x,tip.y);cx.stroke();
+  const deckW=Math.min(478,150+G.crew*32);
+  if(G.area===0){cx.fillStyle='#5b4332';cx.fillRect(0,120,deckW,14);for(let x=14;x<deckW-8;x+=86)cx.fillRect(x,134,8,40)}
+  else{
+    cx.fillStyle=G.area===1?'#c9d3d9':'#e4e9ec';cx.fillRect(0,118,deckW,6);
+    cx.fillStyle=G.area===1?'#3a6f8f':'#2b4a63';cx.beginPath();cx.moveTo(0,124);cx.lineTo(deckW+14,124);cx.lineTo(deckW-8,148);cx.lineTo(0,148);cx.closePath();cx.fill();
+    cx.fillStyle='#d9503f';cx.fillRect(0,132,deckW,3);
+  }
+  CREW.forEach(cr=>drawCrew(cr,ts));
+  person(cx,46,120,'#ffb454','#c0392b',1.25);
+  cx.strokeStyle='#d9c7a8';cx.lineWidth=3;cx.beginPath();cx.moveTo(54,97);cx.lineTo(TIP.x,TIP.y);cx.stroke();
   cx.lineWidth=1;cx.strokeStyle='rgba(255,255,255,.8)';
-  const st=S.st;
+  const st=S.st,tc=S.tier?TIER[S.tier].c:null;
   if(st==='fight'){
-    const f=S.f,dist=(1-f.prog/100),fx=140+dist*270,jit=f.struggle?Math.sin(ts/40)*5:0,fy=176+Math.sin(ts/300)*4+jit;
+    const f=S.f,dist=(1-f.prog/100),fx=140+dist*270,jit=f.struggle?Math.sin(ts/40)*(S.tier===3?9:5):0,fy=176+Math.sin(ts/300)*4+jit;
     const L=58+(S.size-S.sp.min)/(S.sp.max-S.sp.min)*52,mx=fx-L/2;
-    cx.beginPath();cx.moveTo(tip.x,tip.y);cx.quadraticCurveTo((tip.x+mx)/2,Math.min(tip.y,fy)-10+f.tens*.4,mx,fy);cx.stroke();
+    cx.beginPath();cx.moveTo(TIP.x,TIP.y);cx.quadraticCurveTo((TIP.x+mx)/2,Math.min(TIP.y,fy)-10+f.tens*.4,mx,fy);cx.stroke();
+    if(tc)glow(cx,fx,fy,L*.95,tc,.45+.2*Math.sin(ts/150));
     drawSp(cx,S.sp,fx,fy,L);
   }else if(st==='wait'||st==='bite'){
     const bx=300,by=148+(st==='bite'?10+Math.sin(ts/50)*6:Math.sin(ts/500)*2);
-    cx.beginPath();cx.moveTo(tip.x,tip.y);cx.quadraticCurveTo((tip.x+bx)/2,tip.y-6,bx,by);cx.stroke();
+    cx.beginPath();cx.moveTo(TIP.x,TIP.y);cx.quadraticCurveTo((TIP.x+bx)/2,TIP.y-6,bx,by);cx.stroke();
+    if(st==='bite'&&tc){cx.lineWidth=2;for(let k=0;k<3;k++){const r=((ts/450+k/3)%1)*34;cx.strokeStyle=tc;cx.globalAlpha=1-r/34;cx.beginPath();cx.ellipse(bx,148,r*1.3,r*.45,0,0,7);cx.stroke()}cx.globalAlpha=1;cx.lineWidth=1}
     cx.fillStyle='#ff5a4e';cx.beginPath();cx.arc(bx,by,6,0,7);cx.fill();
-    if(st==='bite'){cx.fillStyle='#ffd24a';cx.font='900 40px sans-serif';cx.fillText('!',bx-8,by-24)}
+    if(st==='bite'){cx.fillStyle=tc||'#ffd24a';cx.font=`900 ${S.tier?52:40}px sans-serif`;cx.fillText(S.tier>=2?'!!':'!',bx-(S.tier>=2?16:8),by-24)}
   }else{
-    cx.beginPath();cx.moveTo(tip.x,tip.y);cx.lineTo(tip.x+4,150);cx.stroke();
-    if(st==='result'&&S.ok){drawSp(cx,S.sp,tip.x+46,112+Math.sin(ts/200)*4,60)}
+    cx.beginPath();cx.moveTo(TIP.x,TIP.y);cx.lineTo(TIP.x+4,150);cx.stroke();
+    if(st==='result'&&S.ok){const y=112+Math.sin(ts/200)*4;if(tc)glow(cx,TIP.x+46,y,56,tc,.5);drawSp(cx,S.sp,TIP.x+46,y,60)}
   }
+  PT.forEach(q=>{cx.globalAlpha=Math.min(1,q.life/.6);cx.fillStyle=q.c;
+    if(q.s){cx.save();cx.translate(q.x,q.y);cx.rotate(q.life*6);cx.fillRect(-q.r,-q.r,q.r*2,q.r*2);cx.restore()}
+    else{cx.beginPath();cx.arc(q.x,q.y,q.r,0,7);cx.fill()}});
+  cx.globalAlpha=1;
+  if(FX.flash>0){cx.globalAlpha=Math.min(.6,FX.flash);cx.fillStyle=FX.col;cx.fillRect(0,0,480,250);cx.globalAlpha=1}
+  cx.restore();
 }
 let last=performance.now();
 function loop(ts){
   const dt=Math.min(.05,(ts-last)/1000);last=ts;
   if(!veilOpen()){
-    if(S.st==='wait'){S.t-=dt;if(S.t<=0){S.st='bite';S.t=1.4+.05*G.lv.bait;say('アタリ！ 今だ、アワセ！');label()}}
-    else if(S.st==='bite'){S.t-=dt;if(S.t<=0){say('エサだけ取られた…');S.ok=false;end(false)}}
+    if(S.st==='wait'){S.t-=dt;if(S.t<=0){rollFish();S.st='bite';S.t=1.4+.05*G.lv.bait;say(S.tier>=2?'ものすごいアタリだ！！ 逃すな、アワセ！':S.tier===1?'アタリ！ いつもと違う引きだ…！ アワセ！':'アタリ！ 今だ、アワセ！');if(S.tier)vibe(S.tier);label()}}
+    else if(S.st==='bite'){S.t-=dt;if(S.t<=0){say(S.tier?'逃した…今のはレアな魚だったかも！':'エサだけ取られた…');S.ok=false;end(false)}}
     else if(S.st==='fight'){fightStep(dt)}
     else if(S.st==='result'){S.t+=dt}
   }
+  syncCrew();crewStep(dt);
+  for(let i=PT.length-1;i>=0;i--){const q=PT[i];q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=q.g*dt;q.life-=dt;if(q.life<=0||q.y>260)PT.splice(i,1)}
+  if(FX.rain>0){FX.rain-=dt;for(let k=0;k<2;k++)PT.push({x:rnd(0,480),y:-5,vx:rnd(-10,10),vy:rnd(60,140),g:30,life:rnd(1.2,2),c:Math.random()<.5?'#ffd24a':'#fff',r:rnd(1.5,3),s:true})}
+  FX.flash=Math.max(0,FX.flash-dt*1.2);FX.shake=Math.max(0,FX.shake-dt);
   const f=S.f;
   $('#tens').style.width=(S.st==='fight'?f.tens:0)+'%';
   $('#tens').classList.toggle('hot',S.st==='fight'&&f.tens>75);
   $('#prog').style.width=(S.st==='fight'?f.prog:0)+'%';
   draw(ts);requestAnimationFrame(loop);
 }
-renderAll();label();say('「投げる」を押して釣りを始めよう。');if(!G.seen)showHelp(0);requestAnimationFrame(loop);
+syncCrew(true);renderAll();label();say('「投げる」を押して釣りを始めよう。');if(!G.seen)showHelp(0);requestAnimationFrame(loop);
 </script>
