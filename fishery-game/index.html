@@ -212,18 +212,18 @@ const SP=[
   {n:'黄金のコイ',d:['#e8b82a','#fff0b0','r','p','#ffffff'],a:5,w:6,min:60,max:120,p:300,s:2.7},
   {n:'幻の巨鯨',e:'🐋',a:5,w:2,min:800,max:1500,p:25,s:3.6},
   // 主（ボス）：海域の魚をコンプすると、低確率で現れる
-  {n:'堤防の主 ヌシダイ',boss:1,d:['#c9a227','#f2e3a0','r','h','#7a5c10','bigeye'],a:0,w:0,min:70,max:100,p:25,s:2.8},
-  {n:'海原の主 オオブリ',boss:1,d:['#2f4f4f','#e8e8d8','b','h','#ffd24a'],a:1,w:0,min:130,max:180,p:30,s:6.3},
-  {n:'深海の主 ダイオウイカ',boss:1,e:'🦑',a:2,w:0,min:400,max:700,p:40,s:6.8},
-  {n:'珊瑚の主 オオハタ',boss:1,d:['#7a2f2f','#d9a0a0','r','p','#f0d0d0','bigeye'],a:3,w:0,min:250,max:350,p:135,s:6.8},
-  {n:'氷海の主 白銀のチョウザメ',boss:1,d:['#9fb4c8','#eef4fa','t','p','#5a6f85'],a:4,w:0,min:400,max:600,p:160,s:6.4},
-  {n:'幻海の主 リヴァイアサン',boss:1,e:'🐉',a:5,w:0,min:1500,max:3000,p:110,s:5.4}];
+  {n:'堤防の主 ヌシダイ',boss:1,d:['#c9a227','#f2e3a0','r','h','#7a5c10','bigeye'],a:0,w:0,min:70,max:100,p:75,s:2.8},
+  {n:'海原の主 オオブリ',boss:1,d:['#2f4f4f','#e8e8d8','b','h','#ffd24a'],a:1,w:0,min:130,max:180,p:90,s:6.3},
+  {n:'深海の主 ダイオウイカ',boss:1,e:'🦑',a:2,w:0,min:400,max:700,p:120,s:6.8},
+  {n:'珊瑚の主 オオハタ',boss:1,d:['#7a2f2f','#d9a0a0','r','p','#f0d0d0','bigeye'],a:3,w:0,min:250,max:350,p:405,s:6.8},
+  {n:'氷海の主 白銀のチョウザメ',boss:1,d:['#9fb4c8','#eef4fa','t','p','#5a6f85'],a:4,w:0,min:400,max:600,p:480,s:6.4},
+  {n:'幻海の主 リヴァイアサン',boss:1,e:'🐉',a:5,w:0,min:1500,max:3000,p:330,s:5.4}];
 const UP=[
-  {k:'rod',n:'釣り竿',d:'巻き上げが速くなる',c:[600,1500,4000,10000,25000]},
-  {k:'line',n:'釣り糸',d:'テンションが上がりにくい',c:[400,1200,3500,9000,22000]},
-  {k:'bait',n:'エサ',d:'アタリが早く、珍しい魚が寄る',c:[300,1000,3000,8000,20000]},
-  {k:'cool',n:'クーラーボックス',d:'魚箱+5、鮮度が落ちにくい',c:[500,1500,4000,10000,24000]},
-  {k:'mkt',n:'市場コネ',d:'売値+5%',c:[1000,3000,8000,20000,50000]}];
+  {k:'rod',n:'釣り竿',d:'巻き上げが速くなる',at:'道具小屋の中の竿が増える',c:[600,1500,4000,10000,25000]},
+  {k:'line',n:'釣り糸',d:'テンションが上がりにくい',at:'道具小屋の棚のリールが増える',c:[400,1200,3500,9000,22000]},
+  {k:'bait',n:'エサ',d:'アタリが早く、珍しい魚が寄る',at:'小屋の前のエサバケツが増える',c:[300,1000,3000,8000,20000]},
+  {k:'cool',n:'クーラーボックス',d:'魚箱+5、鮮度が落ちにくい',at:'小屋の横にクーラーボックスが積まれる',c:[500,1500,4000,10000,24000]},
+  {k:'mkt',n:'直売所',d:'魚の売値が+5%',at:'自宅の「直売所」の屋台が大きく育つ',c:[1000,3000,8000,20000,50000]}];
 const BOATS=[{n:'小型ボート',c:3000,d:'沖合に出られる'},{n:'大型漁船',c:25000,d:'深海に出られる'},{n:'クルーザー',c:90000,d:'サンゴ礁の島に出られる'},{n:'砕氷船',c:260000,d:'氷海に出られる'},{n:'ムーンクラフト',c:700000,d:'幻の海域に出られる'}];
 // [必要売上, 名前, 特典, 説明]  特典: gold祝い金 cap魚箱 sell売値% rare珍しい魚 tens糸の強さ% reel巻き上げ%
 const RANKS=[
@@ -244,7 +244,7 @@ const tier=sp=>sp.boss?4:sp.w<=3?3:sp.w<=6?2:sp.w<=12?1:0;
 const TIER=[null,{n:'レア',c:'#6cc4ff'},{n:'超レア',c:'#c08cff'},{n:'伝説',c:'#ffd24a'},{n:'主',c:'#ff5a4e'}];
 const NORM=SP.filter(s=>!s.boss),areaSp=a=>NORM.filter(s=>s.a===a),bossOf=a=>SP.find(s=>s.boss&&s.a===a);
 const COMP=[{g:3000,bp:2},{g:10000,bp:3},{g:30000,bp:4},{g:80000,bp:5},{g:200000,bp:6},{g:500000,bp:8}];
-const BOSSB=[{g:8000,bp:3},{g:30000,bp:4},{g:90000,bp:5},{g:240000,bp:6},{g:600000,bp:8},{g:1500000,bp:10}];
+const BOSSB=[{g:20000,bp:3},{g:75000,bp:4},{g:225000,bp:5},{g:600000,bp:6},{g:1500000,bp:8},{g:4000000,bp:10}];
 const tag=sp=>{const t=tier(sp);return t?`<span class="tag" style="background:${TIER[t].c}">${TIER[t].n}</span>`:''};
 const GOAL=1000000, ATTEMPT_MIN=40, DAY_END=1080;
 const DIFF=[.8,1,1.3], DIFFN=['かんたん','ふつう','むずかしい'];
@@ -377,7 +377,12 @@ function fightStep(dt){
   else say(S.holding?'今だ、巻け！':'落ち着いた。巻こう！');
 }
 const trophyBonus=()=>[0,.1,.2,.35][G.fac.trophy];
-function expGain(sp,size,newSp){const r=sizeRatio(sp,size);return Math.round(((8+sp.s*7+tier(sp)*20+(newSp?25:0))*(.6+.9*r)+(r>=.9?10:0))*(1+trophyBonus()))}
+function expGain(sp,size,newSp){
+  const r=sizeRatio(sp,size),tb=1+trophyBonus();
+  let e=Math.round(((8+sp.s*7+tier(sp)*20+(newSp?25:0))*(.6+.9*r)+(r>=.9?10:0))*tb);
+  if(sp.boss)e+=Math.round((expNeed(G.level)*(1+.3*sp.a)+e*4)*tb);
+  return e;
+}
 function growRoll(){const r=Math.random();return r<.15?0:r<.7?1:r<.95?2:3}
 function addExp(n){
   G.exp+=n;let up=0;const tot={};ST.forEach(s=>tot[s.k]=0);
@@ -587,6 +592,9 @@ function renderSell(){
     return `<div class="ln"><span>${ico(s)}${s.n}</span><span class="num">×${m.toFixed(2)} <span class="${d>=0?'up':'down'}">${d>=0?'▲':'▼'}</span></span></div>`}).join('');
   $('#p-sell').innerHTML=`<h2>魚箱（${G.fish.length}/${cap()}）</h2><p style="color:var(--sub);font-size:.8rem;margin:0 0 8px">大きい魚（★が多い魚）ほど高く売れます。</p>
     <button class="big" id="sellall" ${G.fish.length?'':'disabled'}>すべて売る ${yen(total)}</button>
+    <div class="card" style="margin:10px 0 0;font-size:.82rem"><b>売値ボーナス</b>
+      <div class="kv" style="margin-top:6px"><span>直売所 Lv${G.lv.mkt}（自宅・設備タブで強化）</span><b class="num">+${5*G.lv.mkt}%</b><span>ランク特典</span><b class="num">+${perks().sell}%</b><span>エリアコンプ（そのエリアの魚のみ）</span><b class="num">+5%／エリア</b></div>
+      <div style="color:var(--sub);margin-top:6px">このほか、魚の大きさ・鮮度・今日の相場でも値段が変わります。</div></div>
     <div class="list" style="margin-top:10px">${items||'<p style="color:var(--sub)">魚箱は空です。釣りに出よう。</p>'}</div>
     <h2>今日の相場</h2><div>${market}</div>`;
   $('#p-sell').querySelectorAll('.buy').forEach(b=>b.onclick=()=>sell([+b.dataset.i]));
@@ -601,7 +609,7 @@ function renderShop(){
   const ups=UP.map(u=>{
     const lv=G.lv[u.k],max=lv>=u.c.length,c=u.c[lv];
     return `<div class="item"><div class="t">${u.n} <span class="num">Lv${lv}${max?' MAX':''}</span></div>
-      <button class="buy" data-up="${u.k}" ${max||G.money<c?'disabled':''}>${max?'—':yen(c)}</button><div class="s">${u.d}</div></div>`}).join('');
+      <button class="buy" data-up="${u.k}" ${max||G.money<c?'disabled':''}>${max?'—':yen(c)}</button><div class="s">${u.d}<br><span style="opacity:.8">自宅での見え方：${u.at}</span></div></div>`}).join('');
   const b=BOATS[G.boat];
   const boat=b?`<div class="item"><div class="t">${b.n}</div><button class="buy" data-boat="1" ${G.money<b.c?'disabled':''}>${yen(b.c)}</button><div class="s">${b.d}</div></div>`
     :`<div class="item"><div class="t">${BOATS[BOATS.length-1].n} 保有中</div><div class="s">すべての海域に出られる</div></div>`;
@@ -626,11 +634,16 @@ function renderDex(){
     AREAS.map((a,i)=>{const l=areaSp(i),f=l.filter(s=>G.dex[s.n]).length,bs=bossOf(i);
       return `<h2>${a.name} <span class="num">${f}/${l.length}</span>${G.comp[i]?' <span class="tag" style="background:var(--good)">コンプ</span>':''}</h2><div class="dex">${l.map(card).join('')}${G.dex[bs.n]?card(bs):lock(bs,i)}</div>`}).join('');
 }
-function renderAll(){renderAreas();renderSell();renderShop();renderHome();renderStat();renderDex();hud()}
+let curTab='fish',ptrDown=false,dirty=false;
+const TABR={fish:renderAreas,sell:renderSell,home:()=>{renderHome();renderShop()},stat:renderStat,dex:renderDex,set:()=>{}};
+function renderAll(){hud();if(ptrDown){dirty=true;return}dirty=false;(TABR[curTab]||(()=>{}))()}
+addEventListener('pointerdown',()=>{ptrDown=true},true);
+['pointerup','pointercancel'].forEach(ev=>addEventListener(ev,()=>{ptrDown=false;if(dirty)setTimeout(()=>{if(!ptrDown&&dirty)renderAll()},150)},true));
 function openTab(k){
   document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab===k));
   ['fish','sell','home','stat','dex','set'].forEach(t=>$('#p-'+t).hidden=t!==k);
-  if(k==='set')renderSet();
+  curTab=k;
+  if(k==='set')renderSet();else if(TABR[k])TABR[k]();
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 /* ---------- home ---------- */
@@ -708,7 +721,7 @@ function toolsArt(c,ts){
   if(m>0){const ah=18+m*2;for(let i=0;i<6;i++){c.fillStyle=i%2?'#f2e8d0':(m>=4?'#d9503f':'#4a8fd9');c.fillRect(x0+i*(w/6),176-ah,w/6,ah-4)}
     c.fillStyle='#5a4028';c.fillRect(x0,172-ah,2,ah+28);c.fillRect(x0+w-2,172-ah,2,ah+28)}
   const fl=G.fish.slice(0,3).map(f=>SP.find(s=>s.n===f.n));fl.forEach((sp,i)=>drawSp(c,sp,x0+12+i*15,174,16));
-  c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';c.textAlign='center';c.fillText('道具小屋',338,126);c.fillText(m?`直売所 Lv${m}`:'直売所',x0+w/2,m?158-m*2:170);c.textAlign='left';
+  c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';c.textAlign='center';c.fillText('道具小屋',338,126);c.textAlign='right';c.fillText(m?`直売所 Lv${m}（売値+${5*m}%）`:'直売所（未強化）',478,m?158-m*2:170);c.textAlign='left';
 }
 function tankArt(c,ts){
   const lv=G.fac.tank,x=12,y=208,w=60+lv*45,h=38+lv*5;
@@ -817,7 +830,7 @@ const HELP=[
  {t:'設備を強化する',b:'<p><span class="k">自宅・設備</span>タブでお金を使って強化できます。</p><ol><li><b>釣り竿</b>：巻き上げが速くなる</li><li><b>釣り糸</b>：テンションが上がりにくい</li><li><b>エサ</b>：アタリが早く、珍しい魚が寄る</li><li><b>クーラーボックス</b>：魚箱が広がり、鮮度も保てる</li><li><b>漁師を雇う</b>：釣り場でいっしょに釣って稼いでくれる（給料もかかる）</li></ol>'},
  {t:'新しい海域へ',b:'<ol><li><span class="k">自宅・設備</span>タブの「船」で次の船を買うと、新しい海域に出られます</li><li>小型ボート（¥3,000）で沖合、大型漁船（¥25,000）で深海</li><li>さらにクルーザーでサンゴ礁の島、砕氷船で氷海、ムーンクラフトで幻の海域</li><li>買ったら<span class="k">釣り</span>タブの海域ボタンで行き先を選ぶ</li></ol><p>先の海域ほど、高く売れる大きな魚がいます。</p>'},
  {t:'レアな魚',b:'<p>海域ごとに、めったに釣れないレアな魚がいます。<span class="tag" style="background:#6cc4ff">レア</span><span class="tag" style="background:#c08cff">超レア</span><span class="tag" style="background:#ffd24a">伝説</span></p><p>レアな魚がかかると、アタリの時点で気配が違います。釣り上げると派手な演出が出ます。図鑑でまだ釣っていない魚を探しましょう。エサの強化やランクの特典で、珍しい魚が寄りやすくなります。</p>'},
- {t:'エリアコンプと主',b:'<p>海域にいる魚を<b>全種類</b>釣ると<b>コンプボーナス</b>がもらえます（祝い金・BP・その海域の魚の売値+5%）。</p><p>コンプすると、その海域に低確率で<b>主</b>が現れます。主はとても強く、先の海域の主ほど手強くなります。アタリの気配が違うので、準備を整えて挑もう。初めて釣り上げると、討伐ボーナスがもらえます。</p>'},
+ {t:'エリアコンプと主',b:'<p>海域にいる魚を<b>全種類</b>釣ると<b>コンプボーナス</b>がもらえます（祝い金・BP・その海域の魚の売値+5%）。</p><p>コンプすると、その海域に低確率で<b>主</b>が現れます。主はとても強く、先の海域の主ほど手強くなります。アタリの気配が違うので、準備を整えて挑もう。初めて釣り上げると、討伐ボーナスがもらえます。主は売値も経験値も桁違いです。</p>'},
  {t:'レベルとステータス',b:'<p>魚を釣ると<b>経験値</b>がもらえ、たまると<b>レベル</b>が上がります（ランクとは別です）。</p><ol><li>レベルが上がると、各ステータスがランダムに上がる（0〜3ずつ）</li><li>同時に<b>BP</b>が3もらえる</li><li><span class="k">ステータス</span>タブで、BPを好きなステータスに振り分ける</li></ol><p><b>力</b>は巻き上げ、<b>体力</b>はテンション、<b>素早さ</b>はアタリ、<b>器用さ</b>は寄せ戻され、<b>運</b>はレア魚に効きます。</p>'},
  {t:'自宅と施設',b:'<p>1日が終わると<b>自宅</b>に帰ります。<span class="k">自宅・設備</span>タブでは、道具・船・漁師・施設が並んでいる様子が見られます。施設や設備もここで買えます。</p><ol><li><b>自宅</b>：大きくすると雇える漁師が増える</li><li><b>生け簀</b>：売れ残りの魚を鮮度そのまま保管</li><li><b>魚拓棚</b>：釣った魚を飾り、経験値ボーナス</li></ol><p>眠ると朝になり、次の日の釣りが始まります。</p>'},
  {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜は給料を払って自宅に帰り、施設を整えて眠ると朝になります。相場も毎日変わります。</p><p>売上が増えるとランクが上がり、<b>祝い金と特典</b>（売値アップ、魚箱拡大など）がもらえます。画面上部のランクをタップすると一覧が見られます。それでは、いってらっしゃい！</p>'}];
