@@ -52,7 +52,7 @@ h2{font-size:1rem;margin:18px 0 8px;font-weight:900}
 .up{color:var(--good)}.down{color:var(--bad)}
 .big{background:var(--accent);color:#2b1a00;border:0;border-radius:10px;padding:10px 14px;font-weight:900;width:100%}
 .big:disabled{background:var(--line);color:var(--sub)}
-.dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
 .dex .item{grid-template-columns:auto 1fr;text-align:left}
 .dex .off{filter:grayscale(1) brightness(.5)}
 #veil{position:fixed;inset:0;background:rgba(5,14,22,.82);display:grid;place-items:center;padding:16px;z-index:5}
@@ -84,21 +84,43 @@ img.ic{width:48px;height:27px;object-fit:contain;vertical-align:middle;margin-ri
 .help .k{background:var(--panel2);border-radius:6px;padding:1px 7px;font-weight:900;white-space:nowrap}
 .dots{color:var(--sub);text-align:center;margin:10px 0 0;font-size:.8rem}
 .rank .nx{font-size:.78rem}
+body.big{font-size:17px}
+nav button{position:relative;font-size:.88rem;padding-inline:2px}
+nav .dot{position:absolute;top:-6px;right:-3px;background:var(--bad);color:#fff;font-style:normal;font-size:.65rem;font-weight:900;border-radius:999px;min-width:18px;padding:1px 4px;line-height:1.3}
+.lvrow{width:100%;display:flex;gap:10px;align-items:center;color:var(--sub);font-size:.8rem;cursor:pointer}
+.lvrow b{color:var(--fg)}
+.lvrow .bar>i{background:var(--good)}
+.lvrow .nx{font-size:.78rem}
+#hv{margin-bottom:10px}
+.stars{color:var(--accent);letter-spacing:.05em}
+.stat .item{grid-template-columns:1fr auto}
+.plus{background:var(--accent);color:#2b1a00;border:0;border-radius:8px;width:44px;height:44px;font-weight:900;font-size:1.3rem;grid-row:span 3}
+.plus:disabled{background:var(--line);color:var(--sub);cursor:default}
+.item .chip{grid-row:span 2}
+textarea{width:100%;min-height:76px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:8px;font-family:var(--mono);font-size:.75rem;resize:vertical}
+.card{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:10px}
+.card .big{margin-top:8px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem}
+.kv span:nth-child(odd){color:var(--sub)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}#banner.show{animation:none;opacity:1}}
 </style>
 
 <header>
-  <h1>海風フィッシャリー</h1><span class="hb"><button class="ghost" id="snd">音 ON</button><button class="ghost" id="help">遊び方</button></span>
+  <h1>海風フィッシャリー</h1><span class="hb"><button class="ghost" id="help">遊び方</button></span>
   <div class="hud"><span><b id="day" class="num">1</b>日目</span><span id="clock" class="num">6:00</span><span id="money" class="num">¥500</span></div>
   <div class="rank" id="rankbox" role="button" tabindex="0" aria-label="ランクと特典を見る"><span id="rank">見習い漁師</span><div class="bar"><i id="goal"></i></div><span class="nx" id="goalv"></span></div>
   <div class="perkline" id="perk"></div>
+  <div class="lvrow" id="lvrow" role="button" tabindex="0" aria-label="ステータスを見る"><span>Lv.<b id="lv" class="num">1</b></span><div class="bar"><i id="xp"></i></div><span class="nx" id="xpv"></span></div>
 </header>
 
 <nav role="tablist">
   <button role="tab" data-tab="fish" aria-selected="true">釣り</button>
   <button role="tab" data-tab="sell" aria-selected="false">市場</button>
   <button role="tab" data-tab="shop" aria-selected="false">設備</button>
+  <button role="tab" data-tab="home" aria-selected="false">自宅</button>
+  <button role="tab" data-tab="stat" aria-selected="false">ステータス</button>
   <button role="tab" data-tab="dex" aria-selected="false">図鑑</button>
+  <button role="tab" data-tab="set" aria-selected="false">設定</button>
 </nav>
 
 <section id="p-fish">
@@ -116,7 +138,10 @@ img.ic{width:48px;height:27px;object-fit:contain;vertical-align:middle;margin-ri
 
 <section id="p-sell" hidden></section>
 <section id="p-shop" hidden></section>
+<section id="p-home" hidden><canvas id="hv" width="480" height="340"></canvas><div id="homeUi"></div></section>
+<section id="p-stat" class="stat" hidden></section>
 <section id="p-dex" hidden></section>
+<section id="p-set" hidden></section>
 
 <div id="toast" hidden></div>
 <div id="veil" hidden><div class="box" id="box"></div></div>
@@ -179,7 +204,23 @@ const AVG=AREAS.map((_,a)=>{const l=SP.filter(s=>s.a===a);return l.reduce((x,s)=
 const tier=sp=>sp.w<=3?3:sp.w<=6?2:sp.w<=12?1:0;
 const TIER=[null,{n:'レア',c:'#6cc4ff'},{n:'超レア',c:'#c08cff'},{n:'伝説',c:'#ffd24a'}];
 const tag=sp=>{const t=tier(sp);return t?`<span class="tag" style="background:${TIER[t].c}">${TIER[t].n}</span>`:''};
-const GOAL=1000000, ATTEMPT_MIN=40, DAY_END=1080, MAX_CREW=10;
+const GOAL=1000000, ATTEMPT_MIN=40, DAY_END=1080;
+const DIFF=[.8,1,1.3], DIFFN=['かんたん','ふつう','むずかしい'];
+const sx=k=>G.stat[k]-1;
+// レベルアップで全ステータス+1、BP+3。BPは好きなステータスに振れる。
+const ST=[
+  {k:'str',n:'力',d:'巻き上げの力。魚を寄せるスピードが上がります。',fx:v=>`巻き上げ速度 +${4*v}%`},
+  {k:'vit',n:'体力',d:'魚の引きに耐える力。テンションが上がりにくくなります。',fx:v=>`テンション上昇 -${Math.round(Math.min(.6,.025*v)*100)}%`},
+  {k:'agi',n:'素早さ',d:'アタリへの反応の速さ。アタリが早く来て、アワセの猶予も伸びます。',fx:v=>`アタリまで -${Math.round((1-1/(1+.03*v))*100)}%・アワセ猶予 +${(.04*v).toFixed(2)}秒`},
+  {k:'dex',n:'器用さ',d:'糸さばきの上手さ。暴れる魚に寄せ戻されにくく、テンションも下がりやすくなります。',fx:v=>`寄せ戻され -${Math.round((1-Math.max(.3,1-.04*v))*100)}%・テンション回復 +${3*v}%`},
+  {k:'luk',n:'運',d:'レア魚や大物との出会いやすさ。',fx:v=>`レア魚の出現 +${10*v}%・大物サイズが出やすい`}];
+const expNeed=l=>30+6*l*l;
+const tankCap=l=>[0,3,6,10,15][l];
+const FAC=[
+  {k:'house',n:'自宅',d:'住まいが大きくなります。雇える漁師の人数が増えます。',names:['テント','小屋','木造の家','立派な家'],c:[2000,8000,30000],eff:l=>`雇える漁師 ${4+2*l}人まで`},
+  {k:'tank',n:'生け簀',d:'売れ残った魚を元気なまま保管します。夜でも鮮度が落ちません。',names:['なし','小さな生け簀','生け簀','大きな生け簀','巨大な生け簀'],c:[1500,6000,20000,60000],eff:l=>l?`${tankCap(l)}匹まで鮮度を保つ`:'なし'},
+  {k:'trophy',n:'魚拓棚',d:'釣った魚の魚拓を飾ります。眺めて楽しいうえに、経験値のボーナスも。',names:['なし','小さな棚','魚拓棚','魚拓の壁'],c:[2500,10000,40000],eff:l=>`経験値 +${[0,10,20,35][l]}%`}];
+const crewMax=()=>4+2*G.fac.house;
 
 /* ---------- state ---------- */
 const KEY='umikaze-fishery-v1';
@@ -188,8 +229,19 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,seen:0,mute:0,rankGot:0,crewToday:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1){s.mult=s.mult||{};s.prev=s.prev||{};SP.forEach(x=>{if(!(x.n in s.mult))s.mult[x.n]=1;if(!(x.n in s.prev))s.prev[x.n]=s.mult[x.n]});s.catches=s.catches||0;s.crewToday=s.crewToday||0;s.mute=s.mute||0;if(s.rankGot===undefined)s.rankGot=RANKS.filter(r=>(s.earned||0)>=r[0]).length-1;return s}}catch(e){}return null}
+  return{v:1,seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0},rankGot:0,crewToday:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+function migrate(s){
+  if(!s||s.v!==1)return null;
+  const rg=s.rankGot===undefined?RANKS.filter(r=>(s.earned||0)>=r[0]).length-1:s.rankGot;
+  const f=fresh();
+  for(const k in f)if(s[k]===undefined)s[k]=f[k];
+  for(const k of['stat','alloc','fac','lv'])s[k]=Object.assign({},f[k],s[k]);
+  SP.forEach(x=>{if(!(x.n in s.mult))s.mult[x.n]=1;if(!(x.n in s.prev))s.prev[x.n]=s.mult[x.n]});
+  Object.values(s.dex).forEach(d=>{if(d.min===undefined)d.min=d.best});
+  s.rankGot=rg;if(s.min>=DAY_END)s.home=1;
+  return s;
+}
+function load(){try{return migrate(JSON.parse(localStorage.getItem(KEY)))}catch(e){return null}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(G))}catch(e){}}
 let G=load()||fresh();
 const cap=()=>8+5*G.lv.cool+perks().cap;
@@ -227,7 +279,7 @@ function price(fi){
 /* ---------- fishing core ---------- */
 function pickSpecies(area=G.area){
   const list=SP.filter(s=>s.a===area);
-  const bt=G.lv.bait+perks().rare;
+  const bt=G.lv.bait+perks().rare+.4*sx('luk');
   const ws=list.map(s=>s.w*(s.w<=12?1+.25*bt:1));
   let r=Math.random()*ws.reduce((a,b)=>a+b,0);
   for(let i=0;i<list.length;i++){r-=ws[i];if(r<=0)return list[i]}
@@ -236,10 +288,11 @@ function pickSpecies(area=G.area){
 function say(t){$('#msg').textContent=t}
 function press(){
   if(veilOpen())return;
+  if(G.home){toast('夜です。自宅で休んで朝を迎えよう');openTab('home');return}
   switch(S.st){
     case'idle':
       if(G.fish.length>=cap()){say('魚箱がいっぱい。市場で売ろう。');return}
-      S.st='wait';S.t=rnd(1.2,3.5)/(1+.2*G.lv.bait);say('浮きを見守ろう…');break;
+      S.st='wait';S.t=rnd(1.2,3.5)/(1+.2*G.lv.bait+.03*sx('agi'));say('浮きを見守ろう…');break;
     case'wait':
       S.st='idle';say('早すぎた。仕掛けを引き上げた。');break;
     case'bite':hook();break;
@@ -251,7 +304,7 @@ function press(){
 function release(){S.holding=false}
 function rollFish(){
   const sp=pickSpecies();
-  S.sp=sp;S.size=Math.round(sp.min+(sp.max-sp.min)*Math.pow(Math.random(),1.8));S.tier=tier(sp);
+  S.sp=sp;S.size=Math.round(sp.min+(sp.max-sp.min)*Math.pow(Math.random(),Math.max(1.1,1.8-.015*sx('luk'))));S.tier=tier(sp);
 }
 function hook(){
   const sp=S.sp,ratio=(S.size-sp.min)/(sp.max-sp.min);
@@ -264,11 +317,11 @@ function fightStep(dt){
   f.timer-=dt;
   if(f.timer<=0){f.struggle=!f.struggle;f.timer=f.struggle?rnd(.6,1.4):rnd(.8,1.8)}
   if(S.holding){
-    f.prog+=16*(1+.3*rod+pk.reel/100)*(eas<1?1.25:1)/(.5+.5*f.pw)*(f.struggle?.3:1)*dt;
-    f.tens+=(f.struggle?60:20)*(.6+.4*f.pw)*eas*(1-pk.tens/100)/(1+.25*line)*dt;
+    f.prog+=16*(1+.3*rod+pk.reel/100)*(1+.04*sx('str'))*(eas<1?1.25:1)/(.5+.5*f.pw)*(f.struggle?.3:1)*dt;
+    f.tens+=(f.struggle?60:20)*(.6+.4*f.pw)*eas*(1-pk.tens/100)*(1-Math.min(.6,.025*sx('vit')))*DIFF[G.diff]/(1+.25*line)*dt;
   }else{
-    f.tens-=45*dt;
-    f.prog-=(f.struggle?10*f.pw*eas:2*eas)*dt;
+    f.tens-=45*(1+.03*sx('dex'))*dt;
+    f.prog-=(f.struggle?10*f.pw*eas:2*eas)*Math.max(.3,1-.04*sx('dex'))*dt;
   }
   f.tens=clamp(f.tens,0,100);f.prog=Math.min(f.prog,100);
   if(f.tens>=100){S.ok=false;say('糸が切れた…！');end(false)}
@@ -277,16 +330,25 @@ function fightStep(dt){
   else if(f.struggle)say(S.holding?'暴れてる！ 離して！':'暴れてる…耐えろ');
   else say(S.holding?'今だ、巻け！':'落ち着いた。巻こう！');
 }
+const trophyBonus=()=>[0,.1,.2,.35][G.fac.trophy];
+function expGain(sp,size,newSp){const r=(size-sp.min)/(sp.max-sp.min);return Math.round((8+sp.s*7+tier(sp)*20+r*12+(size>=sp.max*.9?10:0)+(newSp?25:0))*(1+trophyBonus()))}
+function addExp(n){
+  G.exp+=n;let up=0;
+  while(G.exp>=expNeed(G.level)&&G.level<99){G.exp-=expNeed(G.level);G.level++;up++;ST.forEach(s=>G.stat[s.k]++);G.bp+=3}
+  if(up){banner('LEVEL UP！',`Lv.${G.level}　全ステータス+1・BP+${3*up}`,'#5fdc9c');toast(`レベルアップ！ Lv.${G.level} ステータスタブでBPを振り分けよう`);sfx(3)}
+}
 function landed(){
   const sp=S.sp;
   G.fish.push({n:sp.n,size:S.size,fresh:100});G.catches++;
   const newSp=!G.dex[sp.n];
-  const d=G.dex[sp.n]||(G.dex[sp.n]={c:0,best:0});
-  const rec=!newSp&&S.size>d.best;d.c++;d.best=Math.max(d.best,S.size);
+  const d=G.dex[sp.n]||(G.dex[sp.n]={c:0,best:0,min:9999});
+  const rec=!newSp&&S.size>d.best;d.c++;d.best=Math.max(d.best,S.size);d.min=Math.min(d.min,S.size);
   const big=S.size>=sp.max*.9,t=tier(sp);
+  const xp=expGain(sp,S.size,newSp);
   const left=SP.filter(s=>s.a===sp.a&&!G.dex[s.n]).length;
-  say(`${t?TIER[t].n+'！ ':''}${sp.n} ${S.size}cm を釣った！${big?'大物！':''}${newSp?` 新種！（この海域 あと${left}種）`:''}${rec?' 自己記録！':''}（${yen(price(G.fish[G.fish.length-1]))}）`);
+  say(`${t?TIER[t].n+'！ ':''}${sp.n} ${S.size}cm を釣った！${big?'大物！':''}${newSp?` 新種！（この海域 あと${left}種）`:''}${rec?' 自己記録！':''}（${yen(price(G.fish[G.fish.length-1]))}）+${xp}EXP`);
   celebrate(sp,S.size,newSp,big);
+  addExp(xp);
   S.ok=true;end(true);
 }
 function end(){
@@ -305,8 +367,14 @@ function label(){
 /* ---------- effects ---------- */
 const FX={flash:0,shake:0,rain:0,col:'#fff'},PT=[];
 const TIP={x:120,y:72};
-let banT;
-function banner(a,b,c){const e=$('#banner');e.querySelector('b').textContent=a;e.querySelector('span').textContent=b;e.style.color=c;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');clearTimeout(banT);banT=setTimeout(()=>e.classList.remove('show'),2800)}
+let banT,banBusy=false;const banQ=[];
+function banner(a,b,c){
+  if(banBusy){banQ.push([a,b,c]);return}
+  banBusy=true;
+  const e=$('#banner');e.querySelector('b').textContent=a;e.querySelector('span').textContent=b;e.style.color=c;
+  e.classList.remove('show');void e.offsetWidth;e.classList.add('show');
+  clearTimeout(banT);banT=setTimeout(()=>{e.classList.remove('show');banBusy=false;if(banQ.length)banner(...banQ.shift())},2800);
+}
 let AC;
 const JING=[[660,880],[523,659,784],[523,659,784,1047],[523,659,784,1047,1319],[523,659,784,1047,1319,1568,2093]];
 function sfx(l){
@@ -318,7 +386,7 @@ function sfx(l){
       o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+.32)});
   }catch(e){}
 }
-function vibe(t){try{navigator.vibrate&&navigator.vibrate(t>=2?[60,40,60,40,120]:[60])}catch(e){}}
+function vibe(t){if(G.noVib)return;try{navigator.vibrate&&navigator.vibrate(t>=2?[60,40,60,40,120]:[60])}catch(e){}}
 function burst(n,c,t){
   for(let i=0;i<n;i++){const a=rnd(-Math.PI,0)+rnd(-.3,.3),v=rnd(80,260+t*60);
     PT.push({x:TIP.x+50,y:112,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:320,life:rnd(.9,1.8),c:Math.random()<.3?'#fff':c,r:rnd(1.5,3.5+t),s:Math.random()<.4})}
@@ -327,8 +395,7 @@ function burst(n,c,t){
 function celebrate(sp,size,newSp,big){
   const t=tier(sp),c=t?TIER[t].c:newSp?'#5fdc9c':'#ffb454';
   if(t||newSp||big)banner(t?`${'★'.repeat(t)} ${TIER[t].n}！`:newSp?'新種発見！':'大物！',`${sp.n} ${size}cm${newSp&&t?'　新種！':''}`,c);
-  burst(t?30+t*45:newSp?40:big?30:10,c,t);
-  FX.col=c;FX.flash=t?.45+t*.1:newSp?.3:0;FX.shake=t>=2?.7:0;FX.rain=t===3?2.5:0;
+  if(!G.noFx){burst(t?30+t*45:newSp?40:big?30:10,c,t);FX.col=c;FX.flash=t?.45+t*.1:newSp?.3:0;FX.shake=t>=2?.7:0;FX.rain=t===3?2.5:0}
   sfx(t?t+1:newSp?1:0);if(t)vibe(t);
 }
 
@@ -358,11 +425,12 @@ function veilOpen(){return !$('#veil').hidden}
 function dayEnd(){
   const area=AREAS[G.boat];
   flushCrew();
-  const haul=G.crewToday;
+  const haul=G.crewToday;G.crewToday=0;G.home=1;
   const wage=G.crew*area.wage;
   const rot=[];
   const decay=Math.max(8,30-5*G.lv.cool);
-  G.fish.forEach(f=>f.fresh-=decay);
+  const keep=new Set(G.fish.map((f,i)=>({i,p:price(f)})).sort((a,b)=>b.p-a.p).slice(0,tankCap(G.fac.tank)).map(x=>x.i));
+  G.fish.forEach((f,i)=>{if(!keep.has(i))f.fresh-=decay});
   const spoiled=G.fish.filter(f=>f.fresh<=0).length;
   G.fish=G.fish.filter(f=>f.fresh>0);
   const pay=Math.min(wage,G.money);G.money-=pay;
@@ -371,12 +439,17 @@ function dayEnd(){
   $('#box').innerHTML=`<h3>${G.day}日目 終了</h3>
     <div class="ln"><span>従業員の水揚げ（${G.crew}人・今日の合計）</span><b class="num up">+${yen(haul)}</b></div>
     <div class="ln"><span>給料</span><b class="num down">-${yen(pay)}</b></div>
-    <div class="ln"><span>傷んで捨てた魚</span><b class="num">${spoiled}匹</b></div>
+    <div class="ln"><span>傷んで捨てた魚</span><b class="num">${spoiled}匹</b></div>${keep.size?`<div class="ln"><span>生け簀で守った魚</span><b class="num">${keep.size}匹</b></div>`:''}
     <div class="ln"><span>明日の注目</span><b>${hot.n}が値上がり</b></div>
     <p style="color:var(--sub);font-size:.85rem">売れ残りの魚は一晩ごとに鮮度が落ち、値段も下がります。</p>
-    <button class="big" id="nextday">${G.day+1}日目の朝へ</button>`;
+    <button class="big" id="nextday">自宅に帰る</button>`;
   $('#veil').hidden=false;
-  $('#nextday').onclick=()=>{G.crewToday=0;G.day++;G.min=360;S.st='idle';$('#veil').hidden=true;say('');save();hud();renderAll();label()};
+  $('#nextday').onclick=()=>{S.st='idle';$('#veil').hidden=true;say('夜です。自宅で休もう。');save();hud();renderAll();label();openTab('home')};
+  save();hud();
+}
+function sleep(){
+  G.day++;G.min=360;G.home=0;S.st='idle';save();hud();renderAll();label();
+  say('新しい朝。今日も釣りに出よう。');openTab('fish');toast(`${G.day}日目の朝`);
 }
 
 /* ---------- fish art ---------- */
@@ -418,7 +491,7 @@ const ico=(sp,cls='')=>`<img class="ic ${cls}" src="${icon(sp)}" alt="">`;
 /* ---------- ui ---------- */
 function hud(){
   $('#day').textContent=G.day;
-  $('#clock').textContent=`${Math.floor(G.min/60)}:${String(G.min%60).padStart(2,'0')}`;
+  $('#clock').textContent=G.home?'夜':`${Math.floor(G.min/60)}:${String(G.min%60).padStart(2,'0')}`;
   $('#money').textContent=yen(G.money);
   const ri=rankIdx(),nx=RANKS[ri+1];
   $('#rank').textContent=RANKS[ri][1];
@@ -428,6 +501,9 @@ function hud(){
   document.querySelector('[data-tab=sell]').textContent=G.fish.length?`市場(${G.fish.length})`:'市場';
   hint();
   $('#cap').textContent=`${G.fish.length}/${cap()}`;
+  $('#lv').textContent=G.level;$('#xp').style.width=Math.min(100,G.exp/expNeed(G.level)*100)+'%';
+  $('#xpv').textContent=`次のLvまで${expNeed(G.level)-G.exp}EXP${G.bp?`・BP ${G.bp}`:''}`;
+  document.querySelector('[data-tab=stat]').innerHTML=`ステータス${G.bp?`<i class="dot">${G.bp}</i>`:''}`;
 }
 function renderAreas(){
   $('#areas').innerHTML=AREAS.map((a,i)=>`<button class="chip" data-area="${i}" aria-pressed="${G.area===i}">${i>G.boat?'🔒 ':''}${a.name} <span class="num">${SP.filter(s=>s.a===i&&G.dex[s.n]).length}/${SP.filter(s=>s.a===i).length}</span></button>`).join('');
@@ -464,29 +540,195 @@ function renderShop(){
   const boat=b?`<div class="item"><div class="t">${b.n}</div><button class="buy" data-boat="1" ${G.money<b.c?'disabled':''}>${yen(b.c)}</button><div class="s">${b.d}</div></div>`
     :`<div class="item"><div class="t">大型漁船 保有中</div><div class="s">すべての海域に出られる</div></div>`;
   const cc=Math.round(1500*Math.pow(1.6,G.crew)/100)*100,w=AREAS[G.boat].wage,h=AREAS[G.boat].base;
-  const crew=`<div class="item"><div class="t">漁師を雇う <span class="num">${G.crew}/${MAX_CREW}人</span></div>
-    <button class="buy" data-crew="1" ${G.crew>=MAX_CREW||G.money<cc?'disabled':''}>${G.crew>=MAX_CREW?'—':yen(cc)}</button>
-    <div class="s">いっしょに釣りに出て、1人あたり1日約${yen(h)}を稼ぐ。給料${yen(w)}/日</div></div>`;
-  $('#p-shop').innerHTML=`<h2>道具</h2><div class="list">${ups}</div><h2>船</h2><div class="list">${boat}</div><h2>人</h2><div class="list">${crew}</div>
-    <h2>データ</h2><button class="ghost" id="reset">最初からやり直す</button>`;
+  const crew=`<div class="item"><div class="t">漁師を雇う <span class="num">${G.crew}/${crewMax()}人</span></div>
+    <button class="buy" data-crew="1" ${G.crew>=crewMax()||G.money<cc?'disabled':''}>${G.crew>=crewMax()?'—':yen(cc)}</button>
+    <div class="s">いっしょに釣りに出て、1人あたり1日約${yen(h)}を稼ぐ。給料${yen(w)}/日<br>雇える人数は自宅を大きくすると増える（今は${crewMax()}人まで）</div></div>`;
+  $('#p-shop').innerHTML=`<h2>道具</h2><div class="list">${ups}</div><h2>船</h2><div class="list">${boat}</div><h2>人</h2><div class="list">${crew}</div>`;
   const sh=$('#p-shop');
   sh.querySelectorAll('[data-up]').forEach(e=>e.onclick=()=>{const u=UP.find(x=>x.k===e.dataset.up);const c=u.c[G.lv[u.k]];if(G.money>=c){G.money-=c;G.lv[u.k]++;save();hud();renderAll()}});
   sh.querySelectorAll('[data-boat]').forEach(e=>e.onclick=()=>{if(G.money>=b.c){G.money-=b.c;G.boat++;G.area=G.boat;save();hud();renderAll();toast(`${AREAS[G.boat].name}に出られます！釣りタブへ`);}});
-  sh.querySelectorAll('[data-crew]').forEach(e=>e.onclick=()=>{if(G.money>=cc&&G.crew<MAX_CREW){G.money-=cc;G.crew++;save();hud();renderAll()}});
-  $('#reset').onclick=function(){if(this.dataset.arm){G=fresh();S.st='idle';save();hud();renderAll();label();say('')}else{this.dataset.arm=1;this.textContent='本当に消す？もう一度押すと確定'}};
+  sh.querySelectorAll('[data-crew]').forEach(e=>e.onclick=()=>{if(G.money>=cc&&G.crew<crewMax()){G.money-=cc;G.crew++;save();hud();renderAll()}});
 }
+const stars=(sp,size)=>{const n=1+Math.min(4,Math.floor((size-sp.min)/(sp.max-sp.min)*5));return '★'.repeat(n)+'☆'.repeat(5-n)};
 function renderDex(){
   const got=SP.filter(s=>G.dex[s.n]).length;
-  $('#p-dex').innerHTML=`<h2>図鑑 <span class="num">${got}/${SP.length}</span></h2><div class="dex">`+SP.map(s=>{
+  $('#p-dex').innerHTML=`<h2>図鑑 <span class="num">${got}/${SP.length}</span></h2><p style="color:var(--sub);font-size:.8rem;margin:0 0 10px">★は、その魚の大きさの範囲のどのあたりかを表します（★1＝小さい、★5＝大きい）。</p><div class="dex">`+SP.map(s=>{
     const d=G.dex[s.n];
-    return `<div class="item"><img class="ic ${d?'':'off'}" src="${icon(s)}" alt=""><div class="t">${d?s.n:'？？？'}${tag(s)}</div><div class="s">${d?`最大 <span class="num">${d.best}cm</span> ×${d.c}`:AREAS[s.a].name}</div></div>`}).join('')+'</div>';
+    return `<div class="item"><img class="ic ${d?'':'off'}" src="${icon(s)}" alt=""><div class="t">${d?s.n:'？？？'}${tag(s)}</div>
+      <div class="s">${d?`最大 <span class="stars">${stars(s,d.best)}</span> <span class="num">${d.best}cm</span><br>最小 <span class="stars">${stars(s,d.min)}</span> <span class="num">${d.min}cm</span><br>×${d.c}匹　<span class="num" style="opacity:.7">(${s.min}〜${s.max}cm)</span>`:`${AREAS[s.a].name}に生息`}</div></div>`}).join('')+'</div>';
 }
-function renderAll(){renderAreas();renderSell();renderShop();renderDex();hud()}
+function renderAll(){renderAreas();renderSell();renderShop();renderHome();renderStat();renderDex();hud()}
 function openTab(k){
   document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab===k));
-  ['fish','sell','shop','dex'].forEach(t=>$('#p-'+t).hidden=t!==k);
+  ['fish','sell','shop','home','stat','dex','set'].forEach(t=>$('#p-'+t).hidden=t!==k);
+  if(k==='set')renderSet();
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
+/* ---------- home ---------- */
+function renderHome(){
+  const night=G.home;
+  const list=FAC.map(f=>{const l=G.fac[f.k],max=l>=f.c.length;
+    return `<div class="item"><div class="t">${f.n} <span class="num">Lv${l}</span> <span class="tag" style="background:var(--accent)">${f.names[l]}</span></div>
+      <button class="buy" data-fac="${f.k}" ${max||G.money<f.c[l]?'disabled':''}>${max?'MAX':yen(f.c[l])}</button>
+      <div class="s">${f.d}<br>効果：${f.eff(l)}${max?'':`　→　次：${f.eff(l+1)}`}</div></div>`}).join('');
+  $('#homeUi').innerHTML=(night?`<button class="big" id="sleep">ぐっすり眠る（${G.day+1}日目の朝へ）</button>`:`<p class="hint" style="margin-top:0">いまは日中です。夜になると、ここに帰って休み、朝を迎えます。</p>`)+
+    `<h2>施設</h2><div class="list">${list}</div>
+    <p class="hint">道具・船・漁師は「設備」タブで買うと、ここにも並びます。レベルが上がるほど立派に育ちます。</p>`;
+  const s=$('#sleep');if(s)s.onclick=sleep;
+  $('#homeUi').querySelectorAll('[data-fac]').forEach(b=>b.onclick=()=>{
+    const f=FAC.find(x=>x.k===b.dataset.fac),l=G.fac[f.k],c=f.c[l];
+    if(G.money>=c){G.money-=c;G.fac[f.k]++;save();hud();renderAll();toast(`${f.n}が「${f.names[l+1]}」になった！`);sfx(1)}});
+}
+const hv=$('#hv'),hc=hv.getContext('2d');
+function houseArt(c,lv,night,ts){
+  const gy=200,win=night?'#ffd98a':'#9fc4d9';
+  if(lv===0){
+    c.fillStyle='#d8b86a';c.beginPath();c.moveTo(20,gy);c.lineTo(75,gy-62);c.lineTo(130,gy);c.closePath();c.fill();
+    c.fillStyle=night?'#ffcf70':'#5a4318';c.beginPath();c.moveTo(62,gy);c.lineTo(75,gy-32);c.lineTo(88,gy);c.fill();
+    c.strokeStyle='#8a6a2a';c.lineWidth=3;c.beginPath();c.moveTo(75,gy-62);c.lineTo(75,gy-72);c.stroke();
+  }else if(lv===1){
+    c.fillStyle='#9c7448';c.fillRect(20,gy-56,110,56);
+    c.fillStyle='#6b4a3c';c.beginPath();c.moveTo(10,gy-54);c.lineTo(75,gy-92);c.lineTo(140,gy-54);c.closePath();c.fill();
+    c.fillStyle='#4a3322';c.fillRect(64,gy-34,22,34);c.fillStyle=win;c.fillRect(32,gy-42,18,16);c.fillRect(100,gy-42,18,16);
+  }else if(lv===2){
+    c.fillStyle='#c9a36a';c.fillRect(12,gy-74,130,74);
+    c.fillStyle='#a14c3c';c.beginPath();c.moveTo(2,gy-72);c.lineTo(77,gy-112);c.lineTo(152,gy-72);c.closePath();c.fill();
+    c.fillStyle='#6b4a3c';c.fillRect(110,gy-120,12,24);
+    c.fillStyle='#4a3322';c.fillRect(64,gy-40,26,40);c.fillStyle=win;c.fillRect(24,gy-56,22,20);c.fillRect(106,gy-56,22,20);
+    if(night)for(let k=0;k<3;k++){c.fillStyle='rgba(220,220,230,'+(.5-k*.15)+')';c.beginPath();c.arc(116+Math.sin(ts/600+k)*4,gy-128-k*12-(ts/80%12),4+k*2,0,7);c.fill()}
+  }else{
+    c.fillStyle='#e6d3a8';c.fillRect(6,gy-112,150,112);
+    c.fillStyle='#3d5f8f';c.beginPath();c.moveTo(-4,gy-110);c.lineTo(81,gy-152);c.lineTo(166,gy-110);c.closePath();c.fill();
+    c.fillStyle='#6b4a3c';c.fillRect(124,gy-160,14,30);
+    c.fillStyle='#4a3322';c.fillRect(66,gy-46,30,46);c.fillStyle='#d9b45a';c.fillRect(80,gy-46,2,46);
+    c.fillStyle=win;[[20,gy-98],[110,gy-98],[20,gy-58],[116,gy-58]].forEach(([x,y])=>c.fillRect(x,y,24,20));
+    c.strokeStyle='#4a3322';c.lineWidth=2;c.strokeRect(18,gy-100,28,24);c.strokeRect(108,gy-100,28,24);
+    c.fillStyle='#d9503f';c.fillRect(80,gy-176,2,24);c.fillRect(82,gy-176,14,9);
+    if(night)for(let k=0;k<3;k++){c.fillStyle='rgba(220,220,230,'+(.5-k*.15)+')';c.beginPath();c.arc(131+Math.sin(ts/600+k)*4,gy-168-k*12-(ts/80%12),4+k*2,0,7);c.fill()}
+  }
+}
+function trophyArt(c){
+  const lv=G.fac.trophy,bx=186,by=104,w=104,h=96;
+  c.font='bold 10px sans-serif';c.textAlign='center';c.fillStyle='rgba(255,255,255,.85)';
+  if(!lv){c.setLineDash([4,3]);c.strokeStyle='rgba(255,255,255,.4)';c.strokeRect(bx,by,w,h);c.setLineDash([]);c.fillText('魚拓棚（未建設）',bx+w/2,by+h/2+3);c.textAlign='left';return}
+  c.fillStyle='#7a5a3a';c.fillRect(bx,by,w,h);c.fillStyle='#5a4028';c.fillRect(bx,by,w,4);
+  const cols=lv===1?2:3,rows=lv===3?3:2,fw=(w-8-(cols-1)*4)/cols,fh=(h-12-(rows-1)*4)/rows;
+  const list=SP.filter(s=>G.dex[s.n]).sort((a,b)=>tier(b)-tier(a)||(G.dex[b.n].best/b.max)-(G.dex[a.n].best/a.max));
+  for(let i=0;i<cols*rows;i++){
+    const x=bx+4+(i%cols)*(fw+4),y=by+8+(i/cols|0)*(fh+4);
+    c.fillStyle='#efe3c4';c.fillRect(x,y,fw,fh);c.strokeStyle='#3d2b18';c.lineWidth=1.5;c.strokeRect(x,y,fw,fh);
+    const sp=list[i];
+    if(sp)drawSp(c,sp,x+fw/2,y+fh/2,Math.min(fw-8,fh*1.5,40));
+    else{c.fillStyle='rgba(60,40,20,.35)';c.font='bold 14px sans-serif';c.fillText('？',x+fw/2,y+fh/2+5)}
+  }
+  c.fillStyle='rgba(255,255,255,.85)';c.font='bold 10px sans-serif';c.fillText('魚拓棚',bx+w/2,by-4);c.textAlign='left';
+}
+function toolsArt(c,ts){
+  // 道具小屋
+  c.fillStyle='#6b4a3c';c.beginPath();c.moveTo(292,152);c.lineTo(338,130);c.lineTo(384,152);c.closePath();c.fill();
+  c.fillStyle='#2c2118';c.fillRect(298,152,80,48);
+  c.strokeStyle='#8b6a4a';c.lineWidth=3;c.beginPath();c.moveTo(298,178);c.lineTo(378,178);c.stroke();
+  const RC=['#d9c7a8','#8fbf6a','#6aa6d9','#c28fd9','#ffd24a'];
+  for(let i=0;i<G.lv.rod;i++){c.strokeStyle=RC[i];c.lineWidth=2;c.beginPath();c.moveTo(304+i*13,198);c.lineTo(311+i*13,156);c.stroke()}
+  for(let i=0;i<G.lv.line;i++){c.fillStyle=RC[i];c.beginPath();c.arc(306+i*14,172,5,0,7);c.fill();c.strokeStyle='#fff';c.lineWidth=1;c.stroke()}
+  for(let i=0;i<G.lv.bait;i++){const x=298+i*15,y=214;c.fillStyle='#e08a3a';c.beginPath();c.moveTo(x,y-10);c.lineTo(x+12,y-10);c.lineTo(x+10,y);c.lineTo(x+2,y);c.closePath();c.fill();c.strokeStyle='#a85f20';c.lineWidth=1;c.beginPath();c.arc(x+6,y-10,5,Math.PI,0);c.stroke()}
+  for(let i=0;i<G.lv.cool;i++){const x=382+(i%2)*19,y=200-((i/2|0)+1)*13;c.fillStyle='#3a8fd6';c.fillRect(x,y,17,12);c.fillStyle='#e8f1f5';c.fillRect(x,y,17,4)}
+  // 直売所
+  const m=G.lv.mkt,x0=424,w=54;
+  c.fillStyle='#7a5a3a';c.fillRect(x0,180,w,20);c.fillStyle='#9c7448';c.fillRect(x0,176,w,5);
+  if(m>0){const ah=18+m*2;for(let i=0;i<6;i++){c.fillStyle=i%2?'#f2e8d0':(m>=4?'#d9503f':'#4a8fd9');c.fillRect(x0+i*(w/6),176-ah,w/6,ah-4)}
+    c.fillStyle='#5a4028';c.fillRect(x0,172-ah,2,ah+28);c.fillRect(x0+w-2,172-ah,2,ah+28)}
+  const fl=G.fish.slice(0,3).map(f=>SP.find(s=>s.n===f.n));fl.forEach((sp,i)=>drawSp(c,sp,x0+12+i*15,174,16));
+  c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';c.textAlign='center';c.fillText('道具小屋',338,126);c.fillText(m?`直売所 Lv${m}`:'直売所',x0+w/2,m?158-m*2:170);c.textAlign='left';
+}
+function tankArt(c,ts){
+  const lv=G.fac.tank,x=12,y=208,w=60+lv*45,h=38+lv*5;
+  c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';
+  if(!lv){c.setLineDash([4,3]);c.strokeStyle='rgba(255,255,255,.4)';c.strokeRect(x,y,150,50);c.setLineDash([]);c.fillText('生け簀（未建設）',x+36,y+29);return}
+  c.fillStyle='#8a8f94';c.fillRect(x-4,y-4,w+8,h+8);
+  const g=c.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'#3aa0c9');g.addColorStop(1,'#14506f');c.fillStyle=g;c.fillRect(x,y,w,h);
+  c.strokeStyle='rgba(255,255,255,.25)';c.lineWidth=1;for(let i=0;i<3;i++){c.beginPath();for(let k=0;k<=w;k+=6){const yy=y+8+i*14+Math.sin(k/9+ts/500+i)*2;k?c.lineTo(x+k,yy):c.moveTo(x+k,yy)}c.stroke()}
+  const cap=tankCap(lv),st=G.fish.map(f=>({f,p:price(f)})).sort((a,b)=>b.p-a.p).slice(0,cap);
+  st.forEach(({f},i)=>{const sp=SP.find(s=>s.n===f.n);
+    const px=x+16+(w-32)*(.5+.45*Math.sin(ts/2200*(.6+i*.11)+i*1.7)),py=y+16+(h-26)*(.5+.42*Math.sin(ts/1800+i*2.1));
+    drawSp(c,sp,px,py,26)});
+  c.fillStyle='rgba(255,255,255,.95)';c.fillText(`生け簀 ${st.length}/${cap}匹`,x+5,y+12);
+}
+function boatArt(c,ts){
+  if(G.boat<1)return;
+  const bob=Math.sin(ts/700)*2,x=G.boat===1?330:300,y=306+bob;
+  c.fillStyle=G.boat===1?'#3a6f8f':'#2b4a63';c.beginPath();c.moveTo(x,y-12);c.lineTo(x+(G.boat===1?80:130),y-12);c.lineTo(x+(G.boat===1?66:112),y+10);c.lineTo(x+8,y+10);c.closePath();c.fill();
+  c.fillStyle='#e4e9ec';c.fillRect(x,y-16,G.boat===1?80:130,5);
+  if(G.boat===2){c.fillStyle='#e4e9ec';c.fillRect(x+70,y-38,40,22);c.fillStyle='#4aa3e8';c.fillRect(x+76,y-32,12,9);c.fillRect(x+94,y-32,10,9);c.fillStyle='#d9503f';c.fillRect(x+80,y-48,8,10)}
+  else{c.strokeStyle='#d9c7a8';c.lineWidth=2;c.beginPath();c.moveTo(x+20,y-16);c.lineTo(x+34,y-40);c.stroke()}
+  c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';c.fillText(G.boat===1?'小型ボート':'大型漁船',x,y+24);
+}
+function drawHome(ts){
+  const c=hc,night=!!G.home,p=clamp((G.min-360)/720,0,1);
+  const sk=c.createLinearGradient(0,0,0,200);
+  if(night){sk.addColorStop(0,'#0a1330');sk.addColorStop(1,'#26305e')}
+  else{sk.addColorStop(0,`hsl(${p<.7?205:200-(p-.7)/.3*185},60%,${64-p*28}%)`);sk.addColorStop(1,`hsl(${p<.7?200:30},55%,${80-p*26}%)`)}
+  c.fillStyle=sk;c.fillRect(0,0,480,340);
+  if(night){c.fillStyle='#fff';for(let i=0;i<40;i++){c.globalAlpha=.35+.6*Math.abs(Math.sin(ts/900+i));c.fillRect((i*97)%480,(i*53)%110,1.6,1.6)}c.globalAlpha=1;c.fillStyle='#f4efd0';c.beginPath();c.arc(430,36,15,0,7);c.fill()}
+  else{c.fillStyle=`hsl(${p<.7?45:30},90%,${72-p*20}%)`;c.beginPath();c.arc(430,Math.min(90,30+p*70),18,0,7);c.fill()}
+  c.fillStyle=night?'#17233f':'#4f7f5a';c.beginPath();c.moveTo(0,185);c.quadraticCurveTo(120,140,240,182);c.quadraticCurveTo(360,155,480,182);c.lineTo(480,210);c.lineTo(0,210);c.fill();
+  c.fillStyle=night?'#1b3a2c':'#3f7a4a';c.fillRect(0,198,480,92);
+  c.fillStyle=night?'#4a4132':'#c8b48a';c.fillRect(0,266,480,8);
+  c.fillStyle=night?'#0f2a44':'#2a6f95';c.fillRect(0,300,480,40);
+  c.strokeStyle='rgba(255,255,255,.18)';c.lineWidth=1.5;for(let r=0;r<3;r++){c.beginPath();for(let x=0;x<=480;x+=8){const y=312+r*10+Math.sin(x/30+ts/700+r)*2;x?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()}
+  c.fillStyle='#6b4f38';c.fillRect(0,288,480,12);
+  houseArt(c,G.fac.house,night,ts);
+  trophyArt(c);toolsArt(c,ts);tankArt(c,ts);boatArt(c,ts);
+  for(let i=0;i<G.crew;i++)person(c,24+i*22,294+Math.sin(ts/500+i)*.6,COLS[i%10],HATS[i%5],.8);
+  person(c,112,258+Math.sin(ts/400)*.8,'#ffb454','#c0392b',1.1);
+  if(night){c.fillStyle='rgba(10,19,48,.25)';c.fillRect(0,0,480,340)}
+}
+
+/* ---------- stats ---------- */
+function renderStat(){
+  const need=expNeed(G.level);
+  const rows=ST.map(s=>{
+    const v=G.stat[s.k],a=G.alloc[s.k];
+    return `<div class="item"><div class="t">${s.n} <span class="num" style="color:var(--accent)">${v}</span> <span class="num" style="color:var(--sub);font-size:.75rem">（自動${v-1-a}＋振り分け${a}）</span></div>
+      <button class="plus" data-st="${s.k}" ${G.bp<1?'disabled':''} aria-label="${s.n}を上げる">＋</button>
+      <div class="s">${s.d}</div><div class="s" style="color:var(--good)">いまの効果：${s.fx(v-1)}</div></div>`}).join('');
+  $('#p-stat').innerHTML=`<div class="card"><div class="kv"><span>レベル</span><b class="num">Lv.${G.level}</b><span>経験値</span><b class="num">${G.exp} / ${need}</b><span>ボーナスポイント（BP）</span><b class="num" style="color:var(--accent)">${G.bp}</b></div>
+    <div class="bar" style="margin-top:8px"><i style="background:var(--good);width:${Math.min(100,G.exp/need*100)}%"></i></div>
+    <p style="color:var(--sub);font-size:.8rem;margin:8px 0 0">魚を釣ると経験値がもらえます。レベルが上がると<b>全ステータスが+1</b>され、<b>BPが3</b>もらえます。BPは好きなステータスに振り分けられます。</p></div>
+    <div class="list">${rows}</div>
+    <div class="row"><button class="ghost" id="stReset" ${Object.values(G.alloc).some(v=>v)?'':'disabled'}>BPを振り直す（無料）</button></div>`;
+  $('#p-stat').querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{if(G.bp>0){G.bp--;G.stat[b.dataset.st]++;G.alloc[b.dataset.st]++;save();hud();renderStat()}});
+  $('#stReset').onclick=()=>{let n=0;for(const k in G.alloc){G.stat[k]-=G.alloc[k];n+=G.alloc[k];G.alloc[k]=0}G.bp+=n;save();hud();renderStat();toast(`BPを${n}ポイント戻しました`)};
+}
+
+/* ---------- settings ---------- */
+const TG=[['mute','効果音','釣れたときやランクアップの音',1],['noFx','画面演出','紙吹雪・画面の揺れ・光の演出',1],['noVib','振動','レア魚のアタリで振動（対応する端末のみ）',1],['big','大きい文字','文字を大きく表示します',0]];
+function applyUi(){document.body.classList.toggle('big',!!G.big)}
+function renderSet(){
+  const tg=TG.map(([k,l,d,inv])=>{const on=inv?!G[k]:!!G[k];
+    return `<div class="item"><div class="t">${l}</div><button class="chip" data-tg="${k}" aria-pressed="${on}">${on?'ON':'OFF'}</button><div class="s">${d}</div></div>`}).join('');
+  const df=DIFFN.map((n,i)=>`<button class="chip" data-df="${i}" aria-pressed="${G.diff===i}">${n}</button>`).join('');
+  const got=SP.filter(s=>G.dex[s.n]).length;
+  $('#p-set').innerHTML=`<h2>表示と音</h2><div class="list">${tg}</div>
+    <h2>難易度</h2><div class="row" style="margin-top:0">${df}</div><p class="hint">釣りのときのテンションの上がりやすさが変わります。（かんたん：×0.8／ふつう：×1／むずかしい：×1.3）</p>
+    <h2>遊び方</h2><button class="ghost" id="setHelp">遊び方をもう一度見る</button>
+    <h2>これまでの記録</h2><div class="card"><div class="kv"><span>プレイ日数</span><b class="num">${G.day}日</b><span>釣った魚</span><b class="num">${G.catches}匹</b><span>累計売上</span><b class="num">${yen(G.earned)}</b><span>図鑑</span><b class="num">${got}/${SP.length}</b><span>レベル</span><b class="num">Lv.${G.level}</b></div></div>
+    <h2>セーブデータ</h2><p class="hint" style="margin-top:0">進み具合はこのブラウザに自動保存されます。別の端末に引き継ぐときは、書き出した文字列を貼り付けて読み込みます。</p>
+    <textarea id="exp" readonly aria-label="書き出したデータ"></textarea><div class="row"><button class="ghost" id="expCopy">データを書き出してコピー</button></div>
+    <textarea id="imp" placeholder="ここに書き出したデータを貼り付け" aria-label="読み込むデータ" style="margin-top:12px"></textarea><div class="row"><button class="ghost" id="impGo">読み込む</button></div>
+    <h2>データ</h2><button class="ghost" id="reset">最初からやり直す</button>`;
+  const q=$('#p-set');
+  q.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{const k=b.dataset.tg;G[k]=G[k]?0:1;applyUi();save();renderSet();if(k==='mute'&&!G.mute)sfx(0)});
+  q.querySelectorAll('[data-df]').forEach(b=>b.onclick=()=>{G.diff=+b.dataset.df;save();renderSet()});
+  $('#setHelp').onclick=()=>{if(S.st==='idle'||S.st==='result')showHelp(0);else toast('釣りの合間に開いてね')};
+  $('#expCopy').onclick=()=>{const t=JSON.stringify(G),ta=$('#exp');ta.value=t;ta.select();
+    try{navigator.clipboard.writeText(t).then(()=>toast('コピーしました'),()=>toast('選択しました。コピーしてください'))}catch(e){toast('選択しました。コピーしてください')}};
+  $('#impGo').onclick=()=>{let o=null;try{o=migrate(JSON.parse($('#imp').value.trim()))}catch(e){}
+    if(!o){toast('読み込めませんでした。データを確かめてください');return}
+    G=o;S.st='idle';CREW.length=0;syncCrew(true);applyUi();save();label();say('');renderAll();renderSet();toast('読み込みました');if(G.home)openTab('home')};
+  $('#reset').onclick=function(){if(this.dataset.arm){G=fresh();S.st='idle';CREW.length=0;applyUi();save();label();say('');renderAll();renderSet();openTab('fish');toast('最初からやり直します')}else{this.dataset.arm=1;this.textContent='本当に消す？もう一度押すと確定'}};
+}
+
 function hint(){
   const el=$('#hint');
   if(G.boat>=BOATS.length){el.hidden=true;return}
@@ -502,25 +744,27 @@ const HELP=[
  {t:'設備を強化する',b:'<p><span class="k">設備</span>タブでお金を使って強化できます。</p><ol><li><b>釣り竿</b>：巻き上げが速くなる</li><li><b>釣り糸</b>：テンションが上がりにくい</li><li><b>エサ</b>：アタリが早く、珍しい魚が寄る</li><li><b>クーラーボックス</b>：魚箱が広がり、鮮度も保てる</li><li><b>漁師を雇う</b>：釣り場でいっしょに釣って稼いでくれる（給料もかかる）</li></ol>'},
  {t:'沖合・深海へ行くには',b:'<ol><li><span class="k">設備</span>タブの「船」で<b>小型ボート（¥3,000）</b>を買うと<b>沖合</b>へ</li><li>さらに<b>大型漁船（¥25,000）</b>を買うと<b>深海</b>へ</li><li>買ったら<span class="k">釣り</span>タブの海域ボタンで行き先を選ぶ</li></ol><p>沖合や深海には、高く売れる大きな魚がいます。釣りタブには、あといくら必要かも表示されます。</p>'},
  {t:'レアな魚',b:'<p>海域ごとに、めったに釣れないレアな魚がいます。<span class="tag" style="background:#6cc4ff">レア</span><span class="tag" style="background:#c08cff">超レア</span><span class="tag" style="background:#ffd24a">伝説</span></p><p>レアな魚がかかると、アタリの時点で気配が違います。釣り上げると派手な演出が出ます。図鑑でまだ釣っていない魚を探しましょう。エサの強化やランクの特典で、珍しい魚が寄りやすくなります。</p>'},
- {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜に給料の支払いがあり、相場も変わります。</p><p>売上が増えるとランクが上がり、<b>祝い金と特典</b>（売値アップ、魚箱拡大など）がもらえます。画面上部のランクをタップすると一覧が見られます。それでは、いってらっしゃい！</p>'}];
+ {t:'レベルとステータス',b:'<p>魚を釣ると<b>経験値</b>がもらえ、たまると<b>レベル</b>が上がります（ランクとは別です）。</p><ol><li>レベルが上がると、全ステータスが+1</li><li>同時に<b>BP</b>が3もらえる</li><li><span class="k">ステータス</span>タブで、BPを好きなステータスに振り分ける</li></ol><p><b>力</b>は巻き上げ、<b>体力</b>はテンション、<b>素早さ</b>はアタリ、<b>器用さ</b>は寄せ戻され、<b>運</b>はレア魚に効きます。</p>'},
+ {t:'自宅と施設',b:'<p>1日が終わると<b>自宅</b>に帰ります。<span class="k">自宅</span>タブでは、道具・船・漁師・施設が並んでいる様子が見られます。</p><ol><li><b>自宅</b>：大きくすると雇える漁師が増える</li><li><b>生け簀</b>：売れ残りの魚を鮮度そのまま保管</li><li><b>魚拓棚</b>：釣った魚を飾り、経験値ボーナス</li></ol><p>眠ると朝になり、次の日の釣りが始まります。</p>'},
+ {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜は給料を払って自宅に帰り、施設を整えて眠ると朝になります。相場も毎日変わります。</p><p>売上が増えるとランクが上がり、<b>祝い金と特典</b>（売値アップ、魚箱拡大など）がもらえます。画面上部のランクをタップすると一覧が見られます。それでは、いってらっしゃい！</p>'}];
 function showHelp(i=0){
   const h=HELP[i],last=i===HELP.length-1;
   $('#box').innerHTML=`<div class="help"><h3>${h.t}</h3>${h.b}<div class="row"><button class="ghost" id="hp" ${i?'':'disabled'}>戻る</button><button class="big" id="hn" style="flex:1;width:auto">${last?'はじめる':'次へ'}</button></div><p class="dots">${i+1} / ${HELP.length}</p></div>`;
   $('#veil').hidden=false;
   $('#hp').onclick=()=>showHelp(i-1);
-  $('#hn').onclick=()=>{if(!last){showHelp(i+1);return}G.seen=1;save();$('#veil').hidden=true;openTab('fish');say('「投げる」を押して釣りを始めよう。')};
+  $('#hn').onclick=()=>{if(!last){showHelp(i+1);return}G.seen=1;save();$('#veil').hidden=true;openTab(G.home?'home':'fish');say('「投げる」を押して釣りを始めよう。')};
 }
 $('#help').onclick=()=>{if(S.st==='idle'||S.st==='result')showHelp(0);else toast('釣りの合間に開いてね')};
 $('#rankbox').onclick=()=>{if(!veilOpen())showRanks()};
 $('#rankbox').onkeydown=e=>{if(e.key==='Enter'&&!veilOpen())showRanks()};
-const snd=$('#snd');snd.textContent=G.mute?'音 OFF':'音 ON';
-snd.onclick=()=>{G.mute=G.mute?0:1;snd.textContent=G.mute?'音 OFF':'音 ON';save();if(!G.mute)sfx(0)};
+$('#lvrow').onclick=()=>{if(!veilOpen())openTab('stat')};
+$('#lvrow').onkeydown=e=>{if(e.key==='Enter'&&!veilOpen())openTab('stat')};
 const act=$('#act');
 act.addEventListener('pointerdown',e=>{e.preventDefault();press()});
 ['pointerup','pointerleave','pointercancel'].forEach(ev=>act.addEventListener(ev,()=>{release();label()}));
-addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!/INPUT|TEXTAREA/.test(e.target.tagName)&&e.target.tagName!=='BUTTON'&&e.target.id!=='rankbox'){e.preventDefault();press()}});
+addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!/INPUT|TEXTAREA/.test(e.target.tagName)&&e.target.tagName!=='BUTTON'&&e.target.id!=='rankbox'&&e.target.id!=='lvrow'&&!/^(INPUT|TEXTAREA)$/.test(e.target.tagName)){e.preventDefault();press()}});
 addEventListener('keyup',e=>{if(e.code==='Space'){release();label()}});
-$('#home').onclick=()=>{if(S.st==='idle'||S.st==='result'){if(S.st==='idle')crewSim(Math.ceil((DAY_END-G.min)/ATTEMPT_MIN));G.min=DAY_END;S.st='result';S.t=1;dayEnd()}};
+$('#home').onclick=()=>{if(G.home)return;if(S.st==='idle'||S.st==='result'){if(S.st==='idle')crewSim(Math.ceil((DAY_END-G.min)/ATTEMPT_MIN));G.min=DAY_END;S.st='result';S.t=1;dayEnd()}};
 
 /* ---------- scene ---------- */
 const cv=$('#cv'),cx=cv.getContext('2d');
@@ -596,7 +840,7 @@ let last=performance.now();
 function loop(ts){
   const dt=Math.min(.05,(ts-last)/1000);last=ts;
   if(!veilOpen()){
-    if(S.st==='wait'){S.t-=dt;if(S.t<=0){rollFish();S.st='bite';S.t=1.4+.05*G.lv.bait;say(S.tier>=2?'ものすごいアタリだ！！ 逃すな、アワセ！':S.tier===1?'アタリ！ いつもと違う引きだ…！ アワセ！':'アタリ！ 今だ、アワセ！');if(S.tier)vibe(S.tier);label()}}
+    if(S.st==='wait'){S.t-=dt;if(S.t<=0){rollFish();S.st='bite';S.t=1.4+.05*G.lv.bait+.04*sx('agi');say(S.tier>=2?'ものすごいアタリだ！！ 逃すな、アワセ！':S.tier===1?'アタリ！ いつもと違う引きだ…！ アワセ！':'アタリ！ 今だ、アワセ！');if(S.tier)vibe(S.tier);label()}}
     else if(S.st==='bite'){S.t-=dt;if(S.t<=0){say(S.tier?'逃した…今のはレアな魚だったかも！':'エサだけ取られた…');S.ok=false;end(false)}}
     else if(S.st==='fight'){fightStep(dt)}
     else if(S.st==='result'){S.t+=dt}
@@ -609,7 +853,9 @@ function loop(ts){
   $('#tens').style.width=(S.st==='fight'?f.tens:0)+'%';
   $('#tens').classList.toggle('hot',S.st==='fight'&&f.tens>75);
   $('#prog').style.width=(S.st==='fight'?f.prog:0)+'%';
-  draw(ts);requestAnimationFrame(loop);
+  if(!$('#p-fish').hidden)draw(ts);
+  if(!$('#p-home').hidden)drawHome(ts);
+  requestAnimationFrame(loop);
 }
-syncCrew(true);renderAll();label();say('「投げる」を押して釣りを始めよう。');if(!G.seen)showHelp(0);requestAnimationFrame(loop);
+applyUi();syncCrew(true);renderAll();label();say('「投げる」を押して釣りを始めよう。');if(G.home){openTab('home');say('夜です。自宅で休もう。')}if(!G.seen)showHelp(0);requestAnimationFrame(loop);
 </script>
