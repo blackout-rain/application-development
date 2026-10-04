@@ -1,0 +1,6 @@
+<!doctype html><title>釣った魚でごはん</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>🍳 釣った魚でごはん</h1><p>魚を選ぶとおすすめ料理を提案</p>
+<select id="s"><option>アジ</option><option>サバ</option><option>キス</option><option>イカ</option><option>カサゴ</option></select>
+<div class="card" id="r"></div>
+<script>const M={アジ:['アジフライ','なめろう','南蛮漬け'],サバ:['味噌煮','塩焼き','しめ鯖'],キス:['天ぷら','塩焼き','昆布締め'],イカ:['刺身','イカ焼き','煮付け'],カサゴ:['唐揚げ','味噌汁','煮付け']};
+function R(){r.innerHTML='<b>'+s.value+'のおすすめ</b><ol>'+M[s.value].map(x=>'<li>'+x+'</li>').join('')+'</ol>'}s.onchange=R;R()</script>

@@ -1,0 +1,8 @@
+<!doctype html><title>結び方ガイド</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>🪢 結び方ガイド</h1><select id="k"><option>クリンチノット</option><option>ユニノット</option><option>漁師結び</option></select>
+<div class="card"><div id="e" style="font-size:48px;text-align:center"></div><p id="t"></p><button id="p">◀</button> <button id="n">▶</button> <span id="i"></span></div>
+<script>const K={'クリンチノット':[['🪝','ハリのアイにラインを通す'],['🔄','ラインを5〜6回巻き付ける'],['👆','アイ近くの輪にラインを通す'],['💧','唾液で濡らして締め込む'],['✂️','余りをカット']],
+'ユニノット':[['🪝','ハリにラインを通し折り返す'],['⭕','輪を作る'],['🔄','輪の中を5回くぐらせる'],['💧','濡らして締める']],
+'漁師結び':[['🧵','2本のラインを並べる'],['🔗','片方で相手に巻き付け結ぶ'],['🔗','もう片方も同様に結ぶ'],['↔️','両側へ引いて結び目を寄せる']]};
+let s=0;function R(){const a=K[k.value];s=Math.max(0,Math.min(a.length-1,s));e.textContent=a[s][0];t.textContent=(s+1)+'. '+a[s][1];i.textContent=(s+1)+'/'+a.length}
+k.onchange=()=>{s=0;R()};p.onclick=()=>{s--;R()};n.onclick=()=>{s++;R()};R()</script>

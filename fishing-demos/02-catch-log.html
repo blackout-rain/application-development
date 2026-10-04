@@ -1,0 +1,7 @@
+<!doctype html><title>釣果ログ</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>📒 釣果ログ</h1>
+<div class="card"><input id="f" placeholder="魚の名前"> <input id="s" type="number" placeholder="cm" style="width:70px"> <button id="a">記録</button></div>
+<div id="l"></div><p id="t"></p>
+<script>let d=JSON.parse(localStorage.getItem('log')||'[]');
+function R(){l.innerHTML=d.map(e=>'<div class="card">🐟 '+e.f+' '+e.s+'cm <small>'+e.t+'</small></div>').join('');t.textContent='合計 '+d.length+'匹 / 最大 '+Math.max(0,...d.map(e=>e.s))+'cm'}
+a.onclick=()=>{if(!f.value)return;d.unshift({f:f.value,s:+s.value||0,t:new Date().toLocaleDateString()});localStorage.setItem('log',JSON.stringify(d));f.value=s.value='';R()};R()</script>

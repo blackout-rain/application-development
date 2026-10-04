@@ -1,0 +1,9 @@
+<!doctype html><title>仕掛けシミュレーター</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>🧰 仕掛けシミュレーター</h1>
+<div class="card">ターゲット <select id="t"><option>アジ</option><option>キス</option><option>クロダイ</option></select></div>
+<div class="card">エサ <select id="b"><option>アミエビ</option><option>イソメ</option><option>オキアミ</option></select></div>
+<div class="card">ハリ号数 <input id="h" type="range" min="1" max="12" value="6"> <b id="hv"></b></div>
+<div class="card" id="r" style="font-size:20px"></div>
+<script>const G={アジ:['アミエビ',[4,8]],キス:['イソメ',[5,9]],クロダイ:['オキアミ',[1,5]]};
+function R(){hv.textContent=h.value;const[g,[a,z]]=G[t.value];let s=0;if(b.value==g)s+=50;if(h.value>=a&&h.value<=z)s+=50;r.textContent='相性スコア: '+s+'点 '+(s==100?'🎯 完璧！':s>=50?'🙂 まずまず':'😢 見直そう')}
+document.querySelectorAll('select,input').forEach(e=>e.oninput=R);R()</script>

@@ -1,0 +1,7 @@
+<!doctype html><title>魚群ソナー</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>📡 魚群ソナー</h1><p>タップして魚を探そう。近いほど強く反応！</p>
+<canvas id="c" width="480" height="300"></canvas><p id="t">魚を探せ</p>
+<script>const x=c.getContext('2d');let f,n=0;const N=()=>f={x:Math.random()*440+20,y:Math.random()*260+20};N();
+c.onclick=e=>{const r=c.getBoundingClientRect(),px=(e.clientX-r.left)*480/r.width,py=(e.clientY-r.top)*300/r.height,d=Math.hypot(px-f.x,py-f.y);
+let a=0;const iv=setInterval(()=>{a+=4;x.strokeStyle='rgba(120,255,160,'+(1-a/60)+')';x.beginPath();x.arc(px,py,a,0,7);x.stroke();if(a>60)clearInterval(iv)},16);
+if(d<25){n++;t.textContent='🐟 発見！ '+n+'匹目';x.fillStyle='#fff';x.fillText('🐟',f.x-8,f.y+5);setTimeout(()=>{x.clearRect(0,0,480,300);N()},700)}else t.textContent=d<80?'🔥 とても近い':d<160?'🙂 近い':'❄️ 遠い'}</script>

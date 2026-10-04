@@ -1,0 +1,7 @@
+<!doctype html><title>釣りポイントマップ</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>📍 マイ釣りポイント</h1><p>地図をタップしてポイントを登録</p>
+<svg id="m" viewBox="0 0 480 300" style="width:100%;background:#2d6a4f;border-radius:10px"><path d="M0 180 Q120 120 240 190 T480 150 V300 H0Z" fill="#1e90ff"/></svg>
+<div id="l"></div>
+<script>let P=JSON.parse(localStorage.getItem('spots')||'[]');
+function R(){m.querySelectorAll('g').forEach(e=>e.remove());P.forEach((p,i)=>{m.insertAdjacentHTML('beforeend','<g><text x="'+(p.x-8)+'" y="'+p.y+'" font-size="20">📍</text></g>')});l.innerHTML=P.map((p,i)=>'<div class="card">📍 ポイント'+(i+1)+' <small>('+p.x+', '+p.y+')</small></div>').join('')}
+m.onclick=e=>{const r=m.getBoundingClientRect();P.push({x:Math.round((e.clientX-r.left)*480/r.width),y:Math.round((e.clientY-r.top)*300/r.height)});localStorage.setItem('spots',JSON.stringify(P));R()};R()</script>

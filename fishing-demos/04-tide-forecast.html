@@ -1,0 +1,6 @@
+<!doctype html><title>釣り日和予報</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>🌊 潮汐 & 釣り日和</h1><canvas id="c" width="480" height="200"></canvas>
+<div class="card">月齢: <input id="mo" type="range" min="0" max="29" value="0"> <b id="mv"></b><p id="v"></p></div>
+<script>const x=c.getContext('2d');function D(){const m=+mo.value;mv.textContent=m;const ph=m/29.5*Math.PI*2*2;x.clearRect(0,0,480,200);x.strokeStyle='#7cc4ff';x.lineWidth=3;x.beginPath();
+for(let i=0;i<=480;i++){const y=100-Math.sin(i/480*Math.PI*4+ph)*60;i?x.lineTo(i,y):x.moveTo(i,y)}x.stroke();
+const big=m<3||(m>13&&m<17)||m>26;v.textContent=big?'🌕🌑 大潮：魚の活性が高い！釣り日和 ★★★':'🌓 中・小潮：のんびり釣り ★★'}mo.oninput=D;D()</script>

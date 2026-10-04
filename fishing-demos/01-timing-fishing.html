@@ -1,0 +1,7 @@
+<!doctype html><title>タイミング釣り</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>🎣 タイミング釣り</h1><p>バーが緑ゾーンに来た瞬間に「アワセ！」</p>
+<div class="card" style="position:relative;height:40px"><div style="position:absolute;left:40%;width:20%;height:100%;background:#2ecc71;opacity:.6"></div><div id="m" style="position:absolute;width:6px;height:100%;background:#fff"></div></div>
+<button id="b">アワセ！</button><p id="r">釣果: 0匹</p>
+<script>let x=0,d=1,n=0;const m=document.getElementById('m');
+setInterval(()=>{x+=d*2.2;if(x>=100||x<=0)d*=-1;m.style.left=x+'%'},16);
+b.onclick=()=>{const hit=x>40&&x<60;if(hit)n++;r.textContent=(hit?'🐟 釣れた！':'💨 逃げられた…')+' 釣果: '+n+'匹'}</script>

@@ -1,0 +1,8 @@
+<!doctype html><title>放置フィッシング</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;background:#0b2a43;color:#e8f4ff;margin:0;padding:16px;max-width:520px;margin:auto}h1{font-size:20px}button{background:#1e90ff;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:16px;cursor:pointer}input,select{padding:8px;font-size:16px;border-radius:6px;border:0}.card{background:#123c5c;border-radius:10px;padding:12px;margin:8px 0}a{color:#7cc4ff}canvas{background:#0e4d7a;border-radius:10px;max-width:100%}</style>
+<h1>⏳ 放置フィッシング</h1><div class="card" style="font-size:22px">💰 <b id="g">0</b> コイン (毎秒 <b id="ps">0</b>)</div>
+<button id="c">🎣 釣る +1</button>
+<div class="card">🧍 釣り人を雇う（<span id="p1"></span>コイン）毎秒+1 <button id="u1">雇う</button> 所持 <b id="o1">0</b></div>
+<div class="card">🚤 漁船を買う（<span id="p2"></span>コイン）毎秒+10 <button id="u2">買う</button> 所持 <b id="o2">0</b></div>
+<script>let g=0,a=0,b=0;const R=()=>{globalThis.g_.textContent=Math.floor(g);ps.textContent=a+b*10;p1.textContent=10+a*5;p2.textContent=100+b*50;o1.textContent=a;o2.textContent=b};globalThis.g_=document.getElementById('g');
+c.onclick=()=>{g++;R()};u1.onclick=()=>{const p=10+a*5;if(g>=p){g-=p;a++;R()}};u2.onclick=()=>{const p=100+b*50;if(g>=p){g-=p;b++;R()}};
+setInterval(()=>{g+=a+b*10;R()},1000);R()</script>
