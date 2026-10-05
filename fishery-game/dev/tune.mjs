@@ -35,6 +35,8 @@ for (const skill of skills) {
       if (c.rewardMul) { COMP.forEach((x, i) => x.g = Math.round(x.g * c.rewardMul[i])); BOSSB.forEach((x, i) => x.g = Math.round(x.g * c.rewardMul[i])) }
       if (c.expSlope !== undefined) BAL.expSlope = c.expSlope;
       if (c.bossLvCap !== undefined) BAL.bossLvCap = c.bossLvCap;
+      if (c.expMul !== undefined) BAL.expMul = c.expMul;
+      if (c.tkMul !== undefined) window.__tkMul = c.tkMul;
       AREAS.forEach((_, a) => { const l = SP.filter(s => s.a === a && !s.boss); AVG[a] = l.reduce((x, s) => x + s.w * avgP(s), 0) / l.reduce((x, s) => x + s.w, 0) });
       return window.Bot.run(o);
     }, [cfg, { days, seed, skill, start: 'blank' }]);

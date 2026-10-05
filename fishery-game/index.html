@@ -264,7 +264,7 @@ const ST=[
   {k:'agi',n:'素早さ',d:'アタリへの反応の速さ。アタリが早く来て、アワセの猶予も伸びます。',fx:v=>`アタリまで -${Math.round((1-1/(1+.03*v))*100)}%・アワセ猶予 +${(.04*v).toFixed(2)}秒`},
   {k:'dex',n:'器用さ',d:'糸さばきの上手さ。暴れる魚に寄せ戻されにくく、テンションも下がりやすくなります。',fx:v=>`寄せ戻され -${Math.round((1-Math.max(.3,1-.04*v))*100)}%・テンション回復 +${3*v}%`},
   {k:'luk',n:'運',d:'レア魚や大物との出会いやすさ。',fx:v=>`レア魚の出現 +${10*v}%・大物サイズが出やすい`}];
-const BAL={expSlope:0.06,bossLvCap:25};   // バランス調整用の数値（経験値の必要量の伸び方）
+const BAL={expSlope:0.06,bossLvCap:25,expMul:1};   // バランス調整用の数値（経験値の必要量の伸び方）
 const expNeed=l=>Math.round((30+6*l*l)*(1+BAL.expSlope*l));
 const tankCap=l=>[0,3,6,10,15][l];
 const FAC=[
@@ -329,7 +329,7 @@ const rvDaily=()=>tourBase()*16+(G.crew*AREAS[G.boat].base)*.6;
 function rvStep(){G.rv.sc=G.rv.sc.map((v,i)=>v+Math.round(rvDaily()*RV_SKILL[i]*rnd(.7,1.3)))}
 function rvStandings(){return RIVALS.map((n,i)=>({n,s:G.rv.sc[i]})).concat([{n:'あなた',s:weekInc(),me:1}]).sort((a,b)=>b.s-a.s)}
 function rvSettle(){
-  const all=rvStandings(),place=all.findIndex(x=>x.me),bp=[3,2,1][place]||0,rp=[4,2,1][place]||0;
+  const all=rvStandings(),place=all.findIndex(x=>x.me),bp=[2,1,1][place]||0,rp=[4,2,1][place]||0;
   if(bp){G.bp+=bp;addRep(rp)}if(place===0){G.rv.wins++;G.tk.auto+=2}
   G.rv.last={day:G.day,place,sc:all.map(x=>x.n+':'+x.s)};G.rv.sc=[0,0,0,0,0];
   return{all,place,bp,rp};
@@ -485,17 +485,17 @@ function newMissions(){
     ()=>({k:'rare',n:'珍しい魚（レア以上）を1匹釣る',t:1})];
   if(feat('orders'))pool.push(()=>({k:'ord',n:'注文を1件納品する',t:1}));
   const items=[],pick=pool.slice();
-  for(let i=0;i<3&&pick.length;i++){const m=pick.splice(Math.floor(Math.random()*pick.length),1)[0]();m.r=[{auto:1},{meal:1},{bp:1}][i];m.done=0;items.push(m)}
+  for(let i=0;i<3&&pick.length;i++){const m=pick.splice(Math.floor(Math.random()*pick.length),1)[0]();m.r=[{auto:1},{meal:1},{auto:1}][i];m.done=0;items.push(m)}
   return items;
 }
 function ensureMissions(){if(G.msn.day!==G.day){G.msn={day:G.day,items:newMissions(),bonus:0};G.dc={}}}
 function checkMsn(){
   if(!feat('missions'))return;ensureMissions();
   const got=[];G.msn.items.forEach(m=>{if(!m.done&&dcN(m.k)>=m.t){m.done=1;G.msnDone++;G.bp+=m.r.bp||0;G.tk.auto+=m.r.auto||0;G.tk.meal+=m.r.meal||0;got.push(m)}});
-  if(G.msn.items.length&&G.msn.items.every(m=>m.done)&&!G.msn.bonus){G.msn.bonus=1;G.bp+=2;G.tk.auto+=1;toast('🎉 今日のミッションを全部達成！ BP+2・おまかせ釣り券×1');sfx(3);save()}
+  if(G.msn.items.length&&G.msn.items.every(m=>m.done)&&!G.msn.bonus){G.msn.bonus=1;G.bp+=1;G.tk.auto+=1;toast('🎉 今日のミッションを全部達成！ BP+1・おまかせ釣り券×1');sfx(3);save()}
   else if(got.length){toast(`ミッション達成：${got.map(m=>m.n).join('、')}（${achRw(got[0].r)}）`);sfx(2);save()}
 }
-const msnHtml=()=>{ensureMissions();return `<h2>今日のミッション</h2><div class="card" style="font-size:.84rem">${G.msn.items.map(m=>`<div class="ln"><span>${m.done?'✅':'⬜'} ${m.n}</span><span class="num" style="font-size:.78rem;color:${m.done?'var(--good)':'var(--sub)'}">${m.done?'達成':`${Math.min(dcN(m.k),m.t)}/${m.t}`}　${achRw(m.r)}</span></div>`).join('')}<div style="color:var(--sub);font-size:.76rem;margin-top:6px">3つ全部で、BP+2・おまかせ釣り券×1のボーナス。${G.msn.bonus?'（受け取りずみ）':''}</div></div>`};
+const msnHtml=()=>{ensureMissions();return `<h2>今日のミッション</h2><div class="card" style="font-size:.84rem">${G.msn.items.map(m=>`<div class="ln"><span>${m.done?'✅':'⬜'} ${m.n}</span><span class="num" style="font-size:.78rem;color:${m.done?'var(--good)':'var(--sub)'}">${m.done?'達成':`${Math.min(dcN(m.k),m.t)}/${m.t}`}　${achRw(m.r)}</span></div>`).join('')}<div style="color:var(--sub);font-size:.76rem;margin-top:6px">3つ全部で、BP+1・おまかせ釣り券×1のボーナス。${G.msn.bonus?'（受け取りずみ）':''}</div></div>`};
 /* ---------- 相棒（ペット）と模様替え ---------- */
 const PETS=[
   {k:'cat',n:'ネコ',e:'🐈',c:20000,d:'魚に逃げられにくい（引きの力 −5%）',diff:.95},
@@ -775,7 +775,7 @@ function expGain(sp,size,newSp){
   const r=sizeRatio(sp,size),tb=1+trophyBonus()+mealFx('exp')+evExp()+(petFx().exp||0);
   let e=Math.round(((8+sp.s*7+tier(sp)*20+(newSp?25:0))*(.6+.9*r)+(r>=.9?10:0))*tb);
   if(sp.boss)e+=Math.round((expNeed(Math.min(G.level,BAL.bossLvCap))*(1+.3*sp.a)+e*4)*tb);
-  return e;
+  return Math.max(1,Math.round(e*BAL.expMul));
 }
 function growRoll(){const r=Math.random();return r<.15?0:r<.7?1:r<.95?2:3}
 function addExp(n){
