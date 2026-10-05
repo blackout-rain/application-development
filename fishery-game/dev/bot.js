@@ -94,7 +94,7 @@
       for (let i = 0; i < 14; i++) {
         // 次の船を目標にして、ためる：船の値段の1割を超える買い物は、船も買える余裕があるときだけ
         const nb = G.boat < BOATS.length ? BOATS[G.boat].c : 0;
-        const can = b => G.money - cost(b) >= reserve && (!nb || cost(b) <= Math.max(3000, nb * .1) || G.money - cost(b) >= nb + reserve);
+        const can = b => G.money - cost(b) >= reserve && (!nb || cost(b) <= Math.max(3000, nb * .04) || G.money - cost(b) >= nb + reserve);
         if (click('[data-boat]', b => G.money - cost(b) >= reserve) || click('[data-fac="house"]', b => G.crew >= crewMax() && can(b)) || click('[data-crew]', can)) { rep.stats.purchases++; continue }
         const ups = [...document.querySelectorAll('[data-up]')].filter(b => !b.disabled && can(b)).sort((a, b) => cost(a) - cost(b));
         if (ups.length) { ups[0].click(); rep.stats.purchases++; continue }
