@@ -135,6 +135,7 @@
         const dayStart = { casts: rep.stats.casts, wins: rep.stats.wins, earned: G.earned, money: G.money, level: G.level };
         seeded(() => {
           guard('朝', morning);
+          if (isTourDay() && !tourIn()) guard('大会に参加', () => { openTab('town'); click('#tourGo'); openTab('fish') });
           let g = 0;
           while (!G.home && G.min < DAY_END && g++ < 80 && !B.stop) {
             const useAuto = G.tk.auto > 0 && Math.random() < .25 && G.min + 5 * ATTEMPT_MIN <= DAY_END;
