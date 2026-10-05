@@ -32,3 +32,12 @@ node dev/check-prod.mjs       # 製品版に、管理者機能が混ざってい
 ## 管理者パネルを出せる人
 - Claude上のプレビューでは、アーティファクトの**持ち主だけ**に出ます（共有された人には出ません）。
 - Claudeの外（ローカルでファイルを開いたとき）は、そのまま出ます。
+
+## 自動テスト（CI）
+`.github/workflows/fishery-game-tests.yml` が、`fishery-game/` を変更した push・PR と、毎週1回、自動で次を実行します。
+1. `check-prod.mjs` … 製品版に管理者機能が混ざっていないか
+2. `qa.mjs` … 機能ごとのシナリオテスト（経済・注文・大会・オスメス・色違い・最初の案内など）
+3. `monkey.mjs` … 画面のボタンをランダムに押し続けて、エラー・「NaN」表示・不変条件の違反を探す
+
+手元でも同じことができます：`cd fishery-game/dev && npm ci && npx playwright install chromium && npm run qa`
+失敗したときは、そのときの開発版（`dist/index.html`）がワークフローの成果物として残ります。

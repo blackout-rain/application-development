@@ -1,0 +1,41 @@
+name: fishery-game tests
+
+on:
+  push:
+    paths: ['fishery-game/**', '.github/workflows/fishery-game-tests.yml']
+  pull_request:
+    paths: ['fishery-game/**', '.github/workflows/fishery-game-tests.yml']
+  schedule:
+    - cron: '17 19 * * 0'   # 毎週月曜 4:17 (JST)
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: fishery-game/dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: fishery-game/dev/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: 製品版に管理者機能が混ざっていないか
+        run: node check-prod.mjs
+      - name: 開発版をビルド
+        run: node build-dev.mjs
+      - name: 機能テスト（qa）
+        run: node qa.mjs --no-build
+      - name: モンキーテスト（ランダム操作）
+        run: node monkey.mjs --no-build --steps 300 --seeds 2
+      - name: 失敗時に開発版を保存
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-dist
+          path: fishery-game/dev/dist/index.html

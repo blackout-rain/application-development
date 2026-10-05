@@ -1,0 +1,15 @@
+{
+  "name": "umikaze-fishery-dev-tests",
+  "private": true,
+  "type": "module",
+  "description": "自動テスト用（CI）。ゲーム本体には含まれません。",
+  "scripts": {
+    "build": "node build-dev.mjs",
+    "check-prod": "node check-prod.mjs",
+    "qa": "node qa.mjs",
+    "monkey": "node monkey.mjs --steps 300 --seeds 2"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
