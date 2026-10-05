@@ -232,7 +232,7 @@ await t('留守の水揚げ：8時間が上限・お金がマイナスになら�
   return r.a ? true : JSON.stringify(r);
 });
 await t('おまかせ釣り：5回ぶん進み、券が減り、時刻が進む', 'mid', async p => {
-  const r = await ev(p, () => { G.home = 0; G.min = 360; S.st = 'idle'; G.fish = []; G.tk.auto = 3; autoFish(1); const used = 3 - G.tk.auto; const adv = G.min - 360; closeModals(); return { used, adv, want: 5 * ATTEMPT_MIN } });
+  const r = await ev(p, () => { G.home = 0; G.min = 360; S.st = 'idle'; G.fish = []; delete G.fu.missions; G.tk.auto = 3; autoFish(1); const used = 3 - G.tk.auto; const adv = G.min - 360; closeModals(); return { used, adv, want: 5 * ATTEMPT_MIN } });
   return r.used === 1 && r.adv === r.want ? true : JSON.stringify(r);
 });
 await t('通常の釣り：夜（home）は投げられない', 'mid', async p => eq(await ev(p, () => { G.home = 1; S.st = 'idle'; press(); return S.st }), 'idle'));
@@ -249,6 +249,61 @@ await t('夜：sleepを続けて2回呼んでも、日付が2日進まない', '
 await t('売る・納品・加工・養殖を、同じ魚で連続操作しても、魚が増えない', 'mid', async p => {
   const r = await ev(p, () => { G.fu.orders = 1; G.fu.plant = 1; G.fu.farm = 1; G.fac.plant = 3; G.fac.farm = 2; G.money = 1e7; G.fish = Array.from({ length: 6 }, () => ({ n: 'アジ', size: 25, fresh: 100 })); const n0 = G.fish.length; startFarm(0); startProc(0, 0); sell([0]); const total = G.fish.length + G.farm.length + G.proc.length; return { n0, total, fish: G.fish.length } });
   return r.total === r.n0 - 1 ? true : JSON.stringify(r);
+});
+
+/* ---------- レビューで見つかった不具合の再発防止 ---------- */
+await t('18時を過ぎたまま保存→読み込みで、夜の精算がされる', 'mid', async p => {
+  const r = await ev(p, () => { const o = JSON.parse(JSON.stringify(G)); o.min = DAY_END; o.home = 0; o.fish = [{ n: 'アジ', size: 25, fresh: 100 }]; o.money = 5e6; o.led = {}; const m0 = o.money; applySave(migrate(o), 'qa'); closeModals(); return { home: G.home, wage: (G.led.wage || 0) > 0, paid: G.money < m0 + 1e6 } });
+  return r.home === 1 && r.wage ? true : JSON.stringify(r);
+});
+await t('大会・エサ・ライバルの基準は、海域を切り替えても変わらない', 'late', async p => {
+  const r = await ev(p, () => { G.area = 0; const a = [tourBase(), tourFee(), baitPack(BAITS[0])]; G.area = G.boat; const b = [tourBase(), tourFee(), baitPack(BAITS[0])]; return [JSON.stringify(a) === JSON.stringify(b), a] });
+  return r[0] ? true : JSON.stringify(r);
+});
+await t('帰港：釣った直後（結果画面）でも、残り時間ぶんの水揚げが入る', 'mid', async p => {
+  const r = await ev(p, () => { let idle = 0, res = 0; for (let k = 0; k < 40; k++) { G.home = 0; G.min = 400; G.led = {}; G.crewToday = 0; S.st = 'idle'; document.getElementById('home').click(); idle += G.led.crew || 0; closeModals(); sleep(); } for (let k = 0; k < 40; k++) { G.home = 0; G.min = 400; G.led = {}; G.crewToday = 0; S.st = 'result'; document.getElementById('home').click(); res += G.led.crew || 0; closeModals(); sleep(); } return { idle, res } });
+  return r.res > r.idle * .5 && r.res > 0 ? true : JSON.stringify(r);
+});
+await t('おまかせ釣りの捕獲が、ミッション（釣る・レア）に数えられる', 'mid', async p => {
+  const r = await ev(p, () => { G.home = 0; G.min = 360; S.st = 'idle'; G.fish = []; G.dc = {}; G.tk.auto = 3; autoFish(3); closeModals(); return { catch: G.dc.catch || 0, fish: G.fish.length } });
+  return r.catch === r.fish && r.catch > 0 ? true : JSON.stringify(r);
+});
+await t('釣っている間に魚箱が満杯になっても、上限を超えない', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.farm = 1; G.fac.farm = 1; G.home = 0; S.st = 'idle'; G.fish = Array.from({ length: cap() - 1 }, () => ({ n: 'イワシ', size: 12, fresh: 100 })); G.farm = [{ n: 'アジ', sz: 20 }]; press(); harvestFarm(0); const refused = G.farm.length === 1; S.sp = SP.find(s => s.n === 'アジ'); S.size = 22; S.st = 'fight'; landed(); closeModals(); return { refused, len: G.fish.length, cap: cap() } });
+  return r.refused && r.len <= r.cap ? true : JSON.stringify(r);
+});
+await t('実績：★5と表示されるサイズ（比0.8以上）で、大物ハンターが解除される', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.ach = 1; G.ach = {}; G.dex = {}; const sp = SP.find(s => s.n === 'イワシ'); const sz = Math.ceil(sp.min + .8 * (sp.max - sp.min)); G.dex[sp.n] = { c: 1, best: sz, min: sz }; hud(); return { stars: stars(sp, sz), got: !!G.ach.big } });
+  return r.stars === '★★★★★' && r.got ? true : JSON.stringify(r);
+});
+await t('鮮度は小数の誤差が出ない／留守の時間表示が「60分」にならない', 'mid', async p => {
+  const r = await ev(p, () => { G.fish = [{ n: 'アジ', size: 25, fresh: 100 }]; G.tech.cold = 1; G.lv.cool = 5; for (let i = 0; i < 3; i++) { G.home = 0; G.min = DAY_END; S.st = 'result'; dayEnd(); closeModals(); sleep() } const f = G.fish[0] ? G.fish[0].fresh : 0; G.lastSeen = Date.now() - (3600e3 + 59 * 60e3 + 50e3); G.money = 1e6; offlineGain(); const txt = document.getElementById('box').innerText; closeModals(); return { f, dec: String(f).length <= 5, min60: /60分/.test(txt) } });
+  return r.dec && !r.min60 ? true : JSON.stringify(r);
+});
+await t('画面に戻ったとき、15分以上たっていれば留守の水揚げが入る', 'mid', async p => {
+  const r = await ev(p, () => { G.crew = 5; normCrew(); closeModals(); S.st = 'idle'; G.lastSeen = Date.now() - 5 * 3600e3; const m0 = G.money; Object.defineProperty(document, 'hidden', { value: false, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); const shown = !document.getElementById('veil').hidden; return { shown, gain: G.money !== m0 } });
+  return r.shown ? true : JSON.stringify(r);
+});
+
+await t('養殖：入れて出しても、鮮度は戻らない', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.farm = 1; G.fac.farm = 2; G.fish = [{ n: 'タイ', size: 50, fresh: 3 }]; startFarm(0); harvestFarm(0); return G.fish[0] ? G.fish[0].fresh : null });
+  return r === 3 ? true : JSON.stringify(r);
+});
+await t('保険：故障が起きたあとに加入しても、その故障は補償されない', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.bank = 1; G.boat = 2; G.money = 1e6; G.ins = 1; G.fix = repairCost(); G.fixIns = 0; const m0 = G.money; G.min = DAY_END; S.st = 'result'; dayEnd(); return { paid: m0 - G.money, rc: repairCost(), fix: G.fix } });
+  return r.paid >= r.rc && r.fix === 0 ? true : JSON.stringify(r);
+});
+await t('払えない給料は、借入に回る（帳消しにならない）', 'mid', async p => {
+  const r = await ev(p, () => { G.money = 0; G.debt = 0; G.min = DAY_END; S.st = 'result'; dayEnd(); return { debt: G.debt, money: G.money, wage: G.led.wage } });
+  return r.money === 0 && r.debt >= r.wage && r.wage > 0 ? true : JSON.stringify(r);
+});
+await t('役割の変更は、あしたの朝から有効', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.roles = 1; G.crew = 3; normCrew(); G.cr.forEach(m => { m.r = 0; delete m.nr }); openTab('home'); document.querySelector('[data-role="0"]').click(); const now = G.cr[0].r, pend = G.cr[0].nr; G.min = DAY_END; S.st = 'result'; dayEnd(); closeModals(); sleep(); return { now, pend, after: G.cr[0].r, cleared: G.cr[0].nr === undefined } });
+  return r.now === 0 && r.pend === 1 && r.after === 1 && r.cleared ? true : JSON.stringify(r);
+});
+await t('相棒の付け替えは、1日1回まで', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.pet = 1; G.money = 1e9; G.pets = {}; G.pet = ''; G.petDay = 0; openTab('town'); document.querySelector('[data-pet="cat"]').click(); document.querySelector('[data-pet="gull"]').click(); const a = G.pet; G.day++; renderAll(); document.querySelector('[data-pet="gull"]').click(); return { a, b: G.pet } });
+  return r.a === 'cat' && r.b === 'gull' ? true : JSON.stringify(r);
 });
 
 /* ---------- 表示 ---------- */
