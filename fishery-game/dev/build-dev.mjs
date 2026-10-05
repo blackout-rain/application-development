@@ -8,6 +8,7 @@ import path from 'node:path';
 const here = path.dirname(fileURLToPath(import.meta.url));
 let game = readFileSync(path.join(here, '../index.html'), 'utf8');
 const admin = readFileSync(path.join(here, 'admin.js'), 'utf8');
+const bot = readFileSync(path.join(here, 'bot.js'), 'utf8');
 
 const must = (s, re, to) => { if (!game.includes(re)) throw new Error('見つかりません: ' + re); game = game.split(re).join(to); };
 must(game, 'umikaze-fishery-v1', 'umikaze-fishery-dev-v1');
@@ -19,7 +20,7 @@ must(game, '<title>海風フィッシャリー</title>', '<title>海風フィッ
 const early = `<script>/*__UMIKAZE_ADMIN__*/window.__admEarly=[];addEventListener('error',function(e){window.__admEarly.push({t:Date.now(),day:0,min:0,kind:'error',msg:e.message})});</script>\n`;
 if (!game.includes('<script>')) throw new Error('<script> がありません');
 game = game.replace('<script>', early + '<script>');
-game = game.trimEnd() + '\n<script>\n' + admin + '\n</script>\n';
+game = game.trimEnd() + '\n<script>\n' + admin + '\n</script>\n<script>\n' + bot + '\n</script>\n';
 
 mkdirSync(path.join(here, 'dist'), { recursive: true });
 writeFileSync(path.join(here, 'dist/index.html'), game);

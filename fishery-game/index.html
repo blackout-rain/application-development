@@ -455,6 +455,7 @@ function addExp(n){
     while(sum<3){g[ST[Math.random()*ST.length|0].k]++;sum++}
     ST.forEach(s=>{G.stat[s.k]+=g[s.k];tot[s.k]+=g[s.k]});G.bp+=3;
   }
+  if(G.level>=99)G.exp=0;   // レベル上限では、経験値をためない
   if(up){
     const txt=ST.filter(s=>tot[s.k]).map(s=>`${s.n}+${tot[s.k]}`).join(' ');
     G.lastUp=`Lv.${G.level}　${txt}`;
@@ -637,7 +638,7 @@ function hud(){
   hint();
   $('#cap').textContent=`${G.fish.length}/${cap()}`;
   $('#lv').textContent=G.level;$('#xp').style.width=Math.min(100,G.exp/expNeed(G.level)*100)+'%';
-  $('#xpv').textContent=`次のLvまで${expNeed(G.level)-G.exp}EXP${G.bp?`・BP ${G.bp}`:''}`;
+  $('#xpv').textContent=`${G.level>=99?'最大レベル':`次のLvまで${expNeed(G.level)-G.exp}EXP`}${G.bp?`・BP ${G.bp}`:''}`;
   setHtml(document.querySelector('[data-tab=stat]'),`ステータス${G.bp?`<i class="dot">${G.bp}</i>`:''}`);
   setHtml(document.querySelector('[data-tab=town]'),`街${dailyReady()?'<i class="dot">!</i>':''}`);
   setHtml(document.querySelector('[data-tab=set]'),`設定${Cloud.kind==='app'&&Cloud.status==='signedout'&&hasProgress()?'<i class="dot">!</i>':''}`);

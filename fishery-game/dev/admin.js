@@ -117,6 +117,7 @@
     o.rankGot = RANKS.filter(r => o.earned >= r[0]).length - 1; o.tk = { auto: 5, meal: 3 };
     return migrate(JSON.parse(JSON.stringify(o)));
   }
+  A.check = check; A.makeState = makeState; A.PRE = PRE;
   const SLOTS = 'umikaze-admin-slots';
   const slots = () => { try { return JSON.parse(localStorage.getItem(SLOTS)) || {} } catch (e) { return {} } };
   const putSlots = s => { try { localStorage.setItem(SLOTS, JSON.stringify(s)) } catch (e) { } };
@@ -179,6 +180,9 @@
     const bad = check(), rows = [['日/時刻', `${G.day}日目 ${G.home ? '夜' : Math.floor(G.min / 60) + ':' + String(G.min % 60).padStart(2, '0')}`], ['Lv/EXP', `${G.level} / ${G.exp}/${expNeed(G.level)}`], ['お金', '¥' + num(G.money)], ['累計売上', '¥' + num(G.earned)], ['BP', G.bp], ['釣った数', G.catches], ['船/海域', `${G.boat}/${G.area}`], ['漁師', `${G.crew}/${crewMax()}`], ['魚箱', `${G.fish.length}/${cap()}`], ['状態', S.st + (S.sp ? `（${S.sp.n}）` : '')], ['クラウド', Cloud.status]];
     return `<h4>不変条件（壊れた値がないか）</h4><div class="${bad.length ? 'ng' : 'ok'}">${bad.length ? 'NG：' + bad.length + '件' : 'OK'}</div>${bad.length ? `<pre>${esc(bad.join('\n'))}</pre>` : ''}
       <div class="r" style="margin-top:6px">${btn('check', '今すぐ検査')}${btn('roundtrip', '保存→読み込みの往復テスト')}</div><div id="adm-rt"></div>
+      <h4>自動プレイ（まっさらなどから進めて、異常を探す。終わると元の状態に戻る）</h4>
+      <div class="r">日数<select id="adm-bd">${[10, 30, 60, 100].map(n => `<option ${n === (A.ui.bd || 30) ? 'selected' : ''}>${n}</option>`).join('')}</select>腕前<select id="adm-bs">${['good', 'avg', 'poor'].map(n => `<option ${n === (A.ui.bs || 'avg') ? 'selected' : ''}>${n}</option>`).join('')}</select>乱数<input type="number" id="adm-bseed" value="${A.ui.bseed || 1}">開始<select id="adm-bst">${['blank', 'early', 'mid', 'current'].map(n => `<option ${n === (A.ui.bst || 'blank') ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      <div class="r" style="margin-top:6px">${btn('botrun', '実行')}${btn('botstop', '中止')}${btn('botcopy', 'レポートをコピー')}</div><div id="adm-bot" style="margin-top:6px">${A.botHtml || ''}</div>
       <h4>主の診断</h4><div class="r">${AREAS.slice(0, G.boat + 1).map((a, i) => btn('adv', a.name, `data-n="${i}"`)).join('')}</div>
       <h4>状態</h4><table>${rows.map(r => `<tr><td>${r[0]}</td><td>${esc(r[1])}</td></tr>`).join('')}</table>
       <h4>ログ（新しい順・${A.log.length}件）</h4><div class="r">${btn('logcopy', 'コピー')}${btn('logclear', '消す')}</div>
@@ -225,6 +229,15 @@
     roundtrip: () => { const r = roundTrip(); $('#adm-rt').innerHTML = r.length ? `<pre class="ng">${esc(r.join('\n'))}</pre>` : '<div class="ok">往復OK（旧形式の補完も問題なし）</div>'; log(r.length ? 'error' : 'admin', r.length ? '往復テスト NG ' + r.length + '件' : '往復テスト OK') },
     adv: n => { A.ui.open = false; render(); showBossAdvice(+n, 0) },
     logcopy: () => { const t = A.log.map(l => `${new Date(l.t).toISOString()} D${l.day} [${l.kind}] ${l.msg}`).join('\n'); try { navigator.clipboard.writeText(t).then(() => toast('ログをコピーしました'), () => prompt && 0) } catch (e) { } },
+    botrun: async () => {
+      if (window.Bot.running) return;
+      A.ui.bd = +$('#adm-bd').value; A.ui.bs = $('#adm-bs').value; A.ui.bseed = +$('#adm-bseed').value; A.ui.bst = $('#adm-bst').value;
+      A.botHtml = '実行中…'; render();
+      const r = await window.Bot.run({ days: A.ui.bd, skill: A.ui.bs, seed: A.ui.bseed, start: A.ui.bst, onProgress: p => { A.botHtml = `実行中… ${p.done}/${p.total}日　Lv.${p.lv}　¥${num(p.money)}`; const e = $('#adm-bot'); if (e) e.textContent = A.botHtml } });
+      A.botHtml = window.Bot.summaryHtml(r); log(r.ok ? 'admin' : 'error', `自動プレイ ${r.ok ? 'OK' : 'NG'}（${r.daysRun}日）`); render(); badge();
+    },
+    botstop: () => { window.Bot.stop = true },
+    botcopy: () => { const r = window.Bot.last; if (!r) return; const t = window.Bot.markdown(r); try { navigator.clipboard.writeText(t).then(() => toast('レポートをコピーしました'), () => { }) } catch (e) { } },
     logclear: () => { A.log = []; A.errs = 0; A.seen = {}; render(); badge() }
   };
   function init() {
@@ -241,7 +254,7 @@
       else if (t.id === 'adm-ms') { A.mulSell = +t.value; log('admin', `売値×${A.mulSell}`); try { renderAll() } catch (e) { } }
     });
     p.addEventListener('input', e => { if (e.target.id === 'adm-size') { const v = $('#adm-sizev'); if (v) v.textContent = e.target.value + 'cm'; A.ui.size = +e.target.value } });
-    setInterval(() => { badge(); if (A.ui.open && A.ui.tab === 'ins') { const a = document.activeElement; if (!a || !p.contains(a)) render() } }, 3000);
+    setInterval(() => { badge(); if (A.ui.open && A.ui.tab === 'ins' && !(window.Bot && window.Bot.running)) { const a = document.activeElement; if (!a || !p.contains(a)) render() } }, 3000);
     badge(); log('admin', '管理者パネルを有効にしました');
   }
   // 持ち主だけに出す（Claude上のプレビュー）。Claudeの外（ローカルで開いたとき）は、そのまま有効。
