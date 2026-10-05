@@ -103,7 +103,7 @@
         break;
       }
       for (let i = 2; i < G.crew; i += 3) if (G.cr[i] && G.cr[i].r === 0) click(`[data-role="${i}"]`);   // 3人に1人は営業にする（実際の切り替えボタンを通す）
-      openTab('stat'); const W = ['str', 'str', 'str', 'vit', 'vit', 'vit', 'dex', 'dex', 'dex', 'agi', 'luk'];
+      openTab('stat'); const W = ['str', 'str', 'str', 'vit', 'vit', 'vit', 'dex', 'dex', 'dex', 'foc', 'foc', 'agi', 'luk', 'biz', 'lead'];
       for (let i = 0; G.bp > 0 && i < 400; i++) click(`[data-st="${W[Math.floor(Math.random() * W.length)]}"]`);
       // おまかせ釣りの券を使い切る日もある（実際に使われるコードを通す）
     }
