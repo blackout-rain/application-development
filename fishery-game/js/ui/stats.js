@@ -10,7 +10,7 @@ function renderStat() {
     );
   }).join('');
   $('#p-stat').innerHTML = T(
-    '<div class="card"><div class="kv"><span>レベル</span><b class="num">Lv.{1}</b><span>経験値</span><b class="num">{2} / {3}</b><span>ボーナスポイント（BP）</span><b class="num" style="color:var(--accent)">{4}</b></div>\n    <div class="bar" style="margin-top:8px"><i style="background:var(--good);width:{5}%"></i></div>\n    <p style="color:var(--sub);font-size:.8rem;margin:8px 0 0">魚を釣ると経験値がもらえます。レベルが上がると、各ステータスが<b>ランダムに0〜3</b>上がり、<b>BPが3</b>もらえます。BPは好きなステータスに振り分けられます。</p>{6}</div>\n    <div class="list">{7}</div>\n    <div class="row"><button class="ghost" id="stReset" {8}>BPを振り直す（無料）</button></div>\n    <h2>主への挑戦目安</h2><p style="color:var(--sub);font-size:.8rem;margin:0 0 8px">強い主に、どのステータスがどのくらい必要かを診断します。主に逃げられたときも自動で表示されます。</p>\n    <div class="list">{9}</div>',
+    '<div class="card"><div class="kv"><span>レベル</span><b class="num">Lv.{1}</b><span>経験値</span><b class="num">{2} / {3}</b><span>ボーナスポイント（BP）</span><b class="num" style="color:var(--accent)">{4}</b></div>\n    <div class="bar" style="margin-top:8px"><i style="background:var(--good);width:{5}%"></i></div>\n    <p style="color:var(--sub);font-size:.8rem;margin:8px 0 0">魚を釣ると経験値がもらえます。レベルが上がると、各ステータスが<b>ランダムに0〜3</b>上がり、<b>BPが3</b>もらえます。BPは好きなステータスに振り分けられます。ポイントを入れるほど効果は伸びますが、少しずつ伸び方がゆるやかになります（上限はありません）。</p>{6}</div>\n    <div class="list">{7}</div>\n    <div class="row"><button class="ghost" id="stReset" {8}>BPを振り直す（無料）</button></div>\n    <h2>主への挑戦目安</h2><p style="color:var(--sub);font-size:.8rem;margin:0 0 8px">強い主に、どのステータスがどのくらい必要かを診断します。主に逃げられたときも自動で表示されます。</p>\n    <div class="list">{9}</div>',
     [
       G.level,
       G.exp,
