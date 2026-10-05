@@ -412,6 +412,29 @@ await t('[EN] 英語：のれん分け・伝説の主・最初の案内の文が
   return /Spin-off/.test(r.town) && /Goodwill/.test(r.town) && /Lap/.test(r.box) && /Cast/.test(r.tut) && !jp.test(r.town + r.box + r.tut.replace(/案内/g, '')) ? true : JSON.stringify(r).slice(0, 400);
 });
 
+/* ---------- ステータスの効果 ---------- */
+await t('ステータス：どの効果も、ポイントをふやすほど増え続け（上限で止まらない）、少しずつ伸びが小さくなる', 'mid', async p => {
+  const r = await ev(p, () => {
+    const bad = [];
+    for (const k of Object.keys(STAT_FX)) {
+      const f = v => statFx(k, v), P = STAT_FX[k];
+      for (let v = 0; v < 400; v += 5) if (!(f(v + 5) > f(v))) bad.push(k + ':増えない@' + v);              // 上限で止まらない
+      for (let v = 5; v < 395; v += 5) if (!(f(v) - f(v - 5) > f(v + 5) - f(v))) bad.push(k + ':逓減しない@' + v);   // 伸びは、だんだん小さい
+      if (Math.abs(f(P.h) - P.max / 2) > 1e-9 || !(f(1e6) < P.max) || f(0) !== 0) bad.push(k + ':曲線がおかしい');
+    }
+    return bad;
+  });
+  return eq(r, []);
+});
+await t('ステータス：体力・器用さ・集中力は、Lv12ごろ（24ポイント）では上限にならず、100ポイントでもまだ伸びる', 'mid', async p => {
+  const r = await ev(p, () => [SE.tension(24) - SE.tension(100), SE.pull(24) - SE.pull(100), SE.struggle(24) - SE.struggle(100), 1 - SE.tension(24)]);
+  return r[0] > 0.2 && r[1] > 0.2 && r[2] > 0.1 && r[3] < 0.5 ? true : JSON.stringify(r);
+});
+await t('ステータス画面：現在の効果の表示に、NaN・undefinedが出ない（ポイント0〜500）', 'mid', async p => {
+  const r = await ev(p, () => { const out = []; for (const v of [0, 1, 24, 100, 500]) for (const s of ST) { const t = s.fx(v); if (/NaN|undefined|Infinity/.test(t)) out.push(s.k + v) } return out });
+  return eq(r, []);
+});
+
 /* ---------- 遊び方（分類つきの目次） ---------- */
 await t('遊び方：はじめての人は、基本の4ページだけを順に見て、はじめる', 'blank', async p => {
   const r = await ev(p, () => {

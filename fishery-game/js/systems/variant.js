@@ -2,7 +2,7 @@
 // 低確率で、魚ごとに決まった「別の色」の個体が釣れる。高く売れ、図鑑に別枠で記録される
 const VAR_PRICE = 4,
   VAR_EXP = 2;
-const variantChance = () => Math.min(0.045, 0.012 + SE.variant(sx('luk'))) * (1 + 0.2 * nrLv('luck'));
+const variantChance = () => Math.min(0.04, 0.012 + SE.variant(sx('luk'))) * (1 + 0.2 * nrLv('luck'));
 const VAR_TYPES = [
   {
     k: 'gold',

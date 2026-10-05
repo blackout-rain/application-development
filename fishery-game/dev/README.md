@@ -57,3 +57,6 @@ node dev/check-prod.mjs       # 製品版に、管理者機能が混ざってい
 - スクリプトは、`index.html` に書かれた**上から順に**実行される。下のファイルは、上のファイルの関数や変数を使える。
 - **注意**：ファイルが分かれていると、「あとで読み込まれるファイルの関数」を、読み込み中に使うことはできない（関数の中で呼ぶのは大丈夫）。`node dev/check-order.mjs` で検査できる（CIでも実行）。
 - 1つのHTMLにまとめる：`node dev/bundle.mjs [出力先]`（既定 `dist/game.html`）。アーティファクトの公開・アプリ用の `www/` は、このまとめたものを使う。
+
+## ステータスのバランスを確認する
+`node dev/build-dev.mjs && node dev/stat-sim.mjs` … 自動プレイ（旧い式）で海域が解放された日の状態（`dev/balance/stat-states.json`）で、ふつうの魚・次の海域・主との勝率を出す。ステータスの効果（`js/core/stat-effects.js`）を変えたときに使う。`--dir <フォルダ>` で、別のバージョン（例：変更前）と比べられる。
