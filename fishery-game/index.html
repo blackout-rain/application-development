@@ -243,7 +243,7 @@ const RANKS=[
   [800000,'船団長',{gold:30000,cap:5},'祝い金¥30,000・魚箱+5'],
   [2500000,'網元',{gold:60000,sell:5,rare:1},'祝い金¥60,000・売値+5%・珍しい魚がさらに寄る'],
   [6000000,'海の名士',{gold:100000,tens:15,reel:10},'祝い金¥100,000・糸が強く、巻き上げも速く'],
-  [15000000,'漁業王',{gold:300000,sell:10},'祝い金¥300,000・売値+10%']];
+  [20000000,'漁業王',{gold:300000,sell:10},'祝い金¥300,000・売値+10%']];
 const avgP=s=>(s.min+s.max)/2*s.p;
 const AVG=AREAS.map((_,a)=>{const l=SP.filter(s=>s.a===a&&!s.boss);return l.reduce((x,s)=>x+s.w*avgP(s),0)/l.reduce((x,s)=>x+s.w,0)});
 const tier=sp=>sp.boss?4:sp.w<=3?3:sp.w<=6?2:sp.w<=12?1:0;
@@ -270,6 +270,15 @@ const FAC=[
   {k:'tank',n:'生け簀',d:'売れ残った魚を元気なまま保管します。夜でも鮮度が落ちません。',names:['なし','小さな生け簀','生け簀','大きな生け簀','巨大な生け簀'],c:[1500,6000,20000,60000],eff:l=>l?`${tankCap(l)}匹まで鮮度を保つ`:'なし'},
   {k:'trophy',n:'魚拓棚',d:'釣った魚の魚拓を飾ります。眺めて楽しいうえに、経験値のボーナスも。',names:['なし','小さな棚','魚拓棚','魚拓の壁'],c:[2500,10000,40000],eff:l=>`経験値 +${[0,10,20,35][l]}%`}];
 const crewMax=()=>4+2*G.fac.house;
+// 従業員：1人ずつ名前・役割（0=釣り師/1=営業）・働いた日数を持つ。レベルは働いた日数で上がり、給料も上がる
+const CNAMES=['タケ','ミサキ','ゲン','ハル','ナギ','リク','サチ','トウマ','アオイ','ダイ','ユイ','ケン','レン','マリ','ソウ','ヒナ','カイ','ノゾミ','シン','ミオ','ゴウ','ツバサ','リョウ','アヤ'];
+const CLVX=[0,4,12,28,60],CROLE=['釣り師','営業'],CLV_W=.18,CLV_F=.12,SALES_PER=.02,SALES_MAX=.15;
+function normCrew(g){g=g||G;while(g.cr.length<g.crew){const used=new Set(g.cr.map(c=>c.n)),fr=CNAMES.filter(n=>!used.has(n)),pool=fr.length?fr:CNAMES;g.cr.push({n:pool[Math.floor(Math.random()*pool.length)],r:0,x:0})}g.cr.length=g.crew}
+const CR=()=>{normCrew();return G.cr};
+const clv=m=>{let l=1;CLVX.forEach((x,i)=>{if(m.x>=x)l=i+1});return l};
+const wageOf=m=>Math.round(AREAS[G.boat].wage*(1+CLV_W*(clv(m)-1)));
+const fishMul=m=>m.r===0?1+CLV_F*(clv(m)-1):0;
+const salesBonus=()=>Math.min(SALES_MAX,G.cr.reduce((a,m)=>a+(m.r===1?SALES_PER*clv(m):0),0));
 
 /* ---------- state ---------- */
 const KEY='umikaze-fishery-v1';
@@ -278,7 +287,7 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0},rankGot:0,crewToday:0,led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0},rankGot:0,crewToday:0,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
 function migrate(s){
   if(!s||s.v!==1)return null;
   const fs0=s.fs===undefined?(s.big?1:0):s.fs;
@@ -288,6 +297,7 @@ function migrate(s){
   for(const k of['stat','alloc','fac','lv','comp','bossGot','tk'])s[k]=Object.assign({},f[k],s[k]);
   SP.forEach(x=>{if(!(x.n in s.mult))s.mult[x.n]=1;if(!(x.n in s.prev))s.prev[x.n]=s.mult[x.n]});
   Object.values(s.dex).forEach(d=>{if(d.min===undefined)d.min=d.best});
+  normCrew(s);
   s.rankGot=rg;s.fs=fs0;if(s.min>=DAY_END)s.home=1;
   return s;
 }
@@ -325,7 +335,7 @@ const sizeMul=(sp,sz)=>{const r=sizeRatio(sp,sz);return .7+.8*r+(r>=.9?.2:0)};
 function price(fi,sat){
   const sp=SP.find(s=>s.n===fi.n);
   const big=sizeMul(sp,fi.size),sv=sat===undefined?(G.sat[fi.n]||0):sat;
-  return Math.round(fi.size*sp.p*G.mult[fi.n]*(1-sv)*(fi.fresh/100)*(1+.05*G.lv.mkt+perks().sell/100+(G.comp[sp.a]?.05:0)+mealFx('sell'))*big);
+  return Math.round(fi.size*sp.p*G.mult[fi.n]*(1-sv)*(fi.fresh/100)*(1+.05*G.lv.mkt+perks().sell/100+salesBonus()+(G.comp[sp.a]?.05:0)+mealFx('sell'))*big);
 }
 // 経営：需給（同じ魚を売るほど値崩れ）と、出荷先（卸売市場／直売所）、収支の記録
 const SAT_STEP=.03,SAT_MAX=.4,STALL_MUL=1.12;
@@ -557,13 +567,13 @@ const COLS=['#e85d4a','#4aa3e8','#59c27a','#e8b94a','#a86be8','#e87aa8','#4ac2c2
 const HATS=['#2b3a4a','#c0392b','#f0e6c8','#2f6f5e','#6b4a3c'];
 const crewX=i=>150+i*32;
 function syncCrew(init){while(CREW.length<G.crew)CREW.push({i:CREW.length,pop:init?1:0,q:[],ev:null});CREW.length=G.crew}
-function crewVal(sp){return Math.round(AREAS[G.boat].base/9*(avgP(sp)/AVG[G.boat])*rnd(.7,1.3))}
+function crewVal(sp,m){return Math.round(AREAS[G.boat].base/9*(avgP(sp)/AVG[G.boat])*rnd(.7,1.3)*fishMul(m))}
 // 演出は1人あたり「いま1匹＋次の1匹」まで。それを超える分は、演出なしで水揚げだけ入れる（釣りをやめた後も、ポップが出続けないように）
-function crewRound(){CREW.forEach(cr=>{if(Math.random()<.5){const sp=pickSpecies(G.boat),e={delay:rnd(.1,2.2),t:0,sp,val:crewVal(sp)};
+function crewRound(){CREW.forEach((cr,i)=>{const m=CR()[i];if(m&&m.r===0&&Math.random()<.5){const sp=pickSpecies(G.boat),e={delay:rnd(.1,2.2),t:0,sp,val:crewVal(sp,m)};
   if(cr.q.length>=1){e.paid=1;G.money+=e.val;G.crewToday+=e.val;led('crew',e.val);earn(e.val)}else cr.q.push(e)}})}
 function payCrew(e){if(e.paid)return;e.paid=1;G.money+=e.val;G.crewToday+=e.val;led('crew',e.val);earn(e.val);save();hud();renderAll()}
 function flushCrew(){CREW.forEach(cr=>{if(cr.ev)payCrew(cr.ev);cr.q.forEach(payCrew);cr.ev=null;cr.q=[]})}
-function crewSim(n){let sum=0;for(let k=0;k<n;k++)CREW.forEach(()=>{if(Math.random()<.5)sum+=crewVal(pickSpecies(G.boat))});if(sum){G.money+=sum;G.crewToday+=sum;led('crew',sum);earn(sum)}}
+function crewSim(n){let sum=0;for(let k=0;k<n;k++)CR().forEach(m=>{if(m.r===0&&Math.random()<.5)sum+=crewVal(pickSpecies(G.boat),m)});if(sum){G.money+=sum;G.crewToday+=sum;led('crew',sum);earn(sum)}}
 function crewStep(dt){
   CREW.forEach(cr=>{
     if(cr.pop<1)cr.pop=Math.min(1,cr.pop+dt/.6);
@@ -607,7 +617,7 @@ function dayEnd(){
   const area=AREAS[G.boat];
   flushCrew();
   const haul=G.crewToday;G.crewToday=0;G.home=1;
-  const wage=G.crew*area.wage;
+  const wage=CR().reduce((a,m)=>a+wageOf(m),0);
   const rot=[];
   const decay=Math.max(8,30-5*G.lv.cool);
   const keep=new Set(G.fish.map((f,i)=>({i,p:price(f)})).sort((a,b)=>b.p-a.p).slice(0,tankCap(G.fac.tank)).map(x=>x.i));
@@ -615,11 +625,12 @@ function dayEnd(){
   const spoiled=G.fish.filter(f=>f.fresh<=0).length;
   G.fish=G.fish.filter(f=>f.fresh>0);
   const pay=Math.min(wage,G.money);G.money-=pay;led('wage',pay);
+  const ups=[];G.cr.forEach(m=>{const b=clv(m);m.x++;if(clv(m)>b)ups.push(`${m.n}がLv${clv(m)}に昇進！（${m.r?'売値ボーナス':'水揚げ'}と給料が上がった）`)});
   Object.keys(G.sat).forEach(k=>{G.sat[k]*=.5;if(G.sat[k]<.004)delete G.sat[k]});G.stall=0;   // 需給は一晩で半分もどる
   SP.forEach(s=>{G.prev[s.n]=G.mult[s.n];G.mult[s.n]=clamp(G.mult[s.n]+rnd(-.15,.15)+(1-G.mult[s.n])*.2,.6,1.6)});
   const hot=NORM.slice().sort((a,b)=>(G.mult[b.n]/G.prev[b.n])-(G.mult[a.n]/G.prev[a.n]))[0];
   $('#box').innerHTML=`<h3>${G.day}日目 終了</h3>
-    ${pnlHtml(G.led,`従業員の水揚げ（${G.crew}人）`)}
+    ${pnlHtml(G.led,`従業員の水揚げ（${G.crew}人）`)}${ups.map(u=>`<div class="ln"><span>🎉 ${u}</span></div>`).join('')}
     <div class="ln"><span>傷んで捨てた魚</span><b class="num">${spoiled}匹</b></div>${keep.size?`<div class="ln"><span>生け簀で守った魚</span><b class="num">${keep.size}匹</b></div>`:''}
     <div class="ln"><span>明日の注目</span><b>${hot.n}が値上がり</b></div>
     <p style="color:var(--sub);font-size:.85rem">売れ残りの魚は一晩ごとに鮮度が落ち、値段も下がります。</p>
@@ -715,7 +726,7 @@ function renderSell(){
   $('#p-sell').innerHTML=`<h2>魚箱（${G.fish.length}/${cap()}）</h2><p style="color:var(--sub);font-size:.8rem;margin:0 0 8px">大きい魚（★が多い魚）ほど高く売れます。</p>
     <button class="big" id="sellall" ${G.fish.length?'':'disabled'}>すべて売る ${yen(qa.sum)}</button>${ship}
     <div class="card" style="margin:10px 0 0;font-size:.82rem"><b>売値ボーナス</b>
-      <div class="kv" style="margin-top:6px"><span>直売所 Lv${G.lv.mkt}（自宅・設備タブで強化）</span><b class="num">+${5*G.lv.mkt}%</b><span>ランク特典</span><b class="num">+${perks().sell}%</b><span>エリアコンプ（そのエリアの魚のみ）</span><b class="num">+5%／エリア</b></div>
+      <div class="kv" style="margin-top:6px"><span>直売所 Lv${G.lv.mkt}（自宅・設備タブで強化）</span><b class="num">+${5*G.lv.mkt}%</b><span>ランク特典</span><b class="num">+${perks().sell}%</b><span>営業の従業員（育てるほど増える）</span><b class="num">+${Math.round(salesBonus()*100)}%</b><span>エリアコンプ（そのエリアの魚のみ）</span><b class="num">+5%／エリア</b></div>
       <div style="color:var(--sub);margin-top:6px">このほか、魚の大きさ・鮮度・今日の相場でも値段が変わります。</div></div>
     <div class="list" style="margin-top:10px">${items||'<p style="color:var(--sub)">魚箱は空です。釣りに出よう。</p>'}</div>
     <h2>経営</h2>${pnlHtml(G.led)}${reportHtml().replace("<h2>経営レポート</h2>","")}
@@ -739,14 +750,20 @@ function renderShop(){
   const boat=b?`<div class="item"><div class="t">${b.n}</div><button class="buy" data-boat="1" ${G.money<b.c?'disabled':''}>${yen(b.c)}</button><div class="s">${b.d}</div></div>`
     :`<div class="item"><div class="t">${BOATS[BOATS.length-1].n} 保有中</div><div class="s">すべての海域に出られる</div></div>`;
   const cc=Math.round(1500*Math.pow(1.6,G.crew)/100)*100,w=AREAS[G.boat].wage,h=AREAS[G.boat].base;
-  const crew=`<div class="item"><div class="t">漁師を雇う <span class="num">${G.crew}/${crewMax()}人</span></div>
+  const cs=CR(),nF=cs.filter(m=>m.r===0).length,nS=cs.length-nF,wsum=cs.reduce((a,m)=>a+wageOf(m),0);
+  const crew=`<div class="item"><div class="t">従業員を雇う <span class="num">${G.crew}/${crewMax()}人</span></div>
     <button class="buy" data-crew="1" ${G.crew>=crewMax()||G.money<cc?'disabled':''}>${G.crew>=crewMax()?'—':yen(cc)}</button>
-    <div class="s">いっしょに釣りに出て、1人あたり1日約${yen(h)}を稼ぐ。給料${yen(w)}/日<br>雇える人数は自宅を大きくすると増える（今は${crewMax()}人まで）</div></div>`;
+    <div class="s"><b>釣り師</b>は釣りに同行して、1日約${yen(h)}を水揚げ。<b>営業</b>は水揚げの代わりに、魚の売値を底上げ（Lv×+${Math.round(SALES_PER*100)}%・全員で+${Math.round(SALES_MAX*100)}%まで）。<br>働いた日数でレベルが上がり、水揚げも給料も増えます。給料の基本は${yen(w)}/日。雇える人数は自宅を大きくすると増えます（今は${crewMax()}人まで）。</div></div>
+    ${cs.length?`<div class="card" style="margin:0;font-size:.82rem"><div class="kv"><span>釣り師／営業</span><b class="num">${nF}人／${nS}人</b><span>営業ボーナス（売値）</span><b class="num">+${Math.round(salesBonus()*100)}%</b><span>給料の合計</span><b class="num down">${yen(wsum)}/日</b></div></div>`:''}
+    ${cs.map((m,i)=>{const l=clv(m),nx=CLVX[l];return `<div class="item"><div class="t">${m.n} <span class="num">Lv${l}</span> <span class="stars">${'★'.repeat(l)}${'☆'.repeat(5-l)}</span></div>
+      <button class="chip" data-role="${i}" aria-pressed="${m.r?'true':'false'}" style="grid-row:span 2">${CROLE[m.r]}</button>
+      <div class="s">${m.r?`売値+${Math.round(SALES_PER*l*100)}%`:`1日約${yen(h*fishMul(m))}を水揚げ`}・給料${yen(wageOf(m))}/日・${nx?`次のLvまであと${nx-m.x}日`:'最高レベル'}</div></div>`}).join('')}`;
   $('#p-shop').innerHTML=`<h2>設備：道具</h2><div class="list">${ups}</div><h2>船</h2><div class="list">${boat}</div><h2>人</h2><div class="list">${crew}</div>`;
   const sh=$('#p-shop');
   sh.querySelectorAll('[data-up]').forEach(e=>e.onclick=()=>{const u=UP.find(x=>x.k===e.dataset.up);const c=u.c[G.lv[u.k]];if(G.money>=c){G.money-=c;led('buy',c);G.lv[u.k]++;save();hud();renderAll()}});
   sh.querySelectorAll('[data-boat]').forEach(e=>e.onclick=()=>{if(G.money>=b.c){G.money-=b.c;led('buy',b.c);G.boat++;G.area=G.boat;save();hud();renderAll();toast(`${AREAS[G.boat].name}に出られます！釣りタブへ`);}});
-  sh.querySelectorAll('[data-crew]').forEach(e=>e.onclick=()=>{if(G.money>=cc&&G.crew<crewMax()){G.money-=cc;led('buy',cc);G.crew++;save();hud();renderAll()}});
+  sh.querySelectorAll('[data-role]').forEach(e=>e.onclick=()=>{const m=G.cr[+e.dataset.role];if(m){m.r^=1;save();renderAll()}});
+  sh.querySelectorAll('[data-crew]').forEach(e=>e.onclick=()=>{if(G.money>=cc&&G.crew<crewMax()){G.money-=cc;led('buy',cc);G.crew++;normCrew();save();hud();renderAll()}});
 }
 const stars=(sp,size)=>{const n=1+Math.min(4,Math.floor((size-sp.min)/(sp.max-sp.min)*5));return '★'.repeat(n)+'☆'.repeat(5-n)};
 function renderDex(){
@@ -1109,7 +1126,7 @@ function offlineGain(){
   const el=Date.now()-(G.lastSeen||Date.now());
   if(!G.crew||el<15*60000)return;
   const hrs=Math.min(8,el/3600000),A=AREAS[G.boat];
-  const gain=Math.round(G.crew*A.base*hrs/8),wage=Math.round(G.crew*A.wage*hrs/8),pay=Math.min(wage,G.money+gain);
+  const gain=Math.round(CR().reduce((a,m)=>a+A.base*fishMul(m),0)*hrs/8),wage=Math.round(CR().reduce((a,m)=>a+wageOf(m),0)*hrs/8),pay=Math.min(wage,G.money+gain);
   G.money+=gain-pay;led('crew',gain);led('wage',pay);earn(gain);save();hud();renderAll();
   $('#box').innerHTML=`<h3>おかえりなさい</h3><p style="margin:0 0 8px;color:var(--sub)">留守の間も、漁師たちが働いてくれました。</p>
     <div class="card" style="margin:0 0 10px"><div class="kv"><span>留守にしていた時間</span><b class="num">${Math.floor(hrs)}時間${Math.round((hrs%1)*60)}分${el>8*3600000?'（上限8時間）':''}</b><span>水揚げ（${G.crew}人）</span><b class="num up">+${yen(gain)}</b><span>給料</span><b class="num down">-${yen(pay)}</b></div></div>
@@ -1375,6 +1392,7 @@ const HELP=[
  {t:'ようこそ！',b:'<p>魚を釣って、売って、船と仲間を増やす釣り船経営ゲームです。</p><p>目標は、売上を増やして最高ランク「漁業王」になること。まずは釣りから始めましょう。</p>'},
  {t:'釣り方',b:'<ol><li><span class="k">投げる</span>を押して浮きを待つ</li><li>浮きが沈んで「！」が出たら、すぐ<span class="k">アワセ！</span></li><li>ヒットしたら<span class="k">巻く</span>ボタンを押し続けて寄せる</li><li>魚が暴れている間は<b>指を離す</b>。落ち着いたらまた巻く</li></ol><p>テンションが満タンになると糸が切れ、寄せ具合が満タンになると釣れます。パソコンならスペースキーでも操作できます。</p>'},
  {t:'魚を売る',b:'<p>釣った魚は魚箱に入ります（容量があります）。<span class="k">市場</span>タブで売ってお金にしましょう。</p><p>値段は、大きさ（★の数）・鮮度・今日の相場で決まります。大きい魚ほど高く売れ、経験値も多くもらえます。売れ残りは夜のたびに鮮度が落ちるので、早めに売るのがおすすめです。</p><p>同じ魚を続けて売ると<b>値崩れ</b>します（翌朝には半分もどる）。直売所を強化すると、1日に数匹だけ高く売れる<b>直売所の枠</b>が使えます。「すべて売る」は、高い魚から順に自動で有利な出荷先へ回します。市場タブの<b>経営レポート</b>で、収入・経費・稼ぎ頭の魚を確認できます。</p>'},
+ {t:'従業員を育てる',b:'<p><span class="k">自宅・設備</span>タブで従業員を雇えます。1人ずつ名前と役割があります。</p><ol><li><b>釣り師</b>：いっしょに釣りに出て、毎日お金を水揚げする</li><li><b>営業</b>：水揚げはしないが、魚の売値を底上げする（全員で+15%まで）</li><li>役割は、名前の横のボタンでいつでも切り替えられる</li><li>働いた日数でレベルが上がる。水揚げも売値ボーナスも増えるが、<b>給料も上がる</b></li></ol><p>序盤は釣り師が得、お金がたまってきたら営業を混ぜると売上が伸びます。夜の収支や、市場タブの経営レポートで、人件費の重さを確認しよう。</p>'},
  {t:'設備を強化する',b:'<p><span class="k">自宅・設備</span>タブでお金を使って強化できます。</p><ol><li><b>釣り竿</b>：巻き上げが速くなる</li><li><b>釣り糸</b>：テンションが上がりにくい</li><li><b>エサ</b>：アタリが早く、珍しい魚が寄る</li><li><b>クーラーボックス</b>：魚箱が広がり、鮮度も保てる</li><li><b>漁師を雇う</b>：釣り場でいっしょに釣って稼いでくれる（給料もかかる）</li></ol>'},
  {t:'新しい海域へ',b:'<ol><li><span class="k">自宅・設備</span>タブの「船」で次の船を買うと、新しい海域に出られます</li><li>小型ボート（'+yen(BOATS[0].c)+'）で沖合、大型漁船（'+yen(BOATS[1].c)+'）で深海</li><li>さらにクルーザーでサンゴ礁の島、砕氷船で氷海、ムーンクラフトで幻の海域</li><li>買ったら<span class="k">釣り</span>タブの海域ボタンで行き先を選ぶ</li></ol><p>先の海域ほど、高く売れる大きな魚がいます。</p>'},
  {t:'レアな魚',b:'<p>海域ごとに、めったに釣れないレアな魚がいます。<span class="tag" style="background:#6cc4ff">レア</span><span class="tag" style="background:#c08cff">超レア</span><span class="tag" style="background:#ffd24a">伝説</span></p><p>レアな魚がかかると、アタリの時点で気配が違います。釣り上げると派手な演出が出ます。図鑑でまだ釣っていない魚を探しましょう。エサの強化やランクの特典で、珍しい魚が寄りやすくなります。</p>'},
