@@ -151,12 +151,12 @@ textarea{width:100%;min-height:76px;background:var(--panel);color:var(--fg);bord
 <script>
 /* ---------- data ---------- */
 const AREAS=[
-  {name:'港の堤防',base:250,wage:100,hue:200,sea:200,ss:60,lb:0},
-  {name:'沖合',base:700,wage:200,hue:205,sea:205,ss:60,lb:0},
-  {name:'深海',base:1800,wage:400,hue:225,sea:225,ss:55,lb:-4},
-  {name:'サンゴ礁の島',base:4000,wage:800,hue:185,sea:175,ss:70,lb:4},
-  {name:'氷海',base:9000,wage:1600,hue:200,sea:198,ss:35,lb:10},
-  {name:'幻の海域',base:20000,wage:3200,hue:275,sea:268,ss:55,lb:-2}];
+  {name:'港の堤防',base:300,wage:100,hue:200,sea:200,ss:60,lb:0},
+  {name:'沖合',base:800,wage:260,hue:205,sea:205,ss:60,lb:0},
+  {name:'深海',base:1700,wage:570,hue:225,sea:225,ss:55,lb:-4},
+  {name:'サンゴ礁の島',base:2600,wage:860,hue:185,sea:175,ss:70,lb:4},
+  {name:'氷海',base:3800,wage:1250,hue:200,sea:198,ss:35,lb:10},
+  {name:'幻の海域',base:5400,wage:1800,hue:275,sea:268,ss:55,lb:-2}];
 // n:名前 e:絵文字 d:[体色,腹色,体型,模様,模様色,特徴] a:海域 w:出やすさ min/max:cm p:1cmあたりの値段 s:引きの強さ
 const SP=[
   {n:'イワシ',d:['#4b78a8','#dfe9f0','a','h','#2f4f78'],a:0,w:40,min:10,max:20,p:5,s:.5},
@@ -168,67 +168,67 @@ const SP=[
   {n:'カレイ',d:['#8d7458','#d9c9ae','f','p','#5a4630'],a:0,w:10,min:20,max:45,p:16,s:1.1},
   {n:'カニ',e:'🦀',a:0,w:10,min:8,max:20,p:22,s:.8},
   {n:'クロダイ',d:['#4d5560','#c9ced4','r','h','#2f353d'],a:0,w:6,min:25,max:50,p:14,s:1.5},
-  {n:'サバ',d:['#3d7a8c','#e6eef0','b','w','#1f3f4d'],a:1,w:35,min:25,max:45,p:10,s:1.0},
-  {n:'カツオ',d:['#2f5b8f','#d5dde6','t','h','#1b2f4d'],a:1,w:20,min:40,max:70,p:14,s:1.6},
-  {n:'サワラ',d:['#8fa3b3','#e9eef2','a','p','#556a7a'],a:1,w:14,min:45,max:90,p:15,s:1.5},
-  {n:'イカ',e:'🦑',a:1,w:25,min:20,max:40,p:18,s:1.1},
-  {n:'タコ',e:'🐙',a:1,w:15,min:25,max:60,p:16,s:1.3},
-  {n:'タイ',d:['#e0637a','#f7d3d9','r','p','#6bb7d9'],a:1,w:12,min:30,max:70,p:25,s:1.8},
-  {n:'ヒラメ',d:['#a99068','#ece3cf','f','p','#6d5a3a'],a:1,w:8,min:40,max:80,p:28,s:1.7},
-  {n:'ブリ',d:['#556d63','#e9ede5','b','h','#e0b94a'],a:1,w:10,min:50,max:90,p:22,s:2.2},
-  {n:'イセエビ',e:'🦞',a:1,w:6,min:20,max:40,p:45,s:1.4},
-  {n:'キンメダイ',d:['#d8322e','#f1b2a8','r','','','bigeye'],a:2,w:25,min:30,max:55,p:50,s:1.8},
-  {n:'アンコウ',d:['#6b4a3c','#a98672','f','p','#3a261e'],a:2,w:12,min:40,max:90,p:40,s:2.0},
-  {n:'サメ',e:'🦈',a:2,w:8,min:100,max:250,p:18,s:2.7},
-  {n:'マグロ',d:['#243e6b','#cfd6e0','t','h','#d7b13a'],a:2,w:8,min:100,max:250,p:28,s:2.8},
-  {n:'カジキ',d:['#2c5c8f','#dde6ee','t','h','#122a4a','bill'],a:2,w:4,min:150,max:300,p:30,s:3.0},
-  {n:'シーラカンス',d:['#34465c','#6f86a0','r','p','#b9d3e8'],a:2,w:3,min:100,max:180,p:60,s:2.4},
-  {n:'リュウグウノツカイ',d:['#c9d4dc','#eef2f5','l','h','#d94a3a','ribbon'],a:2,w:2,min:200,max:350,p:15,s:2.5},
+  {n:'サバ',d:['#3d7a8c','#e6eef0','b','w','#1f3f4d'],a:1,w:35,min:25,max:45,p:8.5,s:1.0},
+  {n:'カツオ',d:['#2f5b8f','#d5dde6','t','h','#1b2f4d'],a:1,w:20,min:40,max:70,p:11.9,s:1.6},
+  {n:'サワラ',d:['#8fa3b3','#e9eef2','a','p','#556a7a'],a:1,w:14,min:45,max:90,p:12.75,s:1.5},
+  {n:'イカ',e:'🦑',a:1,w:25,min:20,max:40,p:15.3,s:1.1},
+  {n:'タコ',e:'🐙',a:1,w:15,min:25,max:60,p:13.6,s:1.3},
+  {n:'タイ',d:['#e0637a','#f7d3d9','r','p','#6bb7d9'],a:1,w:12,min:30,max:70,p:21.25,s:1.8},
+  {n:'ヒラメ',d:['#a99068','#ece3cf','f','p','#6d5a3a'],a:1,w:8,min:40,max:80,p:23.8,s:1.7},
+  {n:'ブリ',d:['#556d63','#e9ede5','b','h','#e0b94a'],a:1,w:10,min:50,max:90,p:18.7,s:2.2},
+  {n:'イセエビ',e:'🦞',a:1,w:6,min:20,max:40,p:38.25,s:1.4},
+  {n:'キンメダイ',d:['#d8322e','#f1b2a8','r','','','bigeye'],a:2,w:25,min:30,max:55,p:22.5,s:1.8},
+  {n:'アンコウ',d:['#6b4a3c','#a98672','f','p','#3a261e'],a:2,w:12,min:40,max:90,p:18,s:2.0},
+  {n:'サメ',e:'🦈',a:2,w:8,min:100,max:250,p:8.1,s:2.7},
+  {n:'マグロ',d:['#243e6b','#cfd6e0','t','h','#d7b13a'],a:2,w:8,min:100,max:250,p:12.6,s:2.8},
+  {n:'カジキ',d:['#2c5c8f','#dde6ee','t','h','#122a4a','bill'],a:2,w:4,min:150,max:300,p:13.5,s:3.0},
+  {n:'シーラカンス',d:['#34465c','#6f86a0','r','p','#b9d3e8'],a:2,w:3,min:100,max:180,p:27,s:2.4},
+  {n:'リュウグウノツカイ',d:['#c9d4dc','#eef2f5','l','h','#d94a3a','ribbon'],a:2,w:2,min:200,max:350,p:6.75,s:2.5},
   {n:'ハゼ',d:['#b59a6a','#e8dcc0','a','p','#6b5430'],a:0,w:30,min:8,max:20,p:10,s:.5},
   {n:'スズキ',d:['#8a9ba8','#eef2f4','b','',''],a:0,w:10,min:40,max:80,p:18,s:1.7},
   {n:'フグ',d:['#c9b27a','#f3ead0','r','p','#6b5430'],a:0,w:10,min:20,max:35,p:30,s:1.0},
-  {n:'ホウボウ',d:['#e0764a','#f6d6c0','r','p','#4aa3d9'],a:1,w:14,min:25,max:40,p:22,s:1.2},
-  {n:'カンパチ',d:['#7a8f5a','#eef0d8','b','h','#c9a227'],a:1,w:8,min:60,max:110,p:22,s:2.3},
-  {n:'ギンダラ',d:['#2a2f3a','#6a7080','b','',''],a:2,w:14,min:50,max:90,p:35,s:2.0},
-  {n:'タカアシガニ',e:'🦀',a:2,w:9,min:40,max:100,p:40,s:2.2},
-  {n:'クマノミ',d:['#ff7a2f','#ffd0a0','r','s','#ffffff'],a:3,w:40,min:6,max:12,p:150,s:.7},
-  {n:'ブダイ',d:['#3fa9a0','#f0d0e0','r','p','#ff9ec4'],a:3,w:30,min:30,max:60,p:80,s:1.6},
-  {n:'ハタ',d:['#a85a3a','#f0c8a8','r','p','#6a2a1a'],a:3,w:22,min:40,max:90,p:70,s:2.0},
-  {n:'シイラ',d:['#3fae6a','#f3d84a','t','h','#2a7a44'],a:3,w:14,min:80,max:150,p:40,s:2.3},
-  {n:'ロウニンアジ',d:['#6a8aa0','#e8f0f4','b','',''],a:3,w:10,min:70,max:150,p:50,s:2.6},
-  {n:'クルマエビ',e:'🦐',a:3,w:12,min:12,max:25,p:300,s:1.0},
-  {n:'ナポレオンフィッシュ',d:['#3a8fb0','#9fd8e0','r','w','#1a5a75','bigeye'],a:3,w:5,min:100,max:200,p:60,s:3.0},
-  {n:'マンタ',d:['#2a3a55','#f4f6fa','f','p','#ffffff'],a:3,w:2,min:300,max:500,p:35,s:3.2},
-  {n:'ニシン',d:['#5a7a9a','#e8eff4','a','h','#3a5a78'],a:4,w:40,min:20,max:35,p:160,s:.8},
-  {n:'ホッケ',d:['#7a7a68','#e0dccb','b','p','#4a4a3a'],a:4,w:28,min:30,max:50,p:180,s:1.4},
-  {n:'タラ',d:['#9a8a6a','#ece4d0','b','p','#5a4a30'],a:4,w:35,min:50,max:100,p:110,s:1.8},
-  {n:'サケ',d:['#8aa0b0','#f0d0d0','b','p','#3a4a5a'],a:4,w:25,min:55,max:90,p:130,s:2.0},
-  {n:'タラバガニ',e:'🦀',a:4,w:12,min:30,max:80,p:180,s:2.0},
-  {n:'ミズダコ',e:'🐙',a:4,w:10,min:80,max:300,p:50,s:2.5},
-  {n:'オヒョウ',d:['#6a5a4a','#d8ccb8','f','p','#3a2f25'],a:4,w:8,min:100,max:250,p:60,s:2.6},
-  {n:'チョウザメ',d:['#6a7078','#c8ccd0','t','p','#40454c'],a:4,w:5,min:150,max:300,p:55,s:2.8},
-  {n:'ニシオンデンザメ',e:'🦈',a:4,w:2,min:300,max:500,p:35,s:3.4},
-  {n:'ホタルイワシ',d:['#e8d85a','#fff8c0','a','h','#ffffff'],a:5,w:35,min:10,max:22,p:800,s:.9},
-  {n:'月光ダイ',d:['#a8a0d8','#ece8ff','r','p','#ffffff'],a:5,w:28,min:30,max:60,p:450,s:2.0},
-  {n:'オーロラマス',d:['#4ad8b0','#f0b0e8','b','w','#7a50d8'],a:5,w:22,min:40,max:80,p:380,s:2.3},
-  {n:'星屑ウツボ',d:['#3a2a5a','#8a70b0','l','p','#ffe070'],a:5,w:15,min:100,max:200,p:150,s:2.5},
-  {n:'虹色マグロ',d:['#d85a8a','#f0e08a','t','s','#4ab0e8'],a:5,w:8,min:120,max:260,p:120,s:3.0},
-  {n:'黄金のコイ',d:['#e8b82a','#fff0b0','r','p','#ffffff'],a:5,w:6,min:60,max:120,p:300,s:2.7},
-  {n:'幻の巨鯨',e:'🐋',a:5,w:2,min:800,max:1500,p:25,s:3.6},
+  {n:'ホウボウ',d:['#e0764a','#f6d6c0','r','p','#4aa3d9'],a:1,w:14,min:25,max:40,p:18.7,s:1.2},
+  {n:'カンパチ',d:['#7a8f5a','#eef0d8','b','h','#c9a227'],a:1,w:8,min:60,max:110,p:18.7,s:2.3},
+  {n:'ギンダラ',d:['#2a2f3a','#6a7080','b','',''],a:2,w:14,min:50,max:90,p:15.75,s:2.0},
+  {n:'タカアシガニ',e:'🦀',a:2,w:9,min:40,max:100,p:18,s:2.2},
+  {n:'クマノミ',d:['#ff7a2f','#ffd0a0','r','s','#ffffff'],a:3,w:40,min:6,max:12,p:75,s:.7},
+  {n:'ブダイ',d:['#3fa9a0','#f0d0e0','r','p','#ff9ec4'],a:3,w:30,min:30,max:60,p:40,s:1.6},
+  {n:'ハタ',d:['#a85a3a','#f0c8a8','r','p','#6a2a1a'],a:3,w:22,min:40,max:90,p:35,s:2.0},
+  {n:'シイラ',d:['#3fae6a','#f3d84a','t','h','#2a7a44'],a:3,w:14,min:80,max:150,p:20,s:2.3},
+  {n:'ロウニンアジ',d:['#6a8aa0','#e8f0f4','b','',''],a:3,w:10,min:70,max:150,p:25,s:2.6},
+  {n:'クルマエビ',e:'🦐',a:3,w:12,min:12,max:25,p:150,s:1.0},
+  {n:'ナポレオンフィッシュ',d:['#3a8fb0','#9fd8e0','r','w','#1a5a75','bigeye'],a:3,w:5,min:100,max:200,p:30,s:3.0},
+  {n:'マンタ',d:['#2a3a55','#f4f6fa','f','p','#ffffff'],a:3,w:2,min:300,max:500,p:17.5,s:3.2},
+  {n:'ニシン',d:['#5a7a9a','#e8eff4','a','h','#3a5a78'],a:4,w:40,min:20,max:35,p:57.6,s:.8},
+  {n:'ホッケ',d:['#7a7a68','#e0dccb','b','p','#4a4a3a'],a:4,w:28,min:30,max:50,p:64.8,s:1.4},
+  {n:'タラ',d:['#9a8a6a','#ece4d0','b','p','#5a4a30'],a:4,w:35,min:50,max:100,p:39.6,s:1.8},
+  {n:'サケ',d:['#8aa0b0','#f0d0d0','b','p','#3a4a5a'],a:4,w:25,min:55,max:90,p:46.8,s:2.0},
+  {n:'タラバガニ',e:'🦀',a:4,w:12,min:30,max:80,p:64.8,s:2.0},
+  {n:'ミズダコ',e:'🐙',a:4,w:10,min:80,max:300,p:18,s:2.5},
+  {n:'オヒョウ',d:['#6a5a4a','#d8ccb8','f','p','#3a2f25'],a:4,w:8,min:100,max:250,p:21.6,s:2.6},
+  {n:'チョウザメ',d:['#6a7078','#c8ccd0','t','p','#40454c'],a:4,w:5,min:150,max:300,p:19.8,s:2.8},
+  {n:'ニシオンデンザメ',e:'🦈',a:4,w:2,min:300,max:500,p:12.6,s:3.4},
+  {n:'ホタルイワシ',d:['#e8d85a','#fff8c0','a','h','#ffffff'],a:5,w:35,min:10,max:22,p:160,s:.9},
+  {n:'月光ダイ',d:['#a8a0d8','#ece8ff','r','p','#ffffff'],a:5,w:28,min:30,max:60,p:90,s:2.0},
+  {n:'オーロラマス',d:['#4ad8b0','#f0b0e8','b','w','#7a50d8'],a:5,w:22,min:40,max:80,p:76,s:2.3},
+  {n:'星屑ウツボ',d:['#3a2a5a','#8a70b0','l','p','#ffe070'],a:5,w:15,min:100,max:200,p:30,s:2.5},
+  {n:'虹色マグロ',d:['#d85a8a','#f0e08a','t','s','#4ab0e8'],a:5,w:8,min:120,max:260,p:24,s:3.0},
+  {n:'黄金のコイ',d:['#e8b82a','#fff0b0','r','p','#ffffff'],a:5,w:6,min:60,max:120,p:60,s:2.7},
+  {n:'幻の巨鯨',e:'🐋',a:5,w:2,min:800,max:1500,p:5,s:3.6},
   // 主（ボス）：海域の魚をコンプすると、低確率で現れる
   {n:'堤防の主 ヌシダイ',boss:1,d:['#c9a227','#f2e3a0','r','h','#7a5c10','bigeye'],a:0,w:0,min:70,max:100,p:75,s:2.8},
-  {n:'海原の主 オオブリ',boss:1,d:['#2f4f4f','#e8e8d8','b','h','#ffd24a'],a:1,w:0,min:130,max:180,p:90,s:6.3},
-  {n:'深海の主 ダイオウイカ',boss:1,e:'🦑',a:2,w:0,min:400,max:700,p:120,s:6.8},
-  {n:'珊瑚の主 オオハタ',boss:1,d:['#7a2f2f','#d9a0a0','r','p','#f0d0d0','bigeye'],a:3,w:0,min:250,max:350,p:405,s:6.8},
-  {n:'氷海の主 白銀のチョウザメ',boss:1,d:['#9fb4c8','#eef4fa','t','p','#5a6f85'],a:4,w:0,min:400,max:600,p:480,s:6.4},
-  {n:'幻海の主 リヴァイアサン',boss:1,e:'🐉',a:5,w:0,min:1500,max:3000,p:330,s:5.4}];
+  {n:'海原の主 オオブリ',boss:1,d:['#2f4f4f','#e8e8d8','b','h','#ffd24a'],a:1,w:0,min:130,max:180,p:76.5,s:6.3},
+  {n:'深海の主 ダイオウイカ',boss:1,e:'🦑',a:2,w:0,min:400,max:700,p:54,s:6.8},
+  {n:'珊瑚の主 オオハタ',boss:1,d:['#7a2f2f','#d9a0a0','r','p','#f0d0d0','bigeye'],a:3,w:0,min:250,max:350,p:202.5,s:6.8},
+  {n:'氷海の主 白銀のチョウザメ',boss:1,d:['#9fb4c8','#eef4fa','t','p','#5a6f85'],a:4,w:0,min:400,max:600,p:172.8,s:6.4},
+  {n:'幻海の主 リヴァイアサン',boss:1,e:'🐉',a:5,w:0,min:1500,max:3000,p:66,s:5.4}];
 const UP=[
-  {k:'rod',n:'釣り竿',d:'巻き上げが速くなる',at:'道具小屋の中の竿が増える',c:[600,1500,4000,10000,25000]},
-  {k:'line',n:'釣り糸',d:'テンションが上がりにくい',at:'道具小屋の棚のリールが増える',c:[400,1200,3500,9000,22000]},
-  {k:'bait',n:'エサ',d:'アタリが早く、珍しい魚が寄る',at:'小屋の前のエサバケツが増える',c:[300,1000,3000,8000,20000]},
-  {k:'cool',n:'クーラーボックス',d:'魚箱+5、鮮度が落ちにくい',at:'小屋の横にクーラーボックスが積まれる',c:[500,1500,4000,10000,24000]},
-  {k:'mkt',n:'直売所',d:'魚の売値が+5%',at:'自宅の「直売所」の屋台が大きく育つ',c:[1000,3000,8000,20000,50000]}];
-const BOATS=[{n:'小型ボート',c:3000,d:'沖合に出られる'},{n:'大型漁船',c:25000,d:'深海に出られる'},{n:'クルーザー',c:90000,d:'サンゴ礁の島に出られる'},{n:'砕氷船',c:260000,d:'氷海に出られる'},{n:'ムーンクラフト',c:700000,d:'幻の海域に出られる'}];
+  {k:'rod',n:'釣り竿',d:'巻き上げが速くなる',at:'道具小屋の中の竿が増える',c:[600,1500,4000,10000,25000,1500000,4000000,10000000]},
+  {k:'line',n:'釣り糸',d:'テンションが上がりにくい',at:'道具小屋の棚のリールが増える',c:[400,1200,3500,9000,22000,1400000,3600000,9000000]},
+  {k:'bait',n:'エサ',d:'アタリが早く、珍しい魚が寄る',at:'小屋の前のエサバケツが増える',c:[300,1000,3000,8000,20000,1200000,3200000,8000000]},
+  {k:'cool',n:'クーラーボックス',d:'魚箱+5、鮮度が落ちにくい',at:'小屋の横にクーラーボックスが積まれる',c:[500,1500,4000,10000,24000,1500000,4000000,10000000]},
+  {k:'mkt',n:'直売所',d:'魚の売値が+5%',at:'自宅の「直売所」の屋台が大きく育つ',c:[1000,3000,8000,20000,50000,3000000,8000000,20000000]}];
+const BOATS=[{n:'小型ボート',c:3000,d:'沖合に出られる'},{n:'大型漁船',c:80000,d:'深海に出られる'},{n:'クルーザー',c:400000,d:'サンゴ礁の島に出られる'},{n:'砕氷船',c:1200000,d:'氷海に出られる'},{n:'ムーンクラフト',c:3500000,d:'幻の海域に出られる'}];
 // [必要売上, 名前, 特典, 説明]  特典: gold祝い金 cap魚箱 sell売値% rare珍しい魚 tens糸の強さ% reel巻き上げ%
 const RANKS=[
   [0,'見習い漁師',{},''],
@@ -237,18 +237,18 @@ const RANKS=[
   [3000,'港の人気者',{gold:2000,rare:1},'祝い金¥2,000・珍しい魚が寄りやすい'],
   [8000,'一人前の漁師',{gold:4000,sell:3,cap:3},'祝い金¥4,000・売値+3%・魚箱+3'],
   [20000,'ベテラン漁師',{gold:8000,tens:10},'祝い金¥8,000・テンションが上がりにくい'],
-  [50000,'船長',{gold:15000,sell:4,reel:10},'祝い金¥15,000・売値+4%・巻き上げ+10%'],
-  [120000,'船団長',{gold:30000,cap:5},'祝い金¥30,000・魚箱+5'],
-  [300000,'網元',{gold:60000,sell:5,rare:1},'祝い金¥60,000・売値+5%・珍しい魚がさらに寄る'],
-  [600000,'海の名士',{gold:100000,tens:15,reel:10},'祝い金¥100,000・糸が強く、巻き上げも速く'],
-  [1000000,'漁業王',{gold:300000,sell:10},'祝い金¥300,000・売値+10%']];
+  [250000,'船長',{gold:15000,sell:4,reel:10},'祝い金¥15,000・売値+4%・巻き上げ+10%'],
+  [800000,'船団長',{gold:30000,cap:5},'祝い金¥30,000・魚箱+5'],
+  [2500000,'網元',{gold:60000,sell:5,rare:1},'祝い金¥60,000・売値+5%・珍しい魚がさらに寄る'],
+  [6000000,'海の名士',{gold:100000,tens:15,reel:10},'祝い金¥100,000・糸が強く、巻き上げも速く'],
+  [15000000,'漁業王',{gold:300000,sell:10},'祝い金¥300,000・売値+10%']];
 const avgP=s=>(s.min+s.max)/2*s.p;
 const AVG=AREAS.map((_,a)=>{const l=SP.filter(s=>s.a===a&&!s.boss);return l.reduce((x,s)=>x+s.w*avgP(s),0)/l.reduce((x,s)=>x+s.w,0)});
 const tier=sp=>sp.boss?4:sp.w<=3?3:sp.w<=6?2:sp.w<=12?1:0;
 const TIER=[null,{n:'レア',c:'#6cc4ff'},{n:'超レア',c:'#c08cff'},{n:'伝説',c:'#ffd24a'},{n:'主',c:'#ff5a4e'}];
 const NORM=SP.filter(s=>!s.boss),areaSp=a=>NORM.filter(s=>s.a===a),bossOf=a=>SP.find(s=>s.boss&&s.a===a);
-const COMP=[{g:3000,bp:2},{g:10000,bp:3},{g:30000,bp:4},{g:80000,bp:5},{g:200000,bp:6},{g:500000,bp:8}];
-const BOSSB=[{g:20000,bp:3},{g:75000,bp:4},{g:225000,bp:5},{g:600000,bp:6},{g:1500000,bp:8},{g:4000000,bp:10}];
+const COMP=[{g:3000,bp:2},{g:10000,bp:3},{g:18000,bp:4},{g:32000,bp:5},{g:50000,bp:6},{g:75000,bp:8}];
+const BOSSB=[{g:20000,bp:3},{g:75000,bp:4},{g:135000,bp:5},{g:240000,bp:6},{g:375000,bp:8},{g:600000,bp:10}];
 const tag=sp=>{const t=tier(sp);return t?`<span class="tag" style="background:${TIER[t].c}">${TIER[t].n}</span>`:''};
 const GOAL=1000000, ATTEMPT_MIN=40, DAY_END=1080;
 const DIFF=[.8,1,1.3], DIFFN=['かんたん','ふつう','むずかしい'];
@@ -260,7 +260,8 @@ const ST=[
   {k:'agi',n:'素早さ',d:'アタリへの反応の速さ。アタリが早く来て、アワセの猶予も伸びます。',fx:v=>`アタリまで -${Math.round((1-1/(1+.03*v))*100)}%・アワセ猶予 +${(.04*v).toFixed(2)}秒`},
   {k:'dex',n:'器用さ',d:'糸さばきの上手さ。暴れる魚に寄せ戻されにくく、テンションも下がりやすくなります。',fx:v=>`寄せ戻され -${Math.round((1-Math.max(.3,1-.04*v))*100)}%・テンション回復 +${3*v}%`},
   {k:'luk',n:'運',d:'レア魚や大物との出会いやすさ。',fx:v=>`レア魚の出現 +${10*v}%・大物サイズが出やすい`}];
-const expNeed=l=>30+6*l*l;
+const BAL={expSlope:0.06,bossLvCap:25};   // バランス調整用の数値（経験値の必要量の伸び方）
+const expNeed=l=>Math.round((30+6*l*l)*(1+BAL.expSlope*l));
 const tankCap=l=>[0,3,6,10,15][l];
 const FAC=[
   {k:'house',n:'自宅',d:'住まいが大きくなります。雇える漁師の人数が増えます。',names:['テント','小屋','木造の家','立派な家'],c:[2000,8000,30000],eff:l=>`雇える漁師 ${4+2*l}人まで`},
@@ -418,7 +419,7 @@ function showBossAdvice(a,why){
   const find=(mk,hi)=>{if(rate(mk(0))>=.5)return 0;if(rate(mk(hi))<.5)return null;let lo=0,up=hi;for(let i=0;i<7;i++){const m=Math.round((lo+up)/2);if(rate(mk(m))>=.5)up=m;else lo=m}return up};
   const uni=now>=.5?0:find(k=>({str:cur.str+k,vit:cur.vit+k,dex:cur.dex+k}),90);
   const one=FSTAT.map(([k,n])=>[k,n,now>=.5?0:find(x=>({[k]:cur[k]+x}),160)]);
-  const gear=[['rod','釣り竿',G.lv.rod],['line','釣り糸',G.lv.line]].filter(g=>g[2]<5).map(([k,n,v])=>[n,v,rate({[k]:v+1})]);
+  const gear=[['rod','釣り竿',G.lv.rod],['line','釣り糸',G.lv.line]].filter(g=>g[2]<UP.find(u=>u.k===g[0]).c.length).map(([k,n,v])=>[n,v,rate({[k]:v+1})]);
   const title=why===2?'糸が切れた…':why===3?'逃げられた…':'主への挑戦目安';
   const reason=why===2?'テンションが上がりすぎました。<b>体力</b>と<b>器用さ</b>、釣り糸が効きます。':why===3?'寄せきれずに逃げられました。<b>力</b>と<b>器用さ</b>、釣り竿が効きます。':'';
   let html=`<h3>${title}</h3><p style="margin:0 0 8px"><b>${sp.n}</b>${reason?'<br>'+reason:''}</p>
@@ -443,7 +444,7 @@ const trophyBonus=()=>[0,.1,.2,.35][G.fac.trophy];
 function expGain(sp,size,newSp){
   const r=sizeRatio(sp,size),tb=1+trophyBonus()+mealFx('exp');
   let e=Math.round(((8+sp.s*7+tier(sp)*20+(newSp?25:0))*(.6+.9*r)+(r>=.9?10:0))*tb);
-  if(sp.boss)e+=Math.round((expNeed(G.level)*(1+.3*sp.a)+e*4)*tb);
+  if(sp.boss)e+=Math.round((expNeed(Math.min(G.level,BAL.bossLvCap))*(1+.3*sp.a)+e*4)*tb);
   return e;
 }
 function growRoll(){const r=Math.random();return r<.15?0:r<.7?1:r<.95?2:3}
@@ -1146,10 +1147,10 @@ function toolsArt(c,ts){
   c.fillStyle='#2c2118';c.fillRect(298,152,80,48);
   c.strokeStyle='#8b6a4a';c.lineWidth=3;c.beginPath();c.moveTo(298,178);c.lineTo(378,178);c.stroke();
   const RC=['#d9c7a8','#8fbf6a','#6aa6d9','#c28fd9','#ffd24a'];
-  for(let i=0;i<G.lv.rod;i++){c.strokeStyle=RC[i];c.lineWidth=2;c.beginPath();c.moveTo(304+i*13,198);c.lineTo(311+i*13,156);c.stroke()}
-  for(let i=0;i<G.lv.line;i++){c.fillStyle=RC[i];c.beginPath();c.arc(306+i*14,172,5,0,7);c.fill();c.strokeStyle='#fff';c.lineWidth=1;c.stroke()}
-  for(let i=0;i<G.lv.bait;i++){const x=298+i*15,y=214;c.fillStyle='#e08a3a';c.beginPath();c.moveTo(x,y-10);c.lineTo(x+12,y-10);c.lineTo(x+10,y);c.lineTo(x+2,y);c.closePath();c.fill();c.strokeStyle='#a85f20';c.lineWidth=1;c.beginPath();c.arc(x+6,y-10,5,Math.PI,0);c.stroke()}
-  for(let i=0;i<G.lv.cool;i++){const x=382+(i%2)*19,y=200-((i/2|0)+1)*13;c.fillStyle='#3a8fd6';c.fillRect(x,y,17,12);c.fillStyle='#e8f1f5';c.fillRect(x,y,17,4)}
+  for(let i=0;i<Math.min(5,G.lv.rod);i++){c.strokeStyle=RC[i];c.lineWidth=2;c.beginPath();c.moveTo(304+i*13,198);c.lineTo(311+i*13,156);c.stroke()}
+  for(let i=0;i<Math.min(5,G.lv.line);i++){c.fillStyle=RC[i];c.beginPath();c.arc(306+i*14,172,5,0,7);c.fill();c.strokeStyle='#fff';c.lineWidth=1;c.stroke()}
+  for(let i=0;i<Math.min(5,G.lv.bait);i++){const x=298+i*15,y=214;c.fillStyle='#e08a3a';c.beginPath();c.moveTo(x,y-10);c.lineTo(x+12,y-10);c.lineTo(x+10,y);c.lineTo(x+2,y);c.closePath();c.fill();c.strokeStyle='#a85f20';c.lineWidth=1;c.beginPath();c.arc(x+6,y-10,5,Math.PI,0);c.stroke()}
+  for(let i=0;i<Math.min(5,G.lv.cool);i++){const x=382+(i%2)*19,y=200-((i/2|0)+1)*13;c.fillStyle='#3a8fd6';c.fillRect(x,y,17,12);c.fillStyle='#e8f1f5';c.fillRect(x,y,17,4)}
   // 直売所
   const m=G.lv.mkt,x0=424,w=54;
   c.fillStyle='#7a5a3a';c.fillRect(x0,180,w,20);c.fillStyle='#9c7448';c.fillRect(x0,176,w,5);
