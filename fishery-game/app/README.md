@@ -1,0 +1,79 @@
+# 海風フィッシャリー — Androidアプリ化（Capacitor + Firebase + Googleログイン）
+
+ゲーム本体は、1つのHTMLファイル（`../index.html`）です。このフォルダは、それを **Androidアプリ**として包み、
+**Googleログインでデータを引き継げる**ようにするための部品です。
+
+```
+../index.html         ゲーム本体（ここを直すと、ゲームが変わる）
+src/cloud-firebase.js  Googleログイン + クラウド保存（Firebase）
+src/firebase-config.js ← あなたのFirebase設定を貼る
+firestore.rules       データの守りのルール（本人だけが自分のデータを読み書き）
+public/               プライバシーポリシー・アカウント削除ページ（Firebase Hostingで公開）
+build.mjs             ../index.html から、アプリ用の www/ を作る
+STORE_CHECKLIST.md    ストア申請のチェックリスト
+```
+
+仕組みは次のとおりです。
+
+- **ログインなしでも遊べます。** データは端末の中に保存されます。
+- **Googleでログインすると**、進み具合が自動でクラウド（Firestore）に保存されます。
+- **機種変更・再インストール**のあと、同じGoogleアカウントでログインすると、「引き継ぎますか？」と聞かれます。
+
+---
+
+## 0. 用意するもの
+- パソコン（Windows / Mac / Linux）
+- [Node.js](https://nodejs.org/)（22以上）
+- [Android Studio](https://developer.android.com/studio)
+- Googleアカウント（Firebase用）
+- Androidの実機（USBデバッグを有効に）。エミュレータでも可
+
+## 1. Firebaseプロジェクトを作る
+1. [Firebaseコンソール](https://console.firebase.google.com/) →「プロジェクトを追加」。名前は何でもよく、Googleアナリティクスは「オフ」で構いません。
+2. 左メニュー **Authentication** →「始める」→ ログイン方法で **Google** を有効にします（サポートメールを選ぶ）。
+3. 左メニュー **Firestore Database** →「データベースを作成」→ 場所は `asia-northeast1`（東京）→ **本番環境モード**。
+4. Firestoreの「ルール」タブに、`firestore.rules` の中身を貼り付けて「公開」します。
+
+## 2. 設定値をゲームに入れる
+1. Firebaseの「プロジェクトの設定」→「マイアプリ」→ **ウェブアプリ（`</>`）を追加**。
+2. 表示される設定値（apiKey など）を、`src/firebase-config.js` に貼り付けます。
+
+## 3. Androidアプリを登録する
+1. `capacitor.config.json` の `appId` を、**自分だけのパッケージ名**に変えます（例 `jp.あなた.umikazefishery`）。公開後は変更できません。
+2. Firebaseの「マイアプリ」→ **Androidアプリを追加**。パッケージ名は、上の `appId` と同じものを入れます。
+3. **SHA-1証明書フィンガープリント**を登録します（Googleログインに必須）。
+   - 開発用: Android Studioの Gradle →「signingReport」で表示される SHA-1。
+   - 公開用: Play Console の「アプリの署名」に表示される SHA-1 も、あとで追加します。
+4. `google-services.json` をダウンロードし、`android/app/` に置きます（手順4のあと）。
+
+## 4. ビルドして実機で動かす
+```bash
+cd app
+npm install
+npx cap add android      # 最初の1回だけ。android/ フォルダができる
+# → google-services.json を android/app/ に置く
+npm run android          # www/ を作り、Android Studio を開く
+```
+Android Studio で、実機を選んで ▶（実行）を押します。
+
+> `android/app/google-services.json` を置くと、Capacitorが作るAndroidの雛形が、自動でFirebaseを有効にします
+> （置いてから `npm run android` をやり直してください）。
+> うまくいかないときは、`@capacitor-firebase/authentication` の
+> [公式の手順](https://github.com/capawesome-team/capacitor-firebase/blob/main/packages/authentication/docs/setup-google.md)
+> も確認してください。
+
+## 5. 動作確認（実機で）
+1. ログインせずに、少し遊ぶ。
+2. 設定 →「Googleでログイン」。ログインできたら「● Googleでログイン中」と出る。
+3. Firebaseコンソールの Firestore に、`saves/（ユーザーID）` というデータができている。
+4. アプリを消して、入れ直す → 起動時の画面で「Googleでログインして引き継ぐ」→「引き継ぎますか？」が出る。
+5. 設定 →「アカウントとクラウドのデータを削除」で、Firestoreのデータが消える。
+
+## 6. 公開の準備
+1. `public/privacy.html` と `public/delete-account.html` の【　】を埋める。
+2. [Firebase CLI](https://firebase.google.com/docs/cli) で公開: `npx firebase-tools login` → `npx firebase-tools deploy --only hosting,firestore:rules`
+   → `https://プロジェクトID.web.app/privacy` がプライバシーポリシーのURLになります。
+3. `STORE_CHECKLIST.md` に沿って、Play Consoleで申請します。
+
+## ゲームを直したとき
+`../index.html` を直したら、`npm run sync` を実行して、Android Studio で再ビルドします。

@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // セーブデータ：ログインした本人だけが、自分の1件を読み書き・削除できる
+    match /saves/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['json','savedAt','dev','v','lv','day','money'])
+        && request.resource.data.json is string
+        && request.resource.data.json.size() < 200000;
+    }
+    // それ以外はすべて拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

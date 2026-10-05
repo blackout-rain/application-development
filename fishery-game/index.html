@@ -275,7 +275,7 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,fs:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0},rankGot:0,crewToday:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+  return{v:1,fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0},rankGot:0,crewToday:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
 function migrate(s){
   if(!s||s.v!==1)return null;
   const fs0=s.fs===undefined?(s.big?1:0):s.fs;
@@ -583,6 +583,7 @@ function dayEnd(){
 function sleep(){
   G.day++;G.min=360;G.home=0;S.st='idle';save();hud();renderAll();label();
   say('新しい朝。今日も釣りに出よう。');openTab('fish');toast(`${G.day}日目の朝`);
+  if(Cloud.kind==='app'&&Cloud.status==='signedout'&&G.day>=2&&!G.nudged){G.nudged=1;save();setTimeout(showNudge,1500)}
 }
 
 /* ---------- fish art ---------- */
@@ -639,6 +640,7 @@ function hud(){
   $('#xpv').textContent=`次のLvまで${expNeed(G.level)-G.exp}EXP${G.bp?`・BP ${G.bp}`:''}`;
   setHtml(document.querySelector('[data-tab=stat]'),`ステータス${G.bp?`<i class="dot">${G.bp}</i>`:''}`);
   setHtml(document.querySelector('[data-tab=town]'),`街${dailyReady()?'<i class="dot">!</i>':''}`);
+  setHtml(document.querySelector('[data-tab=set]'),`設定${Cloud.kind==='app'&&Cloud.status==='signedout'&&hasProgress()?'<i class="dot">!</i>':''}`);
   $('#tkn').textContent=G.tk.auto;
   $('#mealline').textContent=G.meal?`食事効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回`:'';
 }
@@ -716,27 +718,30 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>openTab(b.datas
 /* ---------- cloud save / 引き継ぎ ----------
    Cloud は保存先の差し替え口。いまはClaudeのアーティファクト機能（ログイン中のアカウントごとの私用領域）を使う。
    ストア版では get/put/remove/getShared/putShared を、Firebase・Play Games・iCloudなどに置き換えれば、画面側はそのまま使える。 */
-const Cloud={db:null,uid:null,dev:null,status:'checking',err:'',lastPush:0,dirty:false,busy:false,timer:0,remote:null};
+const Cloud={kind:'claude',user:null,db:null,uid:null,dev:null,status:'checking',err:'',lastPush:0,dirty:false,busy:false,timer:0,remote:null};
+const useApp=()=>!!window.AppCloud;
 function devId(){try{let d=localStorage.getItem('umikaze-dev');if(!d){d=Math.random().toString(36).slice(2,10);localStorage.setItem('umikaze-dev',d)}return d}catch(e){return 'nodev'}}
 const hasProgress=()=>G.catches>0||G.day>1||G.earned>0;
 const whenFree=fn=>{if(!veilOpen())fn();else setTimeout(()=>whenFree(fn),700)};
 const fmtTime=t=>{const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`};
 const sumLine=o=>`Lv.${o.lv||o.level||1}・${o.day}日目・${yen(o.money)}`;
 const Remote={
-  async get(){const s=await Cloud.db.doc(`data/users/${Cloud.uid}/save`).get();return s.exists?s.data():null},
-  async put(d){await Cloud.db.doc(`data/users/${Cloud.uid}/save`).set(d)},
-  async remove(){await Cloud.db.doc(`data/users/${Cloud.uid}/save`).delete()},
+  async get(){if(useApp())return AppCloud.get();const s=await Cloud.db.doc(`data/users/${Cloud.uid}/save`).get();return s.exists?s.data():null},
+  async put(d){if(useApp())return AppCloud.put(d);await Cloud.db.doc(`data/users/${Cloud.uid}/save`).set(d)},
+  async remove(){if(useApp())return AppCloud.remove();await Cloud.db.doc(`data/users/${Cloud.uid}/save`).delete()},
   async getShared(k){const s=await Cloud.db.doc('transfer/'+k).get();return s.exists?s.data():null},
   async putShared(k,d){await Cloud.db.doc('transfer/'+k).set(d)},
   async removeShared(k){await Cloud.db.doc('transfer/'+k).delete()}
 };
 function cloudStatusHtml(){
-  const s=Cloud.status;
+  const s=Cloud.status,app=Cloud.kind==='app';
   if(s==='checking')return '<span style="color:var(--sub)">接続しています…</span>';
+  if(s==='signedout')return '<span style="color:var(--bad)">未ログイン</span><br><span style="color:var(--sub);font-size:.8rem">機種変更やアンインストールで、データが消えるおそれがあります。Googleでログインすると、クラウドに保存されます。</span>';
   if(s==='off')return '<span style="color:var(--bad)">この環境ではクラウド保存を使えません</span><br><span style="color:var(--sub);font-size:.8rem">Claudeにログインして開くと、自動で保存されます。</span>';
-  if(s==='error')return `<span style="color:var(--bad)">クラウドに保存できませんでした</span><br><span style="color:var(--sub);font-size:.8rem">${Cloud.err==='invalid_argument'?'このアカウントには書き込み権限がありません。':'通信の状態を確かめて、もう一度試してください。'}</span>`;
-  return `<span style="color:var(--good)">● 自動保存中</span>${Cloud.lastPush?`<br><span style="color:var(--sub);font-size:.8rem">最終保存 ${fmtTime(Cloud.lastPush)}</span>`:''}`;
+  if(s==='error')return `<span style="color:var(--bad)">クラウドに保存できませんでした</span><br><span style="color:var(--sub);font-size:.8rem">${Cloud.err==='not_configured'?'Firebaseの設定が未入力です（app/src/firebase-config.js）。':Cloud.err==='invalid_argument'?'このアカウントには書き込み権限がありません。':'通信の状態を確かめて、もう一度試してください。'}</span>`;
+  return `<span style="color:var(--good)">● ${app?`Googleでログイン中${Cloud.user&&(Cloud.user.email||Cloud.user.name)?`（${esc(Cloud.user.email||Cloud.user.name)}）`:''}　自動保存中`:'自動保存中'}</span>${Cloud.lastPush?`<br><span style="color:var(--sub);font-size:.8rem">最終保存 ${fmtTime(Cloud.lastPush)}</span>`:''}`;
 }
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function renderCloudCard(){const el=$('#cloudStatus');if(el)setHtml(el,cloudStatusHtml())}
 async function cloudPush(force){
   if(!Cloud.db||Cloud.busy)return false;
@@ -775,26 +780,99 @@ function askRestore(d,why){
     $('#rsLocal').onclick=()=>{$('#veil').hidden=true;cloudPush(true);if(!G.seen)showHelp(0)};
   });
 }
+// クラウドと端末のどちらが新しいかを判断する（起動時とログイン直後に使う）
+async function cloudDecide(){
+  const d=await Remote.get();
+  Cloud.status='ready';
+  if(!d||(d.day<=1&&(d.lv||1)<=1)){if(hasProgress())await cloudPush(true);return 'none'}
+  Cloud.lastPush=d.savedAt;
+  const ours=d.dev===Cloud.dev&&d.savedAt>=G.lastSeen-5000;
+  if(ours)return 'ours';
+  if(!hasProgress()||d.savedAt>G.lastSeen+30000){askRestore(d,hasProgress()?'newer':'new');return 'asked'}
+  await cloudPush(true);return 'pushed';
+}
 async function cloudInit(){
   try{
-    const c=window.claude;
-    if(!c||!c.use){Cloud.status='off';renderCloudCard();return}
-    const [db,user]=await Promise.all([c.use('db'),c.use('user')]);
-    const uid=user?await user.id():null;
-    if(!db||!uid){Cloud.status='off';renderCloudCard();return}
-    Cloud.db=db;Cloud.uid=uid;Cloud.dev=devId();
-    const d=await Remote.get();
-    Cloud.status='ready';
-    if(!d||(d.day<=1&&(d.lv||1)<=1)){if(hasProgress())await cloudPush(true)}
-    else{
-      Cloud.lastPush=d.savedAt;
-      const ours=d.dev===Cloud.dev&&d.savedAt>=G.lastSeen-5000;
-      if(ours){/* この端末が最新 */}
-      else if(!hasProgress()||d.savedAt>G.lastSeen+30000)askRestore(d,hasProgress()?'newer':'new');
-      else await cloudPush(true);
+    Cloud.dev=devId();
+    if(useApp()){
+      Cloud.kind='app';
+      const u=await AppCloud.init();
+      if(!u){Cloud.status='signedout';renderCloudCard();return}
+      Cloud.user=u;Cloud.uid=u.uid;Cloud.db=true;
+      await cloudDecide();
+    }else{
+      const c=window.claude;
+      if(!c||!c.use){Cloud.status='off';renderCloudCard();return}
+      const [db,user]=await Promise.all([c.use('db'),c.use('user')]);
+      const uid=user?await user.id():null;
+      if(!db||!uid){Cloud.status='off';renderCloudCard();return}
+      Cloud.db=db;Cloud.uid=uid;
+      await cloudDecide();
     }
-  }catch(e){Cloud.status='error';Cloud.err=(e&&e.code)||''}
-  renderCloudCard();
+  }catch(e){Cloud.status='error';Cloud.err=(e&&(e.code||e.message))||''}
+  renderCloudCard();hud();
+}
+// Googleログイン（ストア版）。戻り値: 'asked'=引き継ぎ確認を出した / 'none'=クラウドにデータなし / 'cancel' / 'error'
+async function loginGoogle(){
+  try{
+    const u=await AppCloud.signIn();
+    Cloud.user=u;Cloud.uid=u.uid;Cloud.db=true;Cloud.dev=devId();Cloud.status='ready';Cloud.err='';
+    const r=await cloudDecide();
+    renderCloudCard();if(curTab==='set')renderSet();hud();
+    if(r==='none'&&hasProgress())toast('ログインしました。データをクラウドに保存しました');
+    else if(r==='ours'||r==='pushed')toast('ログインしました');
+    return r;
+  }catch(e){
+    if(e&&e.code==='cancelled')return 'cancel';
+    Cloud.status='error';Cloud.err=(e&&(e.code||e.message))||'';renderCloudCard();toast('ログインできませんでした');return 'error';
+  }
+}
+async function logoutGoogle(){
+  try{await cloudPush(true);await AppCloud.signOut()}catch(e){}
+  Cloud.user=null;Cloud.uid=null;Cloud.db=null;Cloud.status='signedout';
+  if(curTab==='set')renderSet();hud();toast('ログアウトしました');
+}
+function askDeleteAccount(){
+  $('#box').innerHTML=`<h3>アカウントを削除</h3><p style="margin:0 0 10px">クラウドに保存したデータと、Googleアカウントとの紐づけを<b>完全に削除</b>します。元に戻せません。</p><p style="margin:0 0 12px;color:var(--sub);font-size:.85rem">この端末の中のデータは、そのまま残ります。</p>
+    <button class="big" id="delGo" style="background:var(--bad);color:#fff">削除する</button><button class="ghost" id="delNo" style="width:100%;margin-top:8px">やめる</button>`;
+  $('#veil').hidden=false;
+  $('#delNo').onclick=()=>$('#veil').hidden=true;
+  $('#delGo').onclick=async()=>{
+    $('#delGo').disabled=true;
+    try{
+      if(Cloud.timer){clearTimeout(Cloud.timer);Cloud.timer=0}
+      await Remote.remove();await AppCloud.deleteAccount();
+      Cloud.user=null;Cloud.uid=null;Cloud.db=null;Cloud.dirty=false;Cloud.lastPush=0;Cloud.status='signedout';
+      $('#veil').hidden=true;if(curTab==='set')renderSet();hud();toast('アカウントとクラウドのデータを削除しました');
+    }catch(e){$('#veil').hidden=true;toast('削除できませんでした。もう一度ログインしてから、お試しください')}
+  };
+}
+// 初回（データがない端末）の選択。引き継ぎたい人はここからログインできる
+function showWelcome(){
+  whenFree(()=>{
+    $('#box').innerHTML=`<h3>ようこそ！</h3><p style="margin:0 0 12px;color:var(--sub)">はじめて遊ぶ場合も、前の端末から引き継ぐ場合も、ここから始められます。</p>
+      <button class="big" id="wcNew">はじめから遊ぶ</button>
+      <button class="ghost" id="wcLogin" style="width:100%;margin-top:8px">Googleでログインして引き継ぐ</button>`;
+    $('#veil').hidden=false;
+    $('#wcNew').onclick=()=>{$('#veil').hidden=true;showHelp(0)};
+    $('#wcLogin').onclick=async()=>{
+      $('#veil').hidden=true;
+      const r=await loginGoogle();
+      if(r==='asked')return;
+      if(r==='none'||r==='ours'||r==='pushed')toast('引き継げるデータはありませんでした');
+      if(!G.seen)showHelp(0);
+    };
+  });
+}
+// 2日目以降、一度だけ「ログインしておくと安心」をお知らせする
+function showNudge(){
+  whenFree(()=>{
+    $('#box').innerHTML=`<h3>データを守りましょう</h3><p style="margin:0 0 12px">Googleでログインしておくと、機種変更やアンインストールのあとも、データを引き継げます。</p>
+      <button class="big" id="ngGo">Googleでログインする</button><button class="ghost" id="ngNo" style="width:100%;margin-top:8px">あとで</button>`;
+    $('#veil').hidden=false;
+    $('#ngNo').onclick=()=>$('#veil').hidden=true;
+    $('#ngGo').onclick=()=>{$('#veil').hidden=true;loginGoogle()};
+  });
 }
 // 引き継ぎコード：アカウントが違う端末へ移すときなどに使う（8文字・24時間有効・1回きり）
 const CODE_CH='23456789ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -1088,6 +1166,33 @@ function renderStat(){
 const TG=[['mute','効果音','釣れたときやランクアップの音',1],['noFx','画面演出','紙吹雪・画面の揺れ・光の演出',1],['noVib','振動','レア魚のアタリで振動（対応する端末のみ）',1],['autoSell','自動売却','魚箱がいっぱいのとき、自動で全部売ります（釣りの手間を減らします）',0]];
 const FSN=['標準','大','特大'],FSV=[1,1.2,1.4];
 function applyUi(){document.documentElement.style.setProperty('--fs',FSV[G.fs||0])}
+function cloudSection(){
+  const app=Cloud.kind==='app',signed=Cloud.status!=='signedout'&&!!Cloud.user;
+  if(app&&!signed)return `<div class="card"><div id="cloudStatus"></div>
+      <div style="color:var(--sub);font-size:.8rem;margin:8px 0">Googleでログインすると、進み具合が自動でクラウドに保存されます。機種変更のときは、新しい端末で同じGoogleアカウントにログインするだけで引き継げます。</div>
+      <button class="big" id="loginBtn">Googleでログイン</button></div>`;
+  if(app)return `<div class="card"><div id="cloudStatus"></div>
+      <div style="color:var(--sub);font-size:.8rem;margin-top:8px">新しい端末で、同じGoogleアカウントにログインすると、自動で「引き継ぎますか？」と聞かれます。</div>
+      <div class="row"><button class="ghost" id="cloudNow">今すぐ保存</button><button class="ghost" id="cloudLoad">クラウドから読み込む</button><button class="ghost" id="logoutBtn">ログアウト</button></div></div>
+    <button class="ghost" id="delAcct" style="color:var(--bad);border-color:var(--bad)">アカウントとクラウドのデータを削除</button>`;
+  return `<div class="card"><div id="cloudStatus"></div>
+      <div style="color:var(--sub);font-size:.8rem;margin-top:8px">進み具合は、ログイン中のアカウントに自動で保存されます。新しい端末で、同じアカウントでこのゲームを開くと、自動で「引き継ぎますか？」と聞かれます。</div>
+      <div class="row"><button class="ghost" id="cloudNow">今すぐ保存</button><button class="ghost" id="cloudLoad">クラウドから読み込む</button></div></div>
+    ${Cloud.status==='off'?'':`<div class="card"><b>引き継ぎコード</b>
+      <div style="color:var(--sub);font-size:.8rem;margin:4px 0 8px">アカウントが違う端末へ移すときは、コードを使います。</div>
+      <button class="big" id="codeIssue">引き継ぎコードを発行する</button>
+      <div class="row"><input id="codeIn" placeholder="ABCD-EFGH" maxlength="9" autocapitalize="characters" autocomplete="off" aria-label="引き継ぎコード" style="flex:1;min-width:0;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px"><button class="ghost" id="codeUse">コードで引き継ぐ</button></div></div>`}`;
+}
+function bindCloud(){
+  const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.onclick=fn};
+  on('cloudNow',async()=>{if(!Cloud.db){toast('クラウド保存を使えません');return}const ok=await cloudPush(true);toast(ok?'クラウドに保存しました':'保存できませんでした')});
+  on('cloudLoad',async()=>{if(!Cloud.db){toast('クラウド保存を使えません');return}try{const d=await Remote.get();if(!d){toast('クラウドにデータがありません');return}askRestore(d,'new')}catch(e){toast('読み込めませんでした')}});
+  on('codeIssue',issueCode);
+  on('codeUse',()=>useCode($('#codeIn').value));
+  on('loginBtn',()=>loginGoogle());
+  on('logoutBtn',logoutGoogle);
+  on('delAcct',askDeleteAccount);
+}
 function renderSet(){
   const tg=TG.map(([k,l,d,inv])=>{const on=inv?!G[k]:!!G[k];
     return `<div class="item"><div class="t">${l}</div><button class="chip" data-tg="${k}" aria-pressed="${on}">${on?'ON':'OFF'}</button><div class="s">${d}</div></div>`}).join('');
@@ -1099,14 +1204,7 @@ function renderSet(){
     <h2>難易度</h2><div class="row" style="margin-top:0">${df}</div><p class="hint">釣りのときのテンションの上がりやすさが変わります。（かんたん：×0.8／ふつう：×1／むずかしい：×1.3）</p>
     <h2>遊び方</h2><button class="ghost" id="setHelp">遊び方をもう一度見る</button>
     <h2>これまでの記録</h2><div class="card"><div class="kv"><span>プレイ日数</span><b class="num">${G.day}日</b><span>釣った魚</span><b class="num">${G.catches}匹</b><span>累計売上</span><b class="num">${yen(G.earned)}</b><span>図鑑</span><b class="num">${got}/${NORM.length}</b><span>レベル</span><b class="num">Lv.${G.level}</b></div></div>
-    <h2>データの引き継ぎ（機種変更）</h2>
-    <div class="card"><div id="cloudStatus"></div>
-      <div style="color:var(--sub);font-size:.8rem;margin-top:8px">進み具合は、ログイン中のアカウントに自動で保存されます。新しい端末で、同じアカウントでこのゲームを開くと、自動で「引き継ぎますか？」と聞かれます。</div>
-      <div class="row"><button class="ghost" id="cloudNow">今すぐ保存</button><button class="ghost" id="cloudLoad">クラウドから読み込む</button></div></div>
-    <div class="card"><b>引き継ぎコード</b>
-      <div style="color:var(--sub);font-size:.8rem;margin:4px 0 8px">アカウントが違う端末へ移すときは、コードを使います。</div>
-      <button class="big" id="codeIssue">引き継ぎコードを発行する</button>
-      <div class="row"><input id="codeIn" placeholder="ABCD-EFGH" maxlength="9" autocapitalize="characters" autocomplete="off" aria-label="引き継ぎコード" style="flex:1;min-width:0;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px"><button class="ghost" id="codeUse">コードで引き継ぐ</button></div></div>
+    <h2>データの引き継ぎ（機種変更）</h2>${cloudSection()}
     <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--sub)">その他の方法（文字列で書き出し・読み込み）</summary>
       <textarea id="exp" readonly aria-label="書き出したデータ" style="margin-top:8px"></textarea><div class="row"><button class="ghost" id="expCopy">データを書き出してコピー</button></div>
       <textarea id="imp" placeholder="ここに書き出したデータを貼り付け" aria-label="読み込むデータ" style="margin-top:12px"></textarea><div class="row"><button class="ghost" id="impGo">読み込む</button></div></details>
@@ -1115,10 +1213,7 @@ function renderSet(){
   q.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{const k=b.dataset.tg;G[k]=G[k]?0:1;applyUi();save();renderSet();if(k==='mute'&&!G.mute)sfx(0)});
   q.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{G.fs=+b.dataset.fs;applyUi();save();renderSet()});
   renderCloudCard();
-  $('#cloudNow').onclick=async()=>{if(!Cloud.db){toast('この環境ではクラウド保存を使えません');return}const ok=await cloudPush(true);toast(ok?'クラウドに保存しました':'保存できませんでした')};
-  $('#cloudLoad').onclick=async()=>{if(!Cloud.db){toast('この環境ではクラウド保存を使えません');return}try{const d=await Remote.get();if(!d){toast('クラウドにデータがありません');return}askRestore(d,'new')}catch(e){toast('読み込めませんでした')}};
-  $('#codeIssue').onclick=issueCode;
-  $('#codeUse').onclick=()=>useCode($('#codeIn').value);
+  bindCloud();
   q.querySelectorAll('[data-df]').forEach(b=>b.onclick=()=>{G.diff=+b.dataset.df;save();renderSet()});
   $('#setHelp').onclick=()=>{if(S.st==='idle'||S.st==='result')showHelp(0);else toast('釣りの合間に開いてね')};
   $('#expCopy').onclick=()=>{const t=JSON.stringify(G),ta=$('#exp');ta.value=t;ta.select();
@@ -1291,7 +1386,10 @@ function loop(ts){
 }
 applyUi();syncCrew(true);renderAll();AREAS.forEach((_,a)=>checkComplete(a));document.addEventListener('visibilitychange',()=>{if(document.hidden){save();cloudPush(true)}});label();say('「投げる」を押して釣りを始めよう。');if(G.home){openTab('home');say('夜です。自宅で休もう。')}(async()=>{
   await Promise.race([cloudInit(),new Promise(r=>setTimeout(r,2500))]);
-  if(!veilOpen()){if(!G.seen)showHelp(0);else offlineGain()}
+  if(!veilOpen()){
+    if(!G.seen){if(Cloud.kind==='app'&&Cloud.status==='signedout'&&!hasProgress())showWelcome();else showHelp(0)}
+    else offlineGain();
+  }
 })();
 requestAnimationFrame(loop);
 </script>
