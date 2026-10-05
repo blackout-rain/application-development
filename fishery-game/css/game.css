@@ -619,6 +619,33 @@ img.ic {
   font-weight: 900;
   white-space: nowrap;
 }
+.hcat {
+  margin-bottom: 12px;
+}
+.hcat h4 {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+.hgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+.hgrid .chip {
+  text-align: left;
+  white-space: normal;
+}
+.hback {
+  padding: 6px 10px;
+  margin-bottom: 6px;
+}
+.hcn {
+  color: var(--sub);
+  font-size: 0.78rem;
+  margin-left: 6px;
+}
 .dots {
   color: var(--sub);
   text-align: center;

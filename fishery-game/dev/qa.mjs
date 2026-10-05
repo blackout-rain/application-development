@@ -412,6 +412,40 @@ await t('[EN] 英語：のれん分け・伝説の主・最初の案内の文が
   return /Spin-off/.test(r.town) && /Goodwill/.test(r.town) && /Lap/.test(r.box) && /Cast/.test(r.tut) && !jp.test(r.town + r.box + r.tut.replace(/案内/g, '')) ? true : JSON.stringify(r).slice(0, 400);
 });
 
+/* ---------- 遊び方（分類つきの目次） ---------- */
+await t('遊び方：はじめての人は、基本の4ページだけを順に見て、はじめる', 'blank', async p => {
+  const r = await ev(p, () => {
+    G.seen = 0; showHelp(0); const pages = [];
+    for (let i = 0; i < 10; i++) { const b = document.getElementById('box'); pages.push(b.querySelector('h3').textContent); const hn = document.getElementById('hn'); if (hn.textContent.includes('はじめる')) break; hn.click() }
+    const dots = document.querySelector('.dots').textContent; document.getElementById('hn').click();
+    return { pages, dots, seen: G.seen, hidden: document.getElementById('veil').hidden }
+  });
+  return r.pages.length === 4 && r.dots === '4 / 4' && r.seen === 1 && r.hidden ? true : JSON.stringify(r);
+});
+await t('遊び方：あとから開くと、分類ごとの目次が出て、項目を選んで読める。前後に移れて、目次に戻れる', 'all', async p => {
+  const r = await ev(p, () => {
+    G.seen = 1; showHelp(0); const box = () => document.getElementById('box');
+    const cats = [...box().querySelectorAll('.hcat h4')].map(h => h.textContent), topics = box().querySelectorAll('[data-ht]').length;
+    box().querySelector('[data-ht]').click();
+    const t1 = box().querySelector('h3').textContent, prevDisabled = document.getElementById('hp').disabled;
+    document.getElementById('hn').click(); const t2 = box().querySelector('h3').textContent;
+    document.getElementById('hp').click(); const t3 = box().querySelector('h3').textContent;
+    document.getElementById('hl').click(); const back = !!box().querySelector('.hcat');
+    document.getElementById('hc').click();
+    return { cats, topics, t1, prevDisabled, t2, t3, back, hidden: document.getElementById('veil').hidden, all: helpVisible().length }
+  });
+  return r.cats.length === 5 && r.topics === r.all && r.prevDisabled && r.t1 === r.t3 && r.t1 !== r.t2 && r.back && r.hidden ? true : JSON.stringify(r);
+});
+await t('遊び方：まだ解放されていない機能の項目は、目次に出ない', 'blank', async p => {
+  const r = await ev(p, () => { G.seen = 1; G.fu = {}; showHelp(0); const n0 = document.querySelectorAll('#box [data-ht]').length; G.fu.farm = 1; G.fu.noren = 1; showHelp(0); return [n0, document.querySelectorAll('#box [data-ht]').length, HELP.filter(x => !x.k).length] });
+  return r[0] === r[2] && r[1] === r[2] + 2 ? true : JSON.stringify(r);
+});
+await t('[EN] 遊び方：英語でも、目次と項目が出て、日本語が残らない', 'all', async p => {
+  const r = await ev(p, () => { G.seen = 1; showHelp(0); i18nFlush(); const idx = document.getElementById('box').innerText; document.querySelector('#box [data-ht]').click(); i18nFlush(); const topic = document.getElementById('box').innerText; return { idx, topic } });
+  const jp = /[ぁ-んァ-ヶ一-龠]/;
+  return /How to Play/.test(r.idx) && /Getting Started/.test(r.idx) && /Topics/.test(r.topic) && !jp.test(r.idx + r.topic) ? true : JSON.stringify(r).slice(0, 300);
+});
+
 /* ---------- 最初の案内 ---------- */
 await t('最初の案内：投げる→釣る→売る→道具の順に進み、光るボタンが切り替わる', 'blank', async p => {
   const r = await ev(p, () => {

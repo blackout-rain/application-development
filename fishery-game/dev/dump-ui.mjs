@@ -29,7 +29,7 @@ for (const start of ['blank', 'early', 'mid', 'late', 'all']) {
     const tabs = ['fish', 'sell', 'town', 'home', 'stat', 'dex', 'set'];
     for (const t of tabs) { openTab(t); renderAll(); flush(); o['tab:' + t] = document.getElementById('p-' + t).innerHTML; closeAll() }
     openTab('fish'); flush(); o.header = document.querySelector('header').innerHTML; o.nav = document.querySelector('nav').innerHTML; o.tut = document.getElementById('tut').innerHTML; o.msg = document.getElementById('msg').innerHTML;
-    for (let i = 0; i < 40; i++) { try { showHelp(i); flush(); o['help' + i] = document.getElementById('box').innerHTML } catch (e) { break } }
+    showHelpIndex(); flush(); o.helpIndex = document.getElementById('box').innerHTML; for (let i = 0; i < HELP.length; i++) { if (HELP[i].k && !feat(HELP[i].k)) continue; showHelpTopic(i); flush(); o['help' + i] = document.getElementById('box').innerHTML }
     closeAll();
     const tryDo = (k, f) => { try { f(); flush(); o[k] = document.getElementById('box').innerHTML } catch (e) { o[k] = 'ERR ' + e.message } closeAll() };
     tryDo('ranks', () => showRanks()); tryDo('boss0', () => showBossAdvice(0, 0)); tryDo('boss1', () => showBossAdvice(1, 0));
