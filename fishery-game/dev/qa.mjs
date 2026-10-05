@@ -395,6 +395,64 @@ await t('最初の案内：遊び方を見る前は出ない', 'blank', async p 
   return r === true ? true : JSON.stringify(r);
 });
 
+/* ---------- のれん分け・伝説の主 ---------- */
+await t('のれん分け：漁業王になるまではできない', 'mid', async p => {
+  const r = await ev(p, () => { G.earned = 1000; const n0 = G.nr.n; norenDo(); return { ready: norenReady(), n: G.nr.n - n0 } });
+  return !r.ready && r.n === 0 ? true : JSON.stringify(r);
+});
+await t('のれん分け：財産は消え、図鑑・レベル・実績はのこり、のれんをもらう', 'all', async p => {
+  const r = await ev(p, () => {
+    G.earned = Math.max(G.earned, 3e8); G.fu.noren = 1; const dex0 = Object.keys(G.dex).length, lv0 = G.level, ach0 = Object.keys(G.ach).length, boss0 = Object.keys(G.bossGot).length, gain = norenGain();
+    const pt0 = G.nr.pt; norenDo();
+    return { n: G.nr.n, gain, pt: G.nr.pt - pt0, money: G.money, boat: G.boat, crew: G.crew, rank: rankIdx(), earned: G.earned, day: G.day, dex: Object.keys(G.dex).length === dex0, lv: G.level === lv0, ach: Object.keys(G.ach).length >= ach0, boss: Object.keys(G.bossGot).length === boss0, label: document.getElementById('rank').textContent, bad: Admin.check() }
+  });
+  const ok = r.n === 1 && r.pt === r.gain && r.gain >= 12 && r.money === 500 && r.boat === 0 && r.crew === 0 && r.rank === 0 && r.earned === 0 && r.day === 1 && r.dex && r.lv && r.ach && r.boss && r.label.includes('2周目') && !r.bad.length;
+  return ok ? true : JSON.stringify(r);
+});
+await t('のれん分け：街タブから、確認のあとに実行できる／強化を買える', 'all', async p => {
+  const r = await ev(p, () => {
+    G.earned = Math.max(G.earned, 3e8); G.fu.noren = 1; G.nr.pt = 0; openTab('town'); renderAll();
+    const has = !!document.getElementById('nrGo') && !document.getElementById('nrGo').disabled;
+    document.getElementById('nrGo').click(); const modal = !document.getElementById('veil').hidden && !!document.getElementById('nrYes');
+    document.getElementById('nrNo').click(); const still = G.nr.n === 0;
+    document.getElementById('nrGo').click(); document.getElementById('nrYes').click(); const done = G.nr.n === 1 && G.nr.pt >= 12;
+    openTab('town'); renderAll(); const pt = G.nr.pt; document.querySelector('[data-nrbuy=sell]').click(); const bought = G.nr.lv.sell === 1 && G.nr.pt === pt - NR[0].c(0);
+    document.querySelector('[data-nrbuy=start]').click(); const st = G.nr.lv.start;
+    return { has, modal, still, done, bought, st, bad: Admin.check() }
+  });
+  return r.has && r.modal && r.still && r.done && r.bought && !r.bad.length ? true : JSON.stringify(r);
+});
+await t('のれん分け：強化の効果（売値・経験値・魚箱・はじめの資金・色違い）', 'all', async p => {
+  const r = await ev(p, () => {
+    const base = { sell: perks().sell, cap: cap(), v: variantChance(), exp: expGain(SP[0], 15, false, false) };
+    G.nr.lv.sell = 3; G.nr.lv.cap = 2; G.nr.lv.luck = 5; G.nr.lv.exp = 10;
+    const m = { sell: perks().sell, cap: cap(), v: variantChance(), exp: expGain(SP[0], 15, false, false) };
+    G.earned = Math.max(G.earned, 3e8); G.nr.lv.start = 4; norenDo();
+    return { ds: m.sell - base.sell, dc: m.cap - base.cap, vr: m.v / base.v, de: m.exp / base.exp, money: G.money }
+  });
+  return r.ds === 12 && r.dc === 4 && Math.abs(r.vr - 2) < 1e-9 && r.de > 1.1 && r.money === 500 + 120000 ? true : JSON.stringify(r);
+});
+await t('のれん分け：周回すると魚の引きが強くなる（上限あり）', 'mid', async p => {
+  const r = await ev(p, () => { const a = newFight(SP[3], SP[3].min + 2).pw; G.nr.n = 3; const b = newFight(SP[3], SP[3].min + 2).pw; G.nr.n = 99; const c = newFight(SP[3], SP[3].min + 2).pw; return [b / a, c / a] });
+  return Math.abs(r[0] - 1.18) < 1e-6 && Math.abs(r[1] - 1.6) < 1e-6 ? true : JSON.stringify(r);
+});
+await t('伝説の主：主を倒した海域だけに現れ、討伐は1周に1回・報酬とのれんがもらえる', 'all', async p => {
+  const r = await ev(p, () => {
+    G.fu.noren = 1; const a = 2; G.area = a; G.boat = 9; G.comp[a] = 1; G.bossGot[a] = 1; G.legLap = {}; G.leg = {};
+    const ok1 = legOk(a), ok2 = legOk(a + 1) === (!!G.bossGot[a + 1] && !!G.comp[a + 1]);
+    const setup = () => { S.sp = bossOf(a); S.size = S.sp.max; S.tier = tier(S.sp); S.v = 0; S.dsp = S.sp; S.g = 0; S.leg = 1; S.st = 'fight'; S.f = newFight(S.sp, S.size) };
+    G.fish = []; const m0 = G.money, pt0 = G.nr.pt, bp0 = G.bp; setup(); landed();
+    const first = { leg: G.leg[a], lap: G.legLap[a], pt: G.nr.pt - pt0, money: G.money - m0 > BOSSB[a].g * 3 - 1, bp: G.bp - bp0 >= BOSSB[a].bp * 2 };
+    const ok3 = !legOk(a); const pt1 = G.nr.pt; setup(); landed(); const again = G.nr.pt === pt1 && G.leg[a] === 1;
+    return { ok1, ok2, first, ok3, again, bad: Admin.check() }
+  });
+  return r.ok1 && r.ok2 && r.first.leg === 1 && r.first.lap === 1 && r.first.pt === 4 && r.first.money && r.first.bp && r.ok3 && r.again && !r.bad.length ? true : JSON.stringify(r);
+});
+await t('のれん分け：古いセーブにはのれんの欄が補われ、周回リセットで伝説の主の記録は残る', 'mid', async p => {
+  const r = await ev(p, () => { const o = migrate({ v: 1, seen: 1, day: 9 }); const a = o.nr && o.nr.lv && o.nr.n === 0 && !!o.leg && !!o.legLap; G.leg = { 1: 2 }; G.earned = 3e8; G.fu.noren = 1; norenDo(); return { a, leg: G.leg[1], lap: Object.keys(G.legLap).length } });
+  return r.a && r.leg === 2 && r.lap === 0 ? true : JSON.stringify(r);
+});
+
 await browser.close();
 const uniq = [...new Set(errs)];
 console.log(`合格 ${pass}件 / 失敗 ${fails.length}件 / JSエラー ${uniq.length}件`);

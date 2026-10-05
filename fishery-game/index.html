@@ -374,7 +374,7 @@ const gtext=f=>f.g===0||f.g===1?GMARK[f.g]:'';
 /* ---------- 色違い ---------- */
 // 低確率で、魚ごとに決まった「別の色」の個体が釣れる。高く売れ、図鑑に別枠で記録される
 const VAR_PRICE=4,VAR_EXP=2;
-const variantChance=()=>Math.min(.04,.012+.0003*sx('luk'));
+const variantChance=()=>Math.min(.04,.012+.0003*sx('luk'))*(1+.2*nrLv('luck'));
 const VAR_TYPES=[
   {k:'gold',l:'金色の',h:48,s:92,li:58,f:'sepia(1) saturate(4) hue-rotate(-8deg) brightness(1.15)'},
   {k:'albino',l:'アルビノの',h:350,s:28,li:90,f:'grayscale(1) brightness(1.7)'},
@@ -568,6 +568,7 @@ const FEATS=[
   {k:'deco',n:'自宅の模様替え',h:'レベル18',ok:()=>G.level>=18},
   {k:'pet',n:'相棒（ペット）（街タブ）',h:'レベル20',ok:()=>G.level>=20},
   {k:'tech',n:'研究所（街タブ）',h:'サンゴ礁の島に出られるようになる',ok:()=>G.boat>=3},
+  {k:'noren',n:'のれん分けと伝説の主（街タブ）',h:'ランク「漁業王」',ok:()=>rankIdx()>=10||(G.nr&&G.nr.n>0)},
   {k:'events',n:'毎朝のできごと',h:'ランク「船長」',ok:()=>rankIdx()>=6}];
 const feat=k=>!!(G.fu&&G.fu[k]);
 function checkFeat(){
@@ -598,6 +599,7 @@ function goalList(){
   if(b&&G.money<b.c)add(4,'⛵',`次の船「${b.n}」まで あと${yen(b.c-G.money)}`,'home',G.money/b.c*100);
   const l=areaSp(G.area),rem=l.filter(s=>!G.dex[s.n]).length;
   if(rem>0&&rem<=4)add(4,'📖',`${AREAS[G.area].name}のコンプまで あと${rem}種`,'dex',(l.length-rem)/l.length*100);
+  if(norenReady())add(3,'🏮','のれん分けができます（街タブ）。のれんで永続の強化！','town');
   if(G.comp[G.area]&&!G.bossGot[G.area])add(4,'🐉',`${bossOf(G.area).n}が、釣りの最中にまれに現れます`,null);
   if(G.crew<crewMax()){const c=hireCost(1);if(G.money>=c)add(5,'🧑','従業員を雇えます（水揚げが増えます）','home')}
   const nf=FEATS.find(f=>!feat(f.k));if(nf)add(6,'🔓',`${nf.n}：${nf.h}`,null);
@@ -686,6 +688,10 @@ const ACH=[
   {id:'lv30',n:'ベテラン',d:'レベル30に到達',ok:()=>G.level>=30,r:{bp:3,meal:2}},
   {id:'lv50',n:'伝説の釣り人',d:'レベル50に到達',ok:()=>G.level>=50,r:{bp:5,auto:3}},
   {id:'rk10',n:'漁業王',d:'ランク「漁業王」に到達',ok:()=>rankIdx()>=10,r:{bp:10,auto:5,meal:3}},
+  {id:'nr1',n:'のれん分け',d:'はじめてのれん分けをする',ok:()=>lapOf()>=1,r:{bp:5,auto:3}},
+  {id:'nr3',n:'老舗の主人',d:'3回のれん分けをする（4周目）',ok:()=>lapOf()>=3,r:{bp:8,auto:4,meal:3}},
+  {id:'lg1',n:'伝説に挑む者',d:'伝説の主を1体釣り上げる',ok:()=>Object.keys(G.leg).length>=1,r:{bp:5,meal:3}},
+  {id:'lgall',n:'伝説の覇者',d:'すべての海域の伝説の主を討伐',ok:()=>Object.keys(G.leg).length>=AREAS.length,r:{bp:15,auto:6,meal:4}},
   {id:'t1',n:'大会デビュー',d:'釣り大会に初出場',ok:()=>G.tourN>=1,r:{bp:1}},
   {id:'tw1',n:'大会優勝',d:'釣り大会で優勝',ok:()=>G.tourWin>=1,r:{bp:3,auto:2}},
   {id:'tw5',n:'大会の常連王者',d:'釣り大会で5回優勝',ok:()=>G.tourWin>=5,r:{bp:6,meal:3}},
@@ -712,7 +718,7 @@ const ACH=[
   {id:'born20',n:'ブリーダー',d:'養殖で、稚魚を20匹誕生させる',f:'farm',ok:()=>(G.born||0)>=20,r:{bp:5,meal:3}},
   {id:'day30',n:'一か月',d:'30日目を迎える',ok:()=>G.day>=30,r:{auto:2}},
   {id:'day100',n:'百日の航海',d:'100日目を迎える',ok:()=>G.day>=100,r:{auto:5,meal:3}}];
-const ACH_F={t1:'tour',tw1:'tour',tw5:'tour',rv1:'tour',br3:'branch',brall:'branch',tech1:'tech',tech18:'tech',pet1:'pet',deco6:'deco',tr5:'treasure',tr20:'treasure',o10:'orders',o50:'orders',rep3:'orders',rep5:'orders',msn10:'missions',msn50:'missions',loan:'bank'};
+const ACH_F={t1:'tour',tw1:'tour',tw5:'tour',rv1:'tour',br3:'branch',brall:'branch',tech1:'tech',tech18:'tech',pet1:'pet',deco6:'deco',tr5:'treasure',tr20:'treasure',o10:'orders',o50:'orders',rep3:'orders',rep5:'orders',msn10:'missions',msn50:'missions',loan:'bank',nr1:'noren',nr3:'noren',lg1:'noren',lgall:'noren'};
 ACH.forEach(a=>{if(ACH_F[a.id])a.f=ACH_F[a.id]});
 const achVis=()=>ACH.filter(a=>!a.f||feat(a.f));   // 未解放の機能の実績は、まだ見せない
 const achRw=r=>[r.bp&&`BP+${r.bp}`,r.auto&&`おまかせ釣り券×${r.auto}`,r.meal&&`食事券×${r.meal}`].filter(Boolean).join('・');
@@ -735,12 +741,13 @@ const yen=n=>Math.abs(n)>=1e8?'¥'+(n/1e8).toFixed(Math.abs(n)>=1e9?1:2)+'億':'
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,tut:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1,foc:1,biz:1,lead:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0,foc:0,biz:0,lead:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,dc:{},msn:{day:0,items:[]},msnDone:0,pets:{},pet:'',deco:{},treasure:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,tut:0,nr:{n:0,pt:0,tot:0,lv:{sell:0,exp:0,cap:0,start:0,luck:0}},leg:{},legLap:{},mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1,foc:1,biz:1,lead:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0,foc:0,biz:0,lead:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,dc:{},msn:{day:0,items:[]},msnDone:0,pets:{},pet:'',deco:{},treasure:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
 function migrate(s){
   if(!s||s.v!==1)return null;
   const fs0=s.fs===undefined?(s.big?1:0):s.fs;
   const rg=s.rankGot===undefined?RANKS.filter(r=>(s.earned||0)>=r[0]).length-1:s.rankGot;
   if(s.tut===undefined)s.tut=1;
+  if(s.nr)s.nr=Object.assign({n:0,pt:0,tot:0},s.nr,{lv:Object.assign({sell:0,exp:0,cap:0,start:0,luck:0},s.nr.lv)});
   const f=fresh();
   for(const k in f)if(s[k]===undefined)s[k]=f[k];
   for(const k of['stat','alloc','fac','lv','comp','bossGot','tk'])s[k]=Object.assign({},f[k],s[k]);
@@ -755,11 +762,60 @@ function load(){try{return migrate(JSON.parse(localStorage.getItem(KEY)))}catch(
 function save(){try{G.lastSeen=Date.now();localStorage.setItem(KEY,JSON.stringify(G))}catch(e){}cloudDirty()}
 let G=load()||fresh();
 const cap=()=>8+5*G.lv.cool+perks().cap;
-const S={tier:0,st:'idle',t:0,sp:null,size:0,f:null,holding:false,ok:false};
+const S={leg:0,tier:0,st:'idle',t:0,sp:null,size:0,f:null,holding:false,ok:false};
 
+/* ---------- のれん分け（周回）と伝説の主 ---------- */
+// 漁業王になったら、財産をぜんぶ手放して「のれん」をもらい、最初からやり直せる。のれんは、永続の強化に使う。
+const NR=[
+  {k:'sell',n:'売値アップ',d:'魚の売値 +4%／Lv',max:10,c:l=>6+3*l},
+  {k:'exp',n:'経験値アップ',d:'もらえる経験値 +4%／Lv',max:10,c:l=>6+3*l},
+  {k:'start',n:'はじめの資金',d:'周回のはじめに ¥30,000／Lv',max:10,c:l=>4+3*l},
+  {k:'cap',n:'大きな魚箱',d:'魚箱 +2匹／Lv',max:5,c:l=>4+3*l},
+  {k:'luck',n:'色違いの運',d:'色違いが出る確率 +20%／Lv',max:5,c:l=>5+3*l}];
+const nrLv=k=>(G.nr&&G.nr.lv&&G.nr.lv[k])||0;
+const lapOf=()=>(G.nr&&G.nr.n)||0;
+const lapDiff=()=>1+.06*Math.min(10,lapOf());   // 周回ごとに、魚の引きが少し強くなる
+const norenReady=()=>rankIdx()>=RANKS.length-1;
+const speedBonus=()=>Math.max(0,Math.ceil((600-G.day)/20));
+const norenGain=()=>12+Math.floor(G.earned/1e8)+speedBonus();
+const legOk=a=>feat('noren')&&!!G.bossGot[a]&&!!G.comp[a]&&!G.legLap[a];
+const NR_KEEP=['v','syncAt','syncSig','fs','nudged','tk','dailyNo','streak','lastSeen','lastUp','seen','tut','mute','noFx','noVib','big','diff','autoSell','level','exp','bp','stat','alloc','msnDone','pets','pet','deco','fu','fuInit','ach','catches','dex','mult','prev','comp','bossGot','nr','leg'];
+function norenDo(){
+  if(!norenReady())return;
+  makeBackup(G,'local','のれん分けする前');
+  const gain=norenGain(),old=G,f=fresh();
+  NR_KEEP.forEach(k=>{if(old[k]!==undefined)f[k]=old[k]});
+  f.nr=Object.assign({},old.nr,{lv:Object.assign({},old.nr.lv),n:old.nr.n+1,pt:old.nr.pt+gain,tot:(old.nr.tot||0)+gain});
+  f.money=500+30000*f.nr.lv.start;
+  G=f;S.st='idle';CREW.length=0;syncCrew(true);applyUi();save();label();say(`のれん分け！ ${lapOf()+1}周目のはじまりです。`);renderAll();openTab('fish');
+  banner('のれん分け！',`のれん+${gain}・${lapOf()+1}周目`,'#ffb454');toast(`のれんを${gain}もらいました。街タブで強化に使えます`);
+}
+function norenBuy(k){
+  const n=NR.find(x=>x.k===k);if(!n)return;
+  const l=nrLv(k);if(l>=n.max)return;const c=n.c(l);
+  if(G.nr.pt<c)return;
+  G.nr.pt-=c;G.nr.lv[k]=l+1;save();hud();renderAll();toast(`${n.n}が Lv${l+1} になりました`);
+}
+function norenConfirm(){
+  const g=norenGain();
+  $('#box').innerHTML=`<div class="help"><h3>のれん分けする？</h3><p>これまでの財産を手放して、${lapOf()+2}周目を始めます。<b>のれん ${g}</b> がもらえます（基本12＋売上＋早さボーナス${speedBonus()}）。</p><p><b>のこるもの</b>：図鑑・実績・主の記録・レベルとステータス・BP・券・ペットと模様替え・のれんの強化</p><p><b>消えるもの</b>：お金・船・設備・従業員・養殖・研究・支店・借入・魚箱・ランク</p><p style="color:var(--sub);font-size:.82rem">周回するたび、魚の引きが少し強くなります。はじめる前の状態は、設定の「控え」から戻せます。</p><div class="row"><button class="ghost" id="nrNo">やめる</button><button class="big" id="nrYes" style="flex:1;width:auto">のれん分けする</button></div></div>`;
+  $('#veil').hidden=false;
+  $('#nrNo').onclick=()=>{$('#veil').hidden=true};
+  $('#nrYes').onclick=()=>{$('#veil').hidden=true;norenDo()};
+}
+function norenHtml(){
+  if(!feat('noren'))return '';
+  const ready=norenReady(),legs=AREAS.map((a,i)=>G.bossGot[i]&&G.comp[i]?`<span class="chip" style="${G.legLap[i]?'opacity:.5':''}">${bossOf(i).n}${G.legLap[i]?' ✓':''}</span>`:'').join('');
+  const perks=NR.map(n=>{const l=nrLv(n.k),max=l>=n.max,c=n.c(l);return `<div class="item"><div class="t">${n.n} <span class="num">Lv${l}${max?' MAX':''}</span></div><button class="buy" data-nrbuy="${n.k}" ${max||G.nr.pt<c?'disabled':''}>${max?'—':'のれん'+c}</button><div class="s">${n.d}</div></div>`}).join('');
+  return `<h2>のれん分け</h2><div class="card"><div class="kv"><span>いま</span><b class="num">${lapOf()+1}周目</b></div><div class="kv"><span>のれん（つかえる）</span><b class="num">${G.nr.pt}</b></div>
+    <button class="big" id="nrGo" ${ready?'':'disabled'}>${ready?`のれん分けする（のれん+${norenGain()}）`:'のれん分け：ランク「漁業王」になると、できます'}</button>
+    <div style="color:var(--sub);font-size:.78rem;margin-top:6px">財産を手放して最初から。のれんで、永続の強化ができます。主を倒した海域には、さらに強い<b>伝説の主</b>が現れます（海域ごとに1周に1体。倒すとのれん+4）。</div>
+    ${legs?`<div class="row" style="margin-top:6px;flex-wrap:wrap">${legs}</div>`:''}
+    <div class="list" style="margin-top:8px">${perks}</div></div>`;
+}
 /* ---------- rank ---------- */
 const rankIdx=()=>RANKS.filter(r=>G.earned>=r[0]).length-1;
-function perks(){const o={cap:0,sell:0,rare:0,tens:0,reel:0};for(let i=0;i<=rankIdx();i++){const p=RANKS[i][2];for(const k in o)o[k]+=p[k]||0}return o}
+function perks(){const o={cap:0,sell:0,rare:0,tens:0,reel:0};for(let i=0;i<=rankIdx();i++){const p=RANKS[i][2];for(const k in o)o[k]+=p[k]||0}o.sell+=4*nrLv('sell');o.cap+=2*nrLv('cap');return o}
 function earn(n){
   const b=rankIdx();G.earned+=n;const a=rankIdx();
   if(a>b){
@@ -844,13 +900,14 @@ function rollFish(){
   const sp=(bs&&G.comp[G.area]&&Math.random()<bossChance())?bs:pickSpecies(G.area,S.bk);
   S.sp=sp;S.size=Math.round(sp.min+(sp.max-sp.min)*Math.pow(Math.random(),Math.max(1.1,1.8-.015*sx('luk'))));S.tier=tier(sp);
   S.v=!sp.boss&&Math.random()<variantChance()?1:0;S.dsp=S.v?vSp(sp):sp;S.g=rndG();
+  S.leg=sp.boss&&legOk(sp.a)&&Math.random()<.5?1:0;
 }
-const newFight=(sp,size)=>({pw:sp.s*(.8+.4*(size-sp.min)/(sp.max-sp.min))*(1+.2*sp.a),prog:sp.boss?25:35,tens:0,struggle:false,flip:1,timer:rnd(.6,1.2)});
+const newFight=(sp,size)=>({pw:sp.s*(.8+.4*(size-sp.min)/(sp.max-sp.min))*(1+.2*sp.a)*lapDiff(),prog:sp.boss?25:35,tens:0,struggle:false,flip:1,timer:rnd(.6,1.2)});
 function hook(){
   const sp=S.sp;
-  S.f=newFight(sp,S.size);
+  S.f=newFight(sp,S.size);if(S.leg)S.f.pw*=1.5;
   S.st='fight';S.holding=false;
-  say(S.sp.boss?'主がかかった！！ 全力で耐えろ！':S.tier>=1?'ヒット！ これは大物だ…！ 慎重に巻け！':'ヒット！ 巻いて寄せよう。暴れたら離してテンションを逃がす。');
+  say(S.leg?'伝説の主がかかった！！！ 今までにない引きだ…！':S.sp.boss?'主がかかった！！ 全力で耐えろ！':S.tier>=1?'ヒット！ これは大物だ…！ 慎重に巻け！':'ヒット！ 巻いて寄せよう。暴れたら離してテンションを逃がす。');
 }
 // 釣りの計算本体。ゲームの進行と、診断用の試算の両方から使う。o で装備・ステータスを仮に変えられる。
 function fightEnv(o){o=o||{};return{rod:o.rod??G.lv.rod,line:o.line??G.lv.line,pk:perkWithMeal(),eas:G.catches<10?.5:G.catches<30?.75:1,str:o.str??sx('str'),vit:o.vit??sx('vit'),dex:o.dex??sx('dex'),foc:o.foc??sx('foc'),diff:DIFF[G.diff]*evDiff()*wxDiff()*(petFx().diff||1)}}
@@ -929,7 +986,7 @@ function showBossAdvice(a,why){
 }
 const trophyBonus=()=>[0,.1,.2,.35,.45,.55][G.fac.trophy];
 function expGain(sp,size,newSp,v){
-  const r=sizeRatio(sp,size),tb=1+trophyBonus()+mealFx('exp')+evExp()+(petFx().exp||0);
+  const r=sizeRatio(sp,size),tb=1+.04*nrLv('exp')+trophyBonus()+mealFx('exp')+evExp()+(petFx().exp||0);
   let e=Math.round(((8+sp.s*7+tier(sp)*20+(newSp?25:0))*(.6+.9*r)+(r>=.9?10:0))*tb);
   if(sp.boss)e+=Math.round((expNeed(Math.min(G.level,BAL.bossLvCap))*(1+.3*sp.a)+e*4)*tb);
   return Math.max(1,Math.round(e*(v?VAR_EXP:1)*BAL.expMul*(1+BAL.expEarly*Math.max(0,1-G.level/15))));   // 序盤（Lv15まで）は経験値を多めに
@@ -975,6 +1032,7 @@ function landed(){
   if(S.v){const vt=vSp(sp).vt;banner('色違い！',`${vt.l}${sp.n} ${S.size}cm　売値×${VAR_PRICE}`,`hsl(${vt.h},${Math.max(40,vt.s)}%,70%)`);if(!G.noFx){burst(70,`hsl(${vt.h},90%,70%)`,3);FX.flash=.5;FX.col=`hsl(${vt.h},90%,70%)`}sfx(3);vibe(2)}
   addExp(xp);
   if(sp.boss&&!G.bossGot[sp.a]){G.bossGot[sp.a]=1;addRep(3);const bb=BOSSB[sp.a];G.money+=bb.g;led('gold',bb.g);G.bp+=bb.bp;banner('主の討伐ボーナス！',`${yen(bb.g)}・BP+${bb.bp}`,'#ff8a5e')}
+  if(sp.boss&&S.leg&&!G.legLap[sp.a]){G.legLap[sp.a]=1;G.leg[sp.a]=(G.leg[sp.a]||0)+1;addRep(5);const bb=BOSSB[sp.a],lg=bb.g*3;G.money+=lg;led('gold',lg);G.bp+=bb.bp*2;G.nr.pt+=4;G.nr.tot=(G.nr.tot||0)+4;banner('伝説の主を討伐！',`${yen(lg)}・BP+${bb.bp*2}・のれん+4`,'#ffd34d')}
   if(!sp.boss)checkComplete(sp.a);
   S.ok=true;tourScore(G.fish[G.fish.length-1],sp);end(true);
 }
@@ -1166,7 +1224,7 @@ function hud(){
   $('#clock').textContent=G.home?'夜':`${Math.floor(G.min/60)}:${String(G.min%60).padStart(2,'0')}`;
   $('#money').textContent=yen(G.money);
   const ri=rankIdx(),nx=RANKS[ri+1];
-  $('#rank').textContent=RANKS[ri][1];
+  $('#rank').textContent=RANKS[ri][1]+(lapOf()?`・${lapOf()+1}周目`:'');
   $('#goal').style.width=(nx?(G.earned-RANKS[ri][0])/(nx[0]-RANKS[ri][0])*100:100)+'%';
   $('#goalv').textContent=nx?`次は「${nx[1]}」あと${yen(nx[0]-G.earned)}`:'最高ランク！';
   $('#perk').textContent=nx?`次の特典：${nx[3]}（タップで一覧）`:'すべての特典を獲得！';
@@ -1676,7 +1734,7 @@ function renderTown(){
   const r=dailyReward(),ready=dailyReady();
   const nxM=MENU.find(m=>dexN()<m.need);
   const meals=MENU.map((m,i)=>dexN()<m.need?'':`<div class="item"><div class="t">${m.n}</div><button class="buy" data-meal="${i}" ${G.money<mealCost(m)?'disabled':''}>${yen(mealCost(m))}</button><div class="s"><span style="color:var(--sub)">${m.d}</span><br>${fxText(m.fx)}<br><button class="chip" data-mealtk="${i}" ${G.tk.meal<m.tk?'disabled':''} style="margin-top:6px">食事券${m.tk}枚で食べる</button></div></div>`).join('')+(nxM?`<div class="item" style="opacity:.6"><div class="t">🔒 ${nxM.n}</div><div class="s">図鑑に載った魚があと${nxM.need-dexN()}種増えると、メニューに加わります（いま${dexN()}種）</div></div>`:'');
-  $('#p-town').innerHTML=`<h2>デイリーボーナス</h2><div class="card"><div class="kv"><span>連続ログイン</span><b class="num">${ready?`今日受け取ると${r.streak}日目`:`${G.streak}日目（受け取り済み）`}</b></div>
+  $('#p-town').innerHTML=`${norenHtml()}<h2>デイリーボーナス</h2><div class="card"><div class="kv"><span>連続ログイン</span><b class="num">${ready?`今日受け取ると${r.streak}日目`:`${G.streak}日目（受け取り済み）`}</b></div>
     <button class="big" id="daily" ${ready?'':'disabled'}>${ready?`受け取る：おまかせ釣り券×${r.auto}・食事券×${r.meal}`:'今日は受け取り済み。また明日！'}</button>
     <div style="color:var(--sub);font-size:.78rem;margin-top:6px">毎日アプリを開くだけで、券がもらえます。連続で受け取るほど、券が増えます。</div></div>
     ${feat('missions')?msnHtml():''}<h2>外食（海辺の食堂）</h2><p style="color:var(--sub);font-size:.82rem;margin:0 0 8px">外で食事を済ませると、効果が次の${MEAL_TURNS}回の釣りの間続きます。${G.meal?`<br><b style="color:var(--good)">いまの効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回</b>`:''}</p><div class="list">${meals}</div>
@@ -1706,6 +1764,8 @@ ${feat('bank')?`    <h2>銀行</h2><div class="card"><div class="kv"><span>借�
   $('#p-town').insertAdjacentHTML('beforeend',lockedHtml());
   const t=$('#p-town');
   $('#daily').onclick=claimDaily;
+  t.querySelectorAll('[data-nrbuy]').forEach(b=>b.onclick=()=>norenBuy(b.dataset.nrbuy));
+  const ng=$('#nrGo');if(ng&&!ng.disabled)ng.onclick=norenConfirm;
   t.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>eat(+b.dataset.meal,false));
   t.querySelectorAll('[data-mealtk]').forEach(b=>b.onclick=()=>eat(+b.dataset.mealtk,true));
   t.querySelectorAll('[data-buytk]').forEach(b=>b.onclick=()=>{const [k,n]=b.dataset.buytk.split(':');buyTk(k,+n)});
@@ -1985,7 +2045,7 @@ function renderSet(){
 
 function hint(){
   const el=$('#hint'),a=G.area,l=areaSp(a),f=l.filter(s=>G.dex[s.n]).length;
-  let t=G.comp[a]?(G.bossGot[a]?`<b>${AREAS[a].name}は制覇済み。</b>主は倒した。それでも低確率で、また姿を見せる…`:`<b>${AREAS[a].name}を制覇！</b> 低確率で<b>主</b>が現れます。とても強いので、準備を整えて挑もう。`)
+  let t=G.comp[a]?(G.bossGot[a]?`<b>${AREAS[a].name}は制覇済み。</b>主は倒した。${legOk(a)?'<b>伝説の主</b>が、まれに姿を見せる…':'それでも低確率で、また姿を見せる…'}`:`<b>${AREAS[a].name}を制覇！</b> 低確率で<b>主</b>が現れます。とても強いので、準備を整えて挑もう。`)
     :`${AREAS[a].name}の図鑑 <b class="num">${f}/${l.length}</b>。全種類釣るとコンプボーナス（祝い金・BP・売値+5%）。さらに<b>主</b>が現れます。`;
   if(G.boat<BOATS.length){
     const b=BOATS[G.boat],n=AREAS[G.boat+1].name;
@@ -2009,6 +2069,7 @@ const HELP=[
  {t:'支店',k:'branch',b:'<p><span class="k">街</span>タブの<b>支店</b>で、海域ごとに支店を出せます（各4段階）。その海域の魚が<b>産地ブランド</b>として、売値+6%／Lv で売れます。毎晩の維持費が少し増えます。</p>'},
  {t:'研究開発',k:'tech',b:'<p><span class="k">街</span>タブの<b>研究所</b>で、お金を投じて恒久的な強化ができます（各5段階）。</p><ul><li>冷凍技術：売れ残りの鮮度が落ちにくい</li><li>省エネ船：船の維持費が減る</li><li>流通網：魚の売値アップ</li><li>漁具改良：巻き上げが速く、テンションが上がりにくい</li><li>人材育成：従業員が早くレベルアップ</li><li>加工技術：加工賃が減り、加工品が高く売れる</li></ul>'},
  {t:'養殖',k:'farm',b:'<p><span class="k">自宅・設備</span>タブで<b>養殖いかだ</b>を建てると、魚を預けて育てられます。</p><ol><li><span class="k">市場</span>タブの魚の下の「養殖いかだで育てる」で預ける（主は不可）</li><li>毎日少しずつ大きくなる（最大サイズまで）。飼料代は毎晩、魚の値段の3%</li><li>「引き上げる」で魚箱にもどせます。大きくなった魚は高く売れ、注文のサイズ条件も満たせます</li></ol>'},
+ {t:'のれん分けと伝説の主',k:'noren',b:'<p>ランク「漁業王」になると、<span class="k">街</span>タブで<b>のれん分け</b>ができます。</p><ol><li>財産（お金・船・設備・従業員・ランクなど）を手放して、最初からやり直します</li><li>代わりに<b>のれん</b>をもらい、売値・経験値・はじめの資金・魚箱・色違いの運を<b>永続</b>で強化できます</li><li>図鑑・実績・主の記録・レベルとステータスは、のこります</li><li>周回のたびに、魚の引きが少し強くなります</li></ol><p>主を倒した海域には、さらに強い<b>伝説の主</b>がまれに現れます。海域ごとに1周に1体、倒すと大きなボーナスとのれん+4です。</p>'},
  {t:'加工場',k:'plant',b:'<p><span class="k">自宅・設備</span>タブで<b>加工場</b>を建てると、魚を加工品にできます。</p><ol><li><span class="k">市場</span>タブの魚の下にある「干物にする」「缶詰にする」を押す（加工賃は売値の8%）</li><li>夜を越すと完成（干物1晩・缶詰2晩）。市場タブの「加工品をすべて売る」で売れます</li><li>干物は売値×1.3、缶詰は×1.6。完成した加工品は<b>腐らず</b>、相場や値崩れの影響を受けません</li><li>1晩に加工できる数は、加工場のレベルで増えます</li></ol>'},
  {t:'実績',k:'ach',b:'<p><span class="k">図鑑</span>タブの下に<b>実績</b>の一覧があります。条件を満たすと自動で解除され、<b>BP・おまかせ釣り券・食事券</b>がもらえます。</p>'},
  {t:'注文',k:'orders',b:'<p><span class="k">市場</span>タブに、常連さんからの<b>注文</b>が毎朝届きます（最大3件・期限は2日）。</p><ol><li>「アジ×3匹・25cm以上・鮮度70%以上」のように条件があります</li><li>魚箱に条件に合う魚がそろったら<b>納品</b>。<b>売値の1.3倍〜</b>で買い取ってもらえます（評判が上がると倍率が増える）</li><li>納品・大会の入賞・主の討伐で<b>評判</b>が上がります。評判が高いと、注文の報酬・注文の件数・融資の上限が増えます</li><li>注文に使える魚は、「すべて売る」では売らずに残します</li><li>鮮度は一晩で落ちます。生け簀があると守れます</li></ol>'},
