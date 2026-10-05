@@ -24,7 +24,7 @@ const results = [];
 for (const skill of skills) for (let seed = 1; seed <= seeds; seed++) {
   const page = await browser.newPage({ viewport: { width: 400, height: 900 } });
   const pageErrors = []; page.on('pageerror', e => pageErrors.push(e.message));
-  await page.addInitScript(() => localStorage.setItem('umikaze-fishery-dev-v1', JSON.stringify({ v: 1, seen: 1 })));
+  await page.addInitScript(() => { localStorage.setItem('umikaze-fishery-dev-v1', JSON.stringify({ v: 1, seen: 1 })); localStorage.setItem('umikaze-lang', 'ja') });
   await page.goto('file://' + path.join(here, 'dist/index.html'));
   await page.waitForFunction(() => window.Bot && window.Admin, null, { timeout: 15000 });
   const rep = await page.evaluate(o => window.Bot.run(o).then(r => ({ r, md: window.Bot.markdown(r) })), { days, seed, skill, start });

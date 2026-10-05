@@ -9,21 +9,21 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? [...a, [v.slice(2), all[i + 1] && !all[i + 1].startsWith('--') ? all[i + 1] : true]] : a), []));
-const steps = +args.steps || 400, seeds = +args.seeds || 3, starts = String(args.start || 'blank,mid,late,all').split(','), width = +args.width || 360;
+const lang = args.lang === 'en' ? 'en' : 'ja', steps = +args.steps || 400, seeds = +args.seeds || 3, starts = String(args.start || 'blank,mid,late,all').split(','), width = +args.width || 360;
 if (!args['no-build']) spawnSync(process.execPath, [path.join(here, 'build-dev.mjs')], { stdio: 'ignore' });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const problems = new Map();
 const note = (k, d) => { if (!problems.has(k)) problems.set(k, { n: 0, ex: d }); problems.get(k).n++; };
-const BAD_TEXT = /NaN|undefined|\[object|Infinity|null(?![a-zA-Z])/;
+const BAD_TEXT = lang === 'en' ? /NaN|undefined|\[object|Infinity|null(?![a-zA-Z])|[ぁ-んァ-ヶ一-龠、。（）・：！？　～]/ : /NaN|undefined|\[object|Infinity|null(?![a-zA-Z])/;   // 英語のときは、日本語の文字が残っていてもエラー
 
 for (const start of starts) for (let seed = 1; seed <= seeds; seed++) {
   const page = await browser.newPage({ viewport: { width, height: 800 } });
   const ctx = `${start}/seed${seed}`;
   page.on('pageerror', e => note('JSエラー: ' + e.message.slice(0, 120), ctx));
-  await page.addInitScript(s => {
+  await page.addInitScript(([s, l]) => {
     let a = s; Math.random = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 };
-    localStorage.setItem('umikaze-fishery-dev-v1', JSON.stringify({ v: 1, seen: 1 }));
-  }, seed * 7919);
+    localStorage.setItem('umikaze-fishery-dev-v1', JSON.stringify({ v: 1, seen: 1 })); localStorage.setItem('umikaze-lang', l);
+  }, [seed * 7919, lang]);
   await page.goto('file://' + path.join(here, 'dist/index.html'));
   await page.waitForFunction(() => window.Admin && window.Bot, null, { timeout: 15000 });
   if (start !== 'blank') await page.evaluate(k => { applySave(Admin.makeState(Admin.PRE[k]), 'monkey'); }, start);
@@ -54,7 +54,7 @@ for (const start of starts) for (let seed = 1; seed <= seeds; seed++) {
         // それ以外は、見えているボタンをランダムに押す（管理者パネル・削除系は除く）
         const panels = ['p-fish', 'p-sell', 'p-town', 'p-home', 'p-stat', 'p-dex', 'p-set'].map(id => document.getElementById(id)).filter(p => p && !p.hidden);
         const pool = [...panels.flatMap(p => [...p.querySelectorAll('button:not([disabled])')]), ...document.querySelectorAll('nav button, header button')]
-          .filter(b => vis(b) && !b.closest('[id^=adm]') && b.id !== 'adm-fab' && !/削除|やり直す|リセット/.test(b.textContent) && b.id !== 'reset' && b.id !== 'cdDel' && !b.dataset.cdel);
+          .filter(b => vis(b) && !b.closest('[id^=adm]') && b.id !== 'adm-fab' && !b.dataset.lang && !/削除|やり直す|リセット/.test(b.textContent) && b.id !== 'reset' && b.id !== 'cdDel' && !b.dataset.cdel);
         if (!pool.length) return 'nobtn';
         const b = pool[Math.floor(Math.random() * pool.length)];
         b.click(); return 'click:' + (b.id || b.dataset.a || b.className.split(' ')[0] || b.textContent.slice(0, 8));
@@ -62,7 +62,7 @@ for (const start of starts) for (let seed = 1; seed <= seeds; seed++) {
     } catch (e) { note('操作中の例外: ' + String(e.message).slice(0, 140), `${ctx} step${i}`); }
     await page.waitForTimeout(8);
     if (i % 5 === 0) {
-      const t = await page.evaluate(() => { const o = []; ['p-fish', 'p-sell', 'p-town', 'p-home', 'p-stat', 'p-dex', 'p-set'].forEach(id => { const p = document.getElementById(id); if (p && !p.hidden) o.push(p.innerText) }); const b = document.getElementById('box'); if (b && !document.getElementById('veil').hidden) o.push(b.innerText); o.push(document.querySelector('header').innerText); return o.join('\n') });
+      const t = await page.evaluate(() => { if (typeof i18nFlush === 'function') i18nFlush(); const o = []; ['p-fish', 'p-sell', 'p-town', 'p-home', 'p-stat', 'p-dex', 'p-set'].forEach(id => { const p = document.getElementById(id); if (p && !p.hidden) o.push(p.innerText) }); const b = document.getElementById('box'); if (b && !document.getElementById('veil').hidden) o.push(b.innerText); o.push(document.querySelector('header').innerText); ['toast', 'banner', 'msg', 'hint', 'tut', 'nextgoals'].forEach(i => { const e = document.getElementById(i); if (e && !e.hidden) o.push(e.innerText) }); return o.join('\n').replace('言語 / Language', '').replace(/日本語/g, '') });
       const m = t.match(BAD_TEXT); if (m) { const at = t.indexOf(m[0]); note('画面に不正な文字: ' + m[0], `${ctx} step${i}「${t.slice(Math.max(0, at - 30), at + 30).replace(/\n/g, ' ')}」`); }
     }
     if (i % 10 === 0) {

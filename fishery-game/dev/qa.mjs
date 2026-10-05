@@ -12,10 +12,10 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 let pass = 0; const fails = [];
 const errs = [];
 
-async function open(start = 'mid', extra = null) {
+async function open(start = 'mid', extra = null, lang = 'ja') {
   const page = await browser.newPage({ viewport: { width: 360, height: 800 } });
   page.on('pageerror', e => errs.push(e.message));
-  await page.addInitScript(() => localStorage.setItem('umikaze-fishery-dev-v1', JSON.stringify({ v: 1, seen: 1 })));
+  await page.addInitScript(l => { if (sessionStorage.getItem('qa-init')) return; sessionStorage.setItem('qa-init', '1'); localStorage.setItem('umikaze-fishery-dev-v1', JSON.stringify({ v: 1, seen: 1 })); localStorage.setItem('umikaze-lang', l) }, lang);
   await page.goto('file://' + path.join(here, 'dist/index.html'));
   await page.waitForFunction(() => window.Admin);
   await page.evaluate(([k, ex]) => {
@@ -29,7 +29,8 @@ async function open(start = 'mid', extra = null) {
   return page;
 }
 async function t(name, startOrFn, fn) {
-  const page = typeof startOrFn === 'string' ? await open(startOrFn) : await open('mid');
+  const lang = name.startsWith('[EN]') ? 'en' : 'ja';   // 名前が [EN] で始まるテストは、英語表示で行う
+  const page = typeof startOrFn === 'string' ? await open(startOrFn, null, lang) : await open('mid', null, lang);
   const body = typeof startOrFn === 'string' ? fn : startOrFn;
   try {
     const r = await body(page);
@@ -369,6 +370,46 @@ await t('全タブを、文字サイズ3種類・幅320pxで開いても、横�
   await p.setViewportSize({ width: 320, height: 700 });
   const r = await ev(p, async () => { const bad = []; for (let fs = 0; fs < 3; fs++) { G.fs = fs; applyUi(); for (const t of ['fish', 'sell', 'town', 'home', 'stat', 'dex', 'set']) { openTab(t); await new Promise(r => setTimeout(r, 40)); if (document.documentElement.scrollWidth > innerWidth + 1) bad.push(fs + ':' + t + ':' + document.documentElement.scrollWidth) } } return bad });
   return eq(r, []);
+});
+
+/* ---------- 英語表示 ---------- */
+await t('[EN] 英語：金額の表示（負数・巨大な値）', 'mid', async p => {
+  const r = await ev(p, () => [yen(0), yen(-1500), yen(1234567), yen(2.4e8), yen(1.5e9), yen(99999999.4)]);
+  return eq(r, ['¥0', '¥-1,500', '¥1,234,567', '¥240.0M', '¥1.50B', '¥99,999,999']);
+});
+await t('[EN] 英語：画面の文字が英語になり、魚の名前は表示だけ英語で、データは日本語のまま', 'mid', async p => {
+  const r = await ev(p, () => {
+    G.fish = [{ n: 'イワシ', size: 15, fresh: 100, g: 0 }, { n: 'ミツクリザメ', size: 200, fresh: 100, g: 1 }]; G.fu.orders = 1; openTab('sell'); renderAll(); i18nFlush();
+    const t = document.getElementById('p-sell').innerText, nav = document.querySelector('nav').innerText.replace(/\s+/g, ' ');
+    return { lang: document.documentElement.lang, nav, sardine: t.includes('Sardine'), goblin: t.includes('Goblin Shark'), jp: /[ぁ-んァ-ヶ一-龠]/.test(t), id: G.fish[0].n, T: T('投げる'), title: document.title }
+  });
+  return r.lang === 'en' && /Fishing Market.*Town/.test(r.nav) && r.sardine && r.goblin && !r.jp && r.id === 'イワシ' && r.T === 'Cast' && /Big Catch Today\?/.test(r.title) ? true : JSON.stringify(r);
+});
+await t('[EN] 英語：全角の記号は英語の記号に変わる', 'mid', async p => {
+  const r = await ev(p, () => { const d = document.createElement('div'); d.id = 'qa-fw'; d.textContent = 'Aさん、Bさん（Lv.2）！ 本当？'; document.body.appendChild(d); i18nFlush(); return d.textContent });
+  return /^Aさん, Bさん \(Lv\.2\)! 本当\?$/.test(r) ? true : JSON.stringify(r);
+});
+await t('[EN] 英語：言語を切り替えると、日本語に戻る（データはそのまま）', 'mid', async p => {
+  const m0 = await ev(p, () => { openTab('set'); renderAll(); return G.money });
+  await Promise.all([p.waitForNavigation(), p.click('[data-lang=ja]')]);
+  await p.waitForFunction(() => window.Admin && typeof G !== 'undefined');
+  const r = await ev(p, () => ({ lang: document.documentElement.lang, h: document.querySelector('h1').textContent, money: G.money, ls: localStorage.getItem('umikaze-lang') }));
+  return r.lang === 'ja' && r.h.includes('今日も大漁ですか？') && r.ls === 'ja' && r.money === m0 ? true : JSON.stringify([m0, r]);
+});
+await t('[EN] 英語：全タブを、文字サイズ3種類・幅320pxで開いても、横スクロールしない', 'all', async p => {
+  await p.setViewportSize({ width: 320, height: 700 });
+  const r = await ev(p, async () => { const bad = []; for (let fs = 0; fs < 3; fs++) { G.fs = fs; applyUi(); for (const t of ['fish', 'sell', 'town', 'home', 'stat', 'dex', 'set']) { openTab(t); await new Promise(r => setTimeout(r, 40)); if (document.documentElement.scrollWidth > innerWidth + 1) bad.push(fs + ':' + t + ':' + document.documentElement.scrollWidth) } } return bad });
+  return eq(r, []);
+});
+await t('[EN] 英語：のれん分け・伝説の主・最初の案内の文が、英語で出る', 'all', async p => {
+  const r = await ev(p, () => {
+    G.fu.noren = 1; G.earned = Math.max(G.earned, 3e8); openTab('town'); renderAll(); i18nFlush(); const town = document.getElementById('p-town').innerText;
+    norenConfirm(); i18nFlush(); const box = document.getElementById('box').innerText; document.getElementById('veil').hidden = true;
+    G.tut = 0; G.seen = 1; G.fish = []; G.earned = 0; G.catches = 0; S.st = 'idle'; openTab('fish'); label(); i18nFlush(); const tut = document.getElementById('tut').innerText;
+    return { town, box, tut }
+  });
+  const jp = /[ぁ-んァ-ヶ一-龠]/;
+  return /Spin-off/.test(r.town) && /Goodwill/.test(r.town) && /Lap/.test(r.box) && /Cast/.test(r.tut) && !jp.test(r.town + r.box + r.tut.replace(/案内/g, '')) ? true : JSON.stringify(r).slice(0, 400);
 });
 
 /* ---------- 最初の案内 ---------- */
