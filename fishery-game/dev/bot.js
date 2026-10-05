@@ -98,6 +98,7 @@
         if (click('[data-boat]', b => G.money - cost(b) >= reserve) || click('[data-fac="house"]', b => G.crew >= crewMax() && can(b)) || click('[data-crew]', can)) { rep.stats.purchases++; continue }
         const ups = [...document.querySelectorAll('[data-up]')].filter(b => !b.disabled && can(b)).sort((a, b) => cost(a) - cost(b));
         if (ups.length) { ups[0].click(); rep.stats.purchases++; continue }
+        { openTab('town'); const tb = click('[data-tech]', b => can(b)); openTab('home'); if (tb) { rep.stats.purchases++; continue } }   // 研究所（実際の購入ボタン）
         if (click('[data-fac="tank"],[data-fac="trophy"],[data-fac="plant"]', b => can(b) && G.money - cost(b) >= reserve * 3)) { rep.stats.purchases++; continue }
         break;
       }
