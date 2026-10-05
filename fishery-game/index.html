@@ -803,9 +803,10 @@ function checkComplete(a){
 function landed(){
   const sp=S.sp;
   G.fish.push({n:sp.n,size:S.size,fresh:100});G.catches++;dcAdd('catch',1);if(tier(sp)>=1)dcAdd('rare',1);
-  const newSp=!G.dex[sp.n];
+  const newSp=!G.dex[sp.n],menu0=menuOpen().length;
   const d=G.dex[sp.n]||(G.dex[sp.n]={c:0,best:0,min:9999});
   const rec=!newSp&&S.size>d.best;d.c++;d.best=Math.max(d.best,S.size);d.min=Math.min(d.min,S.size);
+  if(newSp&&!sp.boss&&menuOpen().length>menu0)setTimeout(()=>toast(`🍽️ 新しい料理がメニューに加わりました：${menuOpen()[menuOpen().length-1].n}（街タブ）`),1500);
   const big=S.size>=sp.max*.9,t=tier(sp);
   const xp=expGain(sp,S.size,newSp);
   const left=areaSp(sp.a).filter(s=>!G.dex[s.n]).length;
@@ -1374,12 +1375,22 @@ async function useCode(raw){
 
 /* ---------- town: 外食・切符・おまかせ釣り ---------- */
 const MEAL_TURNS=12;
+// 料理は、図鑑に載った魚の種類（need）が増えるほど、メニューが増える
 const MENU=[
-  {n:'海鮮定食',fx:{exp:.15},cost:1,tk:1},
-  {n:'刺身盛り合わせ',fx:{sell:.08},cost:1.2,tk:1},
-  {n:'スタミナ海鮮丼',fx:{tens:12,reel:12},cost:1.2,tk:1},
-  {n:'幸運のお寿司',fx:{rare:2},cost:1.5,tk:1},
-  {n:'豪華フルコース',fx:{exp:.22,sell:.12,tens:18,reel:18,rare:3},cost:4,tk:3}];
+  {n:'海鮮定食',need:0,d:'港の小魚を使った、ごはんとお味噌汁の定食',fx:{exp:.15},cost:1,tk:1},
+  {n:'刺身盛り合わせ',need:5,d:'その日に釣れた魚を、新鮮なうちに',fx:{sell:.08},cost:1.2,tk:1},
+  {n:'あら汁',need:9,d:'魚のあらでだしをとった、あったかい汁',fx:{tens:8,reel:5},cost:1.2,tk:1},
+  {n:'スタミナ海鮮丼',need:13,d:'カツオやブリがたっぷり。力がつく',fx:{tens:12,reel:12},cost:1.2,tk:1},
+  {n:'幸運のお寿司',need:17,d:'タイやヒラメ。縁起のいいひと皿',fx:{rare:2},cost:1.5,tk:1},
+  {n:'海鮮鍋',need:21,d:'深海の魚がたっぷりの寄せ鍋',fx:{exp:.2,tens:8},cost:2,tk:2},
+  {n:'エビとカニの天ぷら',need:25,d:'サクサクの衣で、高く売れそうな気がする',fx:{sell:.12},cost:2.5,tk:2},
+  {n:'豪華フルコース',need:29,d:'港のシェフが腕をふるうフルコース',fx:{exp:.22,sell:.12,tens:18,reel:18,rare:3},cost:4,tk:3},
+  {n:'氷海の石狩鍋',need:34,d:'サケとタラの、体の芯から温まる鍋',fx:{tens:20,reel:10,exp:.1},cost:3,tk:2},
+  {n:'サンゴ礁のシーフードカレー',need:40,d:'南の島のスパイスで、巻き上げに力が入る',fx:{reel:25,rare:1,sell:.05},cost:3.5,tk:2},
+  {n:'マグロの解体ショー定食',need:46,d:'目の前で切り分ける、とびきりの一皿',fx:{exp:.25,sell:.1},cost:4,tk:3},
+  {n:'幻の海鮮会席',need:51,d:'幻の海域の魚だけで仕立てた会席',fx:{exp:.3,sell:.15,rare:4,tens:15,reel:15},cost:6,tk:3},
+  {n:'竜宮の宴',need:56,d:'すべての魚に感謝する、伝説のごちそう',fx:{exp:.35,sell:.2,rare:5,tens:25,reel:25},cost:8,tk:4}];
+const menuOpen=()=>MENU.filter(m=>dexN()>=m.need);
 const mealBase=()=>[300,700,1600,3500,8000,18000][G.boat];
 const mealCost=m=>Math.round(mealBase()*m.cost/10)*10;
 const autoCost=()=>Math.max(100,Math.round(AVG[G.boat]/10)*10);
@@ -1388,7 +1399,7 @@ const mealFx=k=>G.meal?(G.meal.fx[k]||0):0;
 function perkWithMeal(){const p=perks();p.tens+=mealFx('tens')+4*techLv('gear');p.reel+=mealFx('reel')+5*techLv('gear');return p}
 function fxText(fx){return [fx.exp&&`経験値+${Math.round(fx.exp*100)}%`,fx.sell&&`売値+${Math.round(fx.sell*100)}%`,fx.tens&&`テンション上昇-${fx.tens}%`,fx.reel&&`巻き上げ+${fx.reel}%`,fx.rare&&'珍しい魚が寄りやすい'].filter(Boolean).join('・')}
 function eat(i,useTk){
-  const m=MENU[i];
+  const m=MENU[i];if(!m||dexN()<m.need)return;
   if(useTk){if(G.tk.meal<m.tk){toast('食事券が足りません');return}G.tk.meal-=m.tk}
   else{const c=mealCost(m);if(G.money<c){toast('お金が足りません');return}G.money-=c;led('meal',c)}
   G.meal={n:m.n,fx:m.fx,left:MEAL_TURNS};save();hud();renderAll();toast(`${m.n}を食べた！ ${fxText(m.fx)}（${MEAL_TURNS}回）`);sfx(1);
@@ -1465,7 +1476,8 @@ function offlineGain(){
 }
 function renderTown(){
   const r=dailyReward(),ready=dailyReady();
-  const meals=MENU.map((m,i)=>`<div class="item"><div class="t">${m.n}</div><button class="buy" data-meal="${i}" ${G.money<mealCost(m)?'disabled':''}>${yen(mealCost(m))}</button><div class="s">${fxText(m.fx)}<br><button class="chip" data-mealtk="${i}" ${G.tk.meal<m.tk?'disabled':''} style="margin-top:6px">食事券${m.tk}枚で食べる</button></div></div>`).join('');
+  const nxM=MENU.find(m=>dexN()<m.need);
+  const meals=MENU.map((m,i)=>dexN()<m.need?'':`<div class="item"><div class="t">${m.n}</div><button class="buy" data-meal="${i}" ${G.money<mealCost(m)?'disabled':''}>${yen(mealCost(m))}</button><div class="s"><span style="color:var(--sub)">${m.d}</span><br>${fxText(m.fx)}<br><button class="chip" data-mealtk="${i}" ${G.tk.meal<m.tk?'disabled':''} style="margin-top:6px">食事券${m.tk}枚で食べる</button></div></div>`).join('')+(nxM?`<div class="item" style="opacity:.6"><div class="t">🔒 ${nxM.n}</div><div class="s">図鑑に載った魚があと${nxM.need-dexN()}種増えると、メニューに加わります（いま${dexN()}種）</div></div>`:'');
   $('#p-town').innerHTML=`<h2>デイリーボーナス</h2><div class="card"><div class="kv"><span>連続ログイン</span><b class="num">${ready?`今日受け取ると${r.streak}日目`:`${G.streak}日目（受け取り済み）`}</b></div>
     <button class="big" id="daily" ${ready?'':'disabled'}>${ready?`受け取る：おまかせ釣り券×${r.auto}・食事券×${r.meal}`:'今日は受け取り済み。また明日！'}</button>
     <div style="color:var(--sub);font-size:.78rem;margin-top:6px">毎日アプリを開くだけで、券がもらえます。連続で受け取るほど、券が増えます。</div></div>
@@ -1804,7 +1816,7 @@ const HELP=[
  {t:'エリアコンプと主',b:'<p>海域にいる魚を<b>全種類</b>釣ると<b>コンプボーナス</b>がもらえます（祝い金・BP・その海域の魚の売値+5%）。</p><p>コンプすると、その海域に低確率で<b>主</b>が現れます。主はとても強く、先の海域の主ほど手強くなります。アタリの気配が違うので、準備を整えて挑もう。初めて釣り上げると、討伐ボーナスがもらえます。主は売値も経験値も桁違いです。</p><p>主に逃げられると、<b>どのステータスがどのくらい必要か</b>の目安が表示されます（ステータスタブからも診断できます）。</p>'},
  {t:'レベルとステータス',b:'<p>魚を釣ると<b>経験値</b>がもらえ、たまると<b>レベル</b>が上がります（ランクとは別です）。</p><ol><li>レベルが上がると、各ステータスがランダムに上がる（0〜3ずつ）</li><li>同時に<b>BP</b>が3もらえる</li><li><span class="k">ステータス</span>タブで、BPを好きなステータスに振り分ける</li></ol><p><b>力</b>は巻き上げ、<b>体力</b>はテンション、<b>素早さ</b>はアタリ、<b>器用さ</b>は寄せ戻され、<b>運</b>はレア魚に効きます。</p>'},
  {t:'自宅と施設',b:'<p>1日が終わると<b>自宅</b>に帰ります。<span class="k">自宅・設備</span>タブでは、道具・船・漁師・施設が並んでいる様子が見られます。施設や設備もここで買えます。</p><ol><li><b>自宅</b>：大きくすると雇える漁師が増える</li><li><b>生け簀</b>：売れ残りの魚を鮮度そのまま保管</li><li><b>魚拓棚</b>：釣った魚を飾り、経験値ボーナス</li></ol><p>眠ると朝になり、次の日の釣りが始まります。</p>'},
- {t:'忙しい人のための機能',b:'<ol><li><span class="k">街</span>タブの<b>デイリーボーナス</b>で、おまかせ釣り券と食事券が毎日もらえる</li><li><b>おまかせ釣り</b>：券1枚で、5回ぶんの釣りを自動で進める（釣れるかどうかは自分のステータスで決まる）</li><li><b>外食</b>：食堂で食事すると、経験値アップなどの効果が次の12回の釣りの間続く</li><li><b>留守中の水揚げ</b>：漁師がいると、アプリを閉じている間もお金を稼いでくれる（最大8時間ぶん）</li><li>設定で<b>自動売却</b>をONにすると、魚箱がいっぱいのときに自動で売る</li></ol>'},
+ {t:'忙しい人のための機能',b:'<ol><li><span class="k">街</span>タブの<b>デイリーボーナス</b>で、おまかせ釣り券と食事券が毎日もらえる</li><li><b>おまかせ釣り</b>：券1枚で、5回ぶんの釣りを自動で進める（釣れるかどうかは自分のステータスで決まる）</li><li><b>外食</b>：食堂で食事すると、経験値アップなどの効果が次の12回の釣りの間続く。図鑑に載った魚の種類が増えるほど、<b>メニューが増えて</b>豪華になる</li><li><b>留守中の水揚げ</b>：漁師がいると、アプリを閉じている間もお金を稼いでくれる（最大8時間ぶん）</li><li>設定で<b>自動売却</b>をONにすると、魚箱がいっぱいのときに自動で売る</li></ol>'},
  {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜は給料を払って自宅に帰り、施設を整えて眠ると朝になります。相場も毎日変わります。</p><p>売上が増えるとランクが上がり、<b>祝い金と特典</b>（売値アップ、魚箱拡大など）がもらえます。画面上部のランクをタップすると一覧が見られます。それでは、いってらっしゃい！</p>'}];
 function showHelp(i=0){
   const L=HELP.filter(x=>!x.k||feat(x.k)),h=L[i]||L[0],last=i>=L.length-1;
