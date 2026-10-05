@@ -371,6 +371,30 @@ await t('全タブを、文字サイズ3種類・幅320pxで開いても、横�
   return eq(r, []);
 });
 
+/* ---------- 最初の案内 ---------- */
+await t('最初の案内：投げる→釣る→売る→道具の順に進み、光るボタンが切り替わる', 'blank', async p => {
+  const r = await ev(p, () => {
+    const o = []; const snap = () => { const e = document.getElementById('tut'); o.push([G.tut, e.hidden, document.body.dataset.tut || '', e.textContent.slice(0, 14)]) };
+    G.tut = 0; G.seen = 1; G.fish = []; G.earned = 0; G.catches = 0; S.st = 'idle'; openTab('fish'); label(); snap();
+    S.st = 'bite'; label(); snap();
+    G.fish.push({ n: 'イワシ', size: 12, fresh: 100, g: 0 }); G.catches = 1; S.st = 'idle'; hud(); snap();
+    openTab('sell'); snap();
+    sell(G.fish.map((_, i) => i)); G.earned = 100; hud(); snap();
+    document.getElementById('tutx').click(); snap();
+    return o;
+  });
+  const ok = r[0][2] === 'act' && r[1][2] === 'act' && r[2][2] === 'tab-sell' && r[3][2] === 'sellall' && r[4][2] === 'tab-home' && r[5][1] === true && r[5][0] === 1 && r[5][2] === '';
+  return ok ? true : JSON.stringify(r);
+});
+await t('最初の案内：古いセーブには出ない／最初からやり直すと出る', 'mid', async p => {
+  const r = await ev(p, () => { const old = migrate({ v: 1, seen: 1, day: 5 }); const a = old.tut; applySave(Admin.makeState(Admin.PRE.blank), 'qa'); closeModals(); return { a, fresh: fresh().tut } });
+  return r.a === 1 && r.fresh === 0 ? true : JSON.stringify(r);
+});
+await t('最初の案内：遊び方を見る前は出ない', 'blank', async p => {
+  const r = await ev(p, () => { G.tut = 0; G.seen = 0; hud(); return document.getElementById('tut').hidden });
+  return r === true ? true : JSON.stringify(r);
+});
+
 await browser.close();
 const uniq = [...new Set(errs)];
 console.log(`合格 ${pass}件 / 失敗 ${fails.length}件 / JSエラー ${uniq.length}件`);

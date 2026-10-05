@@ -54,6 +54,10 @@ h2{font-size:1rem;margin:18px 0 8px;font-weight:900}
 .goals{display:grid;gap:6px;margin-top:10px}.goals:empty{display:none}.goals h4{margin:0;font-size:.74rem;color:var(--sub);font-weight:700;letter-spacing:.06em}
 .goal{display:grid;grid-template-columns:1.6rem 1fr;gap:0 6px;align-items:center;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.84rem;width:100%;color:var(--fg)}.goal.now{border-color:var(--accent)}.goal .gi{font-size:1.1rem;grid-row:span 2}.goal .gp{grid-column:2;height:4px;margin-top:5px;background:var(--panel2);border-radius:3px;overflow:hidden}.goal .gp i{display:block;height:100%;background:var(--accent)}
 .up{color:var(--good)}.down{color:var(--bad)}
+#tut{display:flex;gap:8px;align-items:center;margin:0 0 10px;padding:9px 10px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;font-size:.86rem;font-weight:700}#tut[hidden]{display:none}#tut .tn{flex:none;background:var(--accent);color:#2b1a00;border-radius:999px;font-size:.72rem;padding:2px 8px;font-weight:900}#tut .tt{flex:1}#tut button{flex:none;background:none;border:0;color:var(--sub);font-size:.72rem;text-decoration:underline;padding:4px}
+@keyframes tglow{0%,100%{box-shadow:0 0 0 0 rgba(255,180,84,.0)}50%{box-shadow:0 0 0 5px rgba(255,180,84,.75),0 0 18px 4px rgba(255,180,84,.55)}}
+body[data-tut=act] #act,body[data-tut=tab-sell] nav [data-tab=sell],body[data-tut=sellall] #sellall,body[data-tut=tab-home] nav [data-tab=home]{animation:tglow 1.2s ease-in-out infinite;position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){body[data-tut] *{animation-duration:0s!important}}
 .rbs{display:flex;gap:6px;align-items:flex-end;height:84px}.rb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;font-size:.68rem;color:var(--sub)}
 .rbi{width:100%;background:var(--good);border-radius:4px 4px 0 0;position:relative;overflow:hidden;opacity:.9}.rbx{position:absolute;left:0;right:0;bottom:0;background:var(--bad)}
 .big{background:var(--accent);color:#2b1a00;border:0;border-radius:10px;padding:10px 14px;font-weight:900;width:100%}
@@ -129,6 +133,7 @@ textarea{width:100%;min-height:76px;background:var(--panel);color:var(--fg);bord
   <button role="tab" data-tab="dex" aria-selected="false">図鑑</button>
   <button role="tab" data-tab="set" aria-selected="false">設定</button>
 </nav>
+<div id="tut" hidden></div>
 
 <section id="p-fish">
   <div class="stage"><canvas id="cv" width="480" height="250"></canvas><div id="banner"><b></b><span></span></div></div>
@@ -730,11 +735,12 @@ const yen=n=>Math.abs(n)>=1e8?'¥'+(n/1e8).toFixed(Math.abs(n)>=1e9?1:2)+'億':'
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1,foc:1,biz:1,lead:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0,foc:0,biz:0,lead:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,dc:{},msn:{day:0,items:[]},msnDone:0,pets:{},pet:'',deco:{},treasure:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,tut:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1,foc:1,biz:1,lead:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0,foc:0,biz:0,lead:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,dc:{},msn:{day:0,items:[]},msnDone:0,pets:{},pet:'',deco:{},treasure:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
 function migrate(s){
   if(!s||s.v!==1)return null;
   const fs0=s.fs===undefined?(s.big?1:0):s.fs;
   const rg=s.rankGot===undefined?RANKS.filter(r=>(s.earned||0)>=r[0]).length-1:s.rankGot;
+  if(s.tut===undefined)s.tut=1;
   const f=fresh();
   for(const k in f)if(s[k]===undefined)s[k]=f[k];
   for(const k of['stat','alloc','fac','lv','comp','bossGot','tk'])s[k]=Object.assign({},f[k],s[k]);
@@ -983,6 +989,7 @@ function label(){
   const b=$('#act');
   b.textContent={idle:'投げる',wait:'待つ…（早く引くと戻る）',bite:'アワセ！',fight:'巻く（押し続ける）',result:'つぎへ'}[S.st];
   b.classList.toggle('down',S.st==='fight'&&S.holding);
+  tutRender();
 }
 
 /* ---------- effects ---------- */
@@ -1154,6 +1161,7 @@ const ico=(sp,cls='')=>`<img class="ic ${cls}" src="${icon(sp)}" alt="">`;
 /* ---------- ui ---------- */
 const setHtml=(el,h)=>{if(el._h!==h){el.innerHTML=h;el._h=h}};
 function hud(){
+  tutRender();
   $('#day').textContent=G.day;
   $('#clock').textContent=G.home?'夜':`${Math.floor(G.min/60)}:${String(G.min%60).padStart(2,'0')}`;
   $('#money').textContent=yen(G.money);
@@ -1272,11 +1280,35 @@ const TABR={fish:()=>{renderAreas();renderGoals()},sell:renderSell,town:renderTo
 function renderAll(){hud();if(ptrDown){dirty=true;return}dirty=false;(TABR[curTab]||(()=>{}))()}
 addEventListener('pointerdown',()=>{ptrDown=true},true);
 ['pointerup','pointercancel'].forEach(ev=>addEventListener(ev,()=>{ptrDown=false;if(dirty)setTimeout(()=>{if(!ptrDown&&dirty)renderAll()},150)},true));
+/* ---------- 最初の案内（光るボタンで、釣る→売る→道具 の流れを案内） ---------- */
+function tutStep(){
+  if(G.tut||!G.seen)return null;
+  if(G.earned>0){return{n:3,g:curTab==='home'?'':'tab-home',t:curTab==='home'?'ここで道具や船を買えます。まずは「エサ」がおすすめ（アタリが早くなる）':'売れました！お金がたまったら「自宅・設備」で道具を強化できます'}}
+  if(G.fish.length>0){
+    if(curTab!=='sell')return{n:2,g:'tab-sell',t:'魚が釣れました。「市場」タブで売ってお金にしましょう'};
+    return{n:2,g:'sellall',t:'「すべて売る」を押してお金にしよう'};
+  }
+  if(curTab!=='fish')return{n:1,g:'',t:'「釣り」タブにもどって、釣りを始めよう'};
+  const m={idle:['act','「投げる」を押して釣りを始めよう'],wait:['','浮きが沈むのを待とう…'],bite:['act','今！「アワセ！」を押す'],fight:['act','「巻く」を押し続けて寄せよう。魚が暴れたら指を離す！'],result:['act','「つぎへ」を押そう']}[S.st]||['',''];
+  return{n:1,g:m[0],t:m[1]};
+}
+function tutDone(){G.tut=1;save();tutRender()}
+function tutRender(){
+  const el=$('#tut');if(!el)return;
+  const p=tutStep();
+  if(!p){el.hidden=true;document.body.removeAttribute('data-tut');return}
+  el.hidden=false;
+  const h=`<span class="tn">${p.n}/3</span><span class="tt">${p.t}</span><button id="tutx">案内を消す</button>`;
+  if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;$('#tutx').onclick=tutDone}
+  if(p.g)document.body.dataset.tut=p.g;else document.body.removeAttribute('data-tut');
+}
 function openTab(k){
   document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.tab===k));
   ['fish','sell','town','home','stat','dex','set'].forEach(t=>$('#p-'+t).hidden=t!==k);
   curTab=k;
   if(k==='set')renderSet();else if(TABR[k])TABR[k]();
+  if(k==='home'&&!G.tut&&G.earned>0)setTimeout(()=>{if(curTab==='home')tutDone()},4500);
+  tutRender();
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 /* ---------- cloud save / 引き継ぎ ----------
