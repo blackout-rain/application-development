@@ -1889,10 +1889,12 @@ const HELP=[
  {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜は給料を払って自宅に帰り、施設を整えて眠ると朝になります。相場も毎日変わります。</p><p>売上が増えるとランクが上がり、<b>祝い金と特典</b>（売値アップ、魚箱拡大など）がもらえます。画面上部のランクをタップすると一覧が見られます。それでは、いってらっしゃい！</p>'}];
 function showHelp(i=0){
   const L=HELP.filter(x=>!x.k||feat(x.k)),h=L[i]||L[0],last=i>=L.length-1;
-  $('#box').innerHTML=`<div class="help"><h3>${h.t}</h3>${h.b}<div class="row"><button class="ghost" id="hp" ${i?'':'disabled'}>戻る</button><button class="big" id="hn" style="flex:1;width:auto">${last?'はじめる':'次へ'}</button></div><p class="dots">${i+1} / ${L.length}</p></div>`;
+  $('#box').innerHTML=`<div class="help"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${h.t}</h3>${last?'':'<button class="ghost" id="hs" style="padding:6px 12px;font-size:.82rem;white-space:nowrap">スキップ ▸▸</button>'}</div>${h.b}<div class="row"><button class="ghost" id="hp" ${i?'':'disabled'}>戻る</button><button class="big" id="hn" style="flex:1;width:auto">${last?'はじめる':'次へ'}</button></div><p class="dots">${i+1} / ${L.length}</p></div>`;
   $('#veil').hidden=false;
   $('#hp').onclick=()=>showHelp(i-1);
-  $('#hn').onclick=()=>{if(!last){showHelp(i+1);return}G.seen=1;save();$('#veil').hidden=true;openTab(G.home?'home':'fish');say('「投げる」を押して釣りを始めよう。')};
+  const finish=skipped=>{G.seen=1;save();$('#veil').hidden=true;openTab(G.home?'home':'fish');say('「投げる」を押して釣りを始めよう。');if(skipped)toast('遊び方は、右上の「遊び方」か、設定タブで、いつでも見られます')};
+  $('#hn').onclick=()=>{if(!last){showHelp(i+1);return}finish(false)};
+  const hs=$('#hs');if(hs)hs.onclick=()=>finish(true);
 }
 $('#help').onclick=()=>{if(S.st==='idle'||S.st==='result')showHelp(0);else toast('釣りの合間に開いてね')};
 $('#rankbox').onclick=()=>{if(!veilOpen())showRanks()};
