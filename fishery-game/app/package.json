@@ -9,7 +9,8 @@
     "sync": "npm run build && cap sync android",
     "android": "npm run sync && cap open android",
     "assets:store": "node tools/make-store-assets.mjs",
-    "assets:icons": "capacitor-assets generate --android"
+    "assets:icons": "capacitor-assets generate --android",
+    "check:prod": "node ../dev/check-prod.mjs"
   },
   "dependencies": {
     "@capacitor-firebase/authentication": "^8.5.2",

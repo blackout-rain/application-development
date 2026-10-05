@@ -37,3 +37,8 @@ ${game}
 `;
 writeFileSync('www/index.html', html);
 console.log('www/index.html を作りました');
+
+// 製品版に、管理者（開発）用の機能が混ざっていないか検査する。混ざっていたら、ここで失敗させる
+import { spawnSync } from 'node:child_process';
+const chk = spawnSync(process.execPath, ['../dev/check-prod.mjs'], { stdio: 'inherit' });
+if (chk.status !== 0) process.exit(chk.status || 1);
