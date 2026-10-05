@@ -373,7 +373,7 @@ function deliver(id){
   const cand=G.fish.map((f,i)=>({f,i})).filter(x=>ordMatch(o,x.f)).sort((a,b)=>price(a.f,0)-price(b.f,0)).slice(0,o.q);
   if(cand.length<o.q)return;
   const pay=Math.round(cand.reduce((a,x)=>a+price(x.f,0),0)*ordMul()),idx=cand.map(x=>x.i);
-  G.fish=G.fish.filter((_,i)=>!idx.includes(i));G.ord=G.ord.filter(x=>x.id!==id);G.orderDone++;addRep(o.fr>=90?2:1);
+  G.fish=G.fish.filter((_,i)=>!idx.includes(i));G.ord=G.ord.filter(x=>x.id!==id);G.orderDone++;dcAdd('ord',1);addRep(o.fr>=90?2:1);
   G.money+=pay;led('ord',pay);earn(pay);save();hud();renderAll();toast(`納品完了！ ${yen(pay)}`);sfx(2);
 }
 /* ---------- 釣り大会 ---------- */
@@ -443,6 +443,7 @@ function sellProd(){
 // 一度に機能が増えて混乱しないよう、レベル・ランク・新しい海域・主の討伐に応じて少しずつ解放する
 const nBoss=()=>Object.keys(G.bossGot).length;
 const FEATS=[
+  {k:'missions',n:'デイリーミッション（街タブ）',h:'レベル4',ok:()=>G.level>=4},
   {k:'report',n:'経営レポート（市場タブ）',h:'レベル3',ok:()=>G.level>=3},
   {k:'orders',n:'注文と評判（市場タブ）',h:'レベル5',ok:()=>G.level>=5},
   {k:'ach',n:'実績（図鑑タブ）',h:'レベル5',ok:()=>G.level>=5},
@@ -474,6 +475,27 @@ function lockedHtml(){
   const l=FEATS.filter(f=>!feat(f.k));if(!l.length)return '';
   return `<h2>これから解放される機能</h2><div class="card" style="font-size:.82rem">${l.slice(0,6).map(f=>`<div class="ln"><span>🔒 ${f.n}</span><span style="color:var(--sub);font-size:.76rem;text-align:right">${f.h}</span></div>`).join('')}${l.length>6?`<div style="color:var(--sub);font-size:.76rem;margin-top:4px">ほか${l.length-6}件</div>`:''}<div style="color:var(--sub);font-size:.76rem;margin-top:6px">レベルを上げたり、新しい海域に出たり、主を釣ると、新しい機能が使えるようになります。</div></div>`;
 }
+/* ---------- デイリーミッション ---------- */
+// 毎朝3つ。達成するたびに小さなごほうび、3つそろえるとボーナス
+const dcN=k=>(G.dc&&G.dc[k])||0;
+function dcAdd(k,n){if(!G.dc)G.dc={};G.dc[k]=(G.dc[k]||0)+n}
+function newMissions(){
+  const pool=[()=>{const t=[6,10,14][Math.floor(Math.random()*3)];return{k:'catch',n:`魚を${t}匹釣る`,t}},
+    ()=>{const t=Math.round(tourBase()*[10,18,26][Math.floor(Math.random()*3)]/10)*10;return{k:'sold',n:`魚を合計${yen(t)}分、売る`,t}},
+    ()=>({k:'rare',n:'珍しい魚（レア以上）を1匹釣る',t:1})];
+  if(feat('orders'))pool.push(()=>({k:'ord',n:'注文を1件納品する',t:1}));
+  const items=[],pick=pool.slice();
+  for(let i=0;i<3&&pick.length;i++){const m=pick.splice(Math.floor(Math.random()*pick.length),1)[0]();m.r=[{auto:1},{meal:1},{bp:1}][i];m.done=0;items.push(m)}
+  return items;
+}
+function ensureMissions(){if(G.msn.day!==G.day){G.msn={day:G.day,items:newMissions(),bonus:0};G.dc={}}}
+function checkMsn(){
+  if(!feat('missions'))return;ensureMissions();
+  const got=[];G.msn.items.forEach(m=>{if(!m.done&&dcN(m.k)>=m.t){m.done=1;G.msnDone++;G.bp+=m.r.bp||0;G.tk.auto+=m.r.auto||0;G.tk.meal+=m.r.meal||0;got.push(m)}});
+  if(G.msn.items.length&&G.msn.items.every(m=>m.done)&&!G.msn.bonus){G.msn.bonus=1;G.bp+=2;G.tk.auto+=1;toast('🎉 今日のミッションを全部達成！ BP+2・おまかせ釣り券×1');sfx(3);save()}
+  else if(got.length){toast(`ミッション達成：${got.map(m=>m.n).join('、')}（${achRw(got[0].r)}）`);sfx(2);save()}
+}
+const msnHtml=()=>{ensureMissions();return `<h2>今日のミッション</h2><div class="card" style="font-size:.84rem">${G.msn.items.map(m=>`<div class="ln"><span>${m.done?'✅':'⬜'} ${m.n}</span><span class="num" style="font-size:.78rem;color:${m.done?'var(--good)':'var(--sub)'}">${m.done?'達成':`${Math.min(dcN(m.k),m.t)}/${m.t}`}　${achRw(m.r)}</span></div>`).join('')}<div style="color:var(--sub);font-size:.76rem;margin-top:6px">3つ全部で、BP+2・おまかせ釣り券×1のボーナス。${G.msn.bonus?'（受け取りずみ）':''}</div></div>`};
 /* ---------- 相棒（ペット）と模様替え ---------- */
 const PETS=[
   {k:'cat',n:'ネコ',e:'🐈',c:20000,d:'魚に逃げられにくい（引きの力 −5%）',diff:.95},
@@ -543,6 +565,8 @@ const ACH=[
   {id:'tr20',n:'海のトレジャーハンター',d:'漂流物を20回見つける',ok:()=>G.treasure>=20,r:{bp:5,meal:3}},
   {id:'pet1',n:'相棒ができた',d:'ペットを仲間にする',ok:()=>Object.keys(G.pets).length>=1,r:{bp:2}},
   {id:'deco6',n:'おしゃれな我が家',d:'飾りを6個ぜんぶ飾る',ok:()=>DECOS.every(d=>G.deco[d.k]),r:{bp:4,meal:2}},
+  {id:'msn10',n:'ミッションこなし',d:'ミッションを10個達成',ok:()=>G.msnDone>=10,r:{bp:2,auto:2}},
+  {id:'msn50',n:'毎日の習慣',d:'ミッションを50個達成',ok:()=>G.msnDone>=50,r:{bp:5,meal:3}},
   {id:'day30',n:'一か月',d:'30日目を迎える',ok:()=>G.day>=30,r:{auto:2}},
   {id:'day100',n:'百日の航海',d:'100日目を迎える',ok:()=>G.day>=100,r:{auto:5,meal:3}}];
 const achRw=r=>[r.bp&&`BP+${r.bp}`,r.auto&&`おまかせ釣り券×${r.auto}`,r.meal&&`食事券×${r.meal}`].filter(Boolean).join('・');
@@ -565,7 +589,7 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,pets:{},pet:'',deco:{},treasure:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,dc:{},msn:{day:0,items:[]},msnDone:0,pets:{},pet:'',deco:{},treasure:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
 function migrate(s){
   if(!s||s.v!==1)return null;
   const fs0=s.fs===undefined?(s.big?1:0):s.fs;
@@ -778,7 +802,7 @@ function checkComplete(a){
 }
 function landed(){
   const sp=S.sp;
-  G.fish.push({n:sp.n,size:S.size,fresh:100});G.catches++;
+  G.fish.push({n:sp.n,size:S.size,fresh:100});G.catches++;dcAdd('catch',1);if(tier(sp)>=1)dcAdd('rare',1);
   const newSp=!G.dex[sp.n];
   const d=G.dex[sp.n]||(G.dex[sp.n]={c:0,best:0,min:9999});
   const rec=!newSp&&S.size>d.best;d.c++;d.best=Math.max(d.best,S.size);d.min=Math.min(d.min,S.size);
@@ -988,7 +1012,7 @@ function hud(){
   setHtml(document.querySelector('[data-tab=set]'),`設定${Cloud.kind==='app'&&Cloud.status==='signedout'&&hasProgress()?'<i class="dot">!</i>':''}`);
   $('#tkn').textContent=G.tk.auto;
   $('#evline').textContent=[G.baitSel&&`🪱 ${BAITS.find(b=>b.k===G.baitSel).n}（残り${G.bt[G.baitSel]}）`,G.fix>0&&`🔧 船が故障中（${G.ins?'保険で無料':`修理費${yen(G.fix)}・夜に支払い`}）`,isTourDay()&&(tourIn()?`🏆 大会参加中：ベスト ${yen(G.tour.best)}`:'🏆 今日は釣り大会！（街タブから参加）'),(feat('tide')&&!G.home&&`🌊 ${tideNow()?'満潮中！（アタリが早く、珍しい魚が寄る）':`満潮 ${tideStartH()}:00〜${tideStartH()+2}:00`}`),feat('season')&&`${SEASONS[seasonOf()].e}${SEASONS[seasonOf()].n}（${(G.day-1)%SEASON_LEN+1}/${SEASON_LEN}日目）・${WX[G.wx||0].e}${WX[G.wx||0].n}${WX[G.wx||0].d?'：'+WX[G.wx||0].d:''}`,ev()&&`${ev().e} 今日のできごと：${ev().n}（${ev().d}）`,G.debt>0&&`💳 借入 ${yen(G.debt)}`].filter(Boolean).join('　');
-  checkFeat();checkAch();
+  checkFeat();checkAch();checkMsn();
   $('#mealline').textContent=G.meal?`食事効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回`:'';
 }
 function renderAreas(){
@@ -1037,7 +1061,7 @@ function sellCore(idx){
   const q=quote(idx);
   q.rows.forEach(r=>{G.rev[r.n]=(G.rev[r.n]||0)+r.p});
   G.sat=q.sat;G.stall+=q.stall;G.fish=G.fish.filter((_,i)=>!idx.includes(i));
-  G.money+=q.sum;led('sell',q.sum);earn(q.sum);return q.sum;
+  G.money+=q.sum;led('sell',q.sum);dcAdd('sold',q.sum);earn(q.sum);return q.sum;
 }
 function sell(idx){const n=sellCore(idx);save();hud();renderAll();return n}
 function renderShop(){
@@ -1445,7 +1469,7 @@ function renderTown(){
   $('#p-town').innerHTML=`<h2>デイリーボーナス</h2><div class="card"><div class="kv"><span>連続ログイン</span><b class="num">${ready?`今日受け取ると${r.streak}日目`:`${G.streak}日目（受け取り済み）`}</b></div>
     <button class="big" id="daily" ${ready?'':'disabled'}>${ready?`受け取る：おまかせ釣り券×${r.auto}・食事券×${r.meal}`:'今日は受け取り済み。また明日！'}</button>
     <div style="color:var(--sub);font-size:.78rem;margin-top:6px">毎日アプリを開くだけで、券がもらえます。連続で受け取るほど、券が増えます。</div></div>
-    <h2>外食（海辺の食堂）</h2><p style="color:var(--sub);font-size:.82rem;margin:0 0 8px">外で食事を済ませると、効果が次の${MEAL_TURNS}回の釣りの間続きます。${G.meal?`<br><b style="color:var(--good)">いまの効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回</b>`:''}</p><div class="list">${meals}</div>
+    ${feat('missions')?msnHtml():''}<h2>外食（海辺の食堂）</h2><p style="color:var(--sub);font-size:.82rem;margin:0 0 8px">外で食事を済ませると、効果が次の${MEAL_TURNS}回の釣りの間続きます。${G.meal?`<br><b style="color:var(--good)">いまの効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回</b>`:''}</p><div class="list">${meals}</div>
     <h2>切符売り場</h2><div class="list">
       <div class="item"><div class="t">おまかせ釣り券 <span class="num" style="color:var(--accent)">所持${G.tk.auto}枚</span></div><button class="buy" data-buytk="auto:1" ${G.money<autoCost()?'disabled':''}>${yen(autoCost())}</button><div class="s">1枚で5回ぶんの釣りを自動で進めます。<br><button class="chip" data-buytk="auto:5" ${G.money<autoCost()*5?'disabled':''} style="margin-top:6px">5枚まとめて ${yen(autoCost()*5)}</button></div></div>
       <div class="item"><div class="t">食事券 <span class="num" style="color:var(--accent)">所持${G.tk.meal}枚</span></div><button class="buy" data-buytk="meal:1" ${G.money<mealTkCost()?'disabled':''}>${yen(mealTkCost())}</button><div class="s">食堂でお金の代わりに使えます。</div></div></div>
@@ -1704,8 +1728,17 @@ function bindCloud(){
   on('logoutBtn',logoutGoogle);
   on('delAcct',askDeleteAccount);
 }
+// 通知（アプリ版のみ。Webでは何もしない）：アプリを閉じたあと、留守の水揚げ（8時間）とデイリーボーナスの受け取り忘れを知らせる
+function notifyPlan(){
+  if(!window.AppNotify||G.noNotif)return;
+  const now=Date.now(),items=[];
+  if(G.crew>0)items.push({k:'away',at:now+8*3600e3,title:'海風フィッシャリー',body:'漁師たちの留守の水揚げが満タンです。受け取りに戻ろう！'});
+  const d=new Date();d.setHours(19,0,0,0);if(!(dailyReady()&&d.getTime()>now))d.setDate(d.getDate()+1);
+  items.push({k:'daily',at:d.getTime(),title:'海風フィッシャリー',body:'今日のデイリーボーナス（おまかせ釣り券・食事券）を受け取ろう'});
+  AppNotify.schedule(items);
+}
 function renderSet(){
-  const tg=TG.map(([k,l,d,inv])=>{const on=inv?!G[k]:!!G[k];
+  const tg=TG.concat(window.AppNotify?[['noNotif','通知','留守の水揚げが満タンになったとき・デイリーボーナスの受け取り忘れをお知らせ（アプリ版）',1]]:[]).map(([k,l,d,inv])=>{const on=inv?!G[k]:!!G[k];
     return `<div class="item"><div class="t">${l}</div><button class="chip" data-tg="${k}" aria-pressed="${on}">${on?'ON':'OFF'}</button><div class="s">${d}</div></div>`}).join('');
   const df=DIFFN.map((n,i)=>`<button class="chip" data-df="${i}" aria-pressed="${G.diff===i}">${n}</button>`).join('');
   const got=NORM.filter(s=>G.dex[s.n]).length;
@@ -1751,6 +1784,7 @@ const HELP=[
  {t:'魚を売る',b:'<p>釣った魚は魚箱に入ります（容量があります）。<span class="k">市場</span>タブで売ってお金にしましょう。</p><p>値段は、大きさ（★の数）・鮮度・今日の相場で決まります。大きい魚ほど高く売れ、経験値も多くもらえます。売れ残りは夜のたびに鮮度が落ちるので、早めに売るのがおすすめです。</p><p>同じ魚を続けて売ると<b>値崩れ</b>します（翌朝には半分もどる）。直売所を強化すると、1日に数匹だけ高く売れる<b>直売所の枠</b>が使えます。「すべて売る」は、高い魚から順に自動で有利な出荷先へ回します。市場タブの<b>経営レポート</b>で、収入・経費・稼ぎ頭の魚を確認できます。</p>'},
  {t:'ライバル漁師',k:'tour',b:'<p><span class="k">街</span>タブに、ライバル漁師5人との<b>週間売上</b>ランキングがあります。1週間の収入（売上・水揚げ・賞金・納品）が多いほど上位です。</p><p>7日ごとの夜に発表され、<b>3位まで</b>にBPと評判、<b>1位</b>はおまかせ釣り券もらえます。</p>'},
  {t:'釣り大会',k:'tour',b:'<p>7日ごとに<b>釣り大会</b>が開かれます。<span class="k">街</span>タブから、その日の朝に参加できます（参加費あり）。</p><ol><li>参加した日に、<b>自分で釣った魚</b>のうち、いちばん高い1匹の値段で競います（おまかせ釣り・従業員・主は対象外）</li><li>夜にライバル5人とのランキングが発表され、<b>3位まで賞金</b>、1位はおまかせ釣り券ももらえます</li><li>旬の魚や、大物を狙うと有利です</li></ol>'},
+ {t:'ミッション',k:'missions',b:'<p><span class="k">街</span>タブに、毎朝<b>3つのミッション</b>が出ます（魚を釣る・売る・レア魚・注文の納品など）。達成するたびに、おまかせ釣り券・食事券・BPがもらえます。3つ全部達成すると、さらにボーナスです。</p>'},
  {t:'相棒と模様替え',k:'pet',b:'<p><span class="k">街</span>タブの<b>相棒（ペット）</b>を仲間にすると、連れている1匹の効果がもらえます（ネコ：魚が逃げにくい／ウミネコ：経験値+5%／ラッコ：売値+3%／ウミガメ：珍しい魚が寄りやすい）。</p><p><span class="k">自宅・設備</span>タブの<b>模様替え</b>で、自宅の風景に飾りを足せます（見た目だけ）。</p>'},
  {t:'漂流物・宝箱',k:'treasure',b:'<p>釣りの合間に、ときどき<b>漂流物や宝箱</b>が流れ着きます（約25回に1回）。お金・おまかせ釣り券・食事券・BPのどれかがもらえ、たまに大当たりも。</p>'},
  {t:'エサ・ルアー',k:'bait',b:'<p>魚には<b>好物のエサ</b>があります（図鑑や注文に表示）。<span class="k">街</span>タブの<b>釣具店</b>で10個入りを買い、「使う」にすると、1投ごとに1個使って、好物の魚が2.5倍よく釣れます。</p><p>注文や釣り大会で狙う魚が決まっているときに便利です。</p>'},
@@ -1910,7 +1944,7 @@ function loop(ts){
   if(!$('#p-home').hidden)drawHome(ts);
   requestAnimationFrame(loop);
 }
-applyUi();syncCrew(true);renderAll();AREAS.forEach((_,a)=>checkComplete(a));document.addEventListener('visibilitychange',()=>{if(document.hidden){save();cloudPush(false)}else cloudRecheck()});
+applyUi();syncCrew(true);renderAll();AREAS.forEach((_,a)=>checkComplete(a));document.addEventListener('visibilitychange',()=>{if(document.hidden){save();cloudPush(false);notifyPlan()}else{cloudRecheck();if(window.AppNotify)AppNotify.cancel()}});
 window.addEventListener('focus',cloudRecheck);label();say('「投げる」を押して釣りを始めよう。');if(G.home){openTab('home');say('夜です。自宅で休もう。')}(async()=>{
   await Promise.race([cloudInit(),new Promise(r=>setTimeout(r,2500))]);
   if(!veilOpen()){

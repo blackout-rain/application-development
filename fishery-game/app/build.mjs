@@ -13,10 +13,16 @@ await build({
   outfile: 'www/cloud.js', logLevel: 'info'
 });
 
+await build({
+  entryPoints: ['src/notify.js'],
+  bundle: true, minify: true, format: 'iife', target: ['chrome100'],
+  outfile: 'www/notify.js', logLevel: 'info'
+});
+
 let game = readFileSync('../index.html', 'utf8');
 game = game.replace(/<link[^>]*fonts\.(googleapis|gstatic)\.com[^>]*>\s*/g, '');
 if (game.includes('<script>') === false) throw new Error('ゲームの<script>が見つかりません');
-game = game.replace('<script>', '<script src="cloud.js"></script>\n<script>');
+game = game.replace('<script>', '<script src="cloud.js"></script>\n<script src="notify.js"></script>\n<script>');
 
 const html = `<!doctype html>
 <html lang="ja">

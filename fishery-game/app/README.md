@@ -93,3 +93,11 @@ npm run assets:store
 
 ## ゲームを直したとき
 `../index.html` を直したら、`npm run sync` を実行して、Android Studio で再ビルドします。
+
+
+## 通知（ローカル通知）について
+- `src/notify.js`（`@capacitor/local-notifications`）が、ゲームに通知機能を渡します。アプリを閉じたとき、
+  「留守の水揚げが満タン（8時間後）」と「デイリーボーナスの受け取り忘れ（19:00）」を知らせます。
+- 設定タブの「通知」で、ユーザーがOFFにできます。Android 13以上は、初回に通知の許可を聞きます。
+- 外部のサーバーには何も送りません（端末内だけの通知です）。ストアの「データセーフティ」に影響しません。
+- `npm install` のあと `npm run sync` で、Androidプロジェクトに反映されます。
