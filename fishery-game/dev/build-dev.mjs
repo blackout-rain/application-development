@@ -14,7 +14,7 @@ const must = (s, re, to) => { if (!game.includes(re)) throw new Error('見つか
 must(game, 'umikaze-fishery-v1', 'umikaze-fishery-dev-v1');
 must(game, 'umikaze-fishery-backup', 'umikaze-fishery-dev-backup');
 must(game, "'umikaze-dev'", "'umikaze-dev-device'");
-must(game, '<title>海風フィッシャリー</title>', '<title>海風フィッシャリー DEV</title>');
+must(game, '<title>今日も大漁ですか？</title>', '<title>今日も大漁ですか？ DEV</title>');
 
 // 起動直後のエラーも拾うため、ゲームより先に、小さな記録用スクリプトを置く
 const early = `<script>/*__UMIKAZE_ADMIN__*/window.__admEarly=[];addEventListener('error',function(e){window.__admEarly.push({t:Date.now(),day:0,min:0,kind:'error',msg:e.message})});</script>\n`;

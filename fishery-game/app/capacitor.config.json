@@ -1,6 +1,6 @@
 {
   "appId": "com.example.umikazefishery",
-  "appName": "海風フィッシャリー",
+  "appName": "今日も大漁ですか？",
   "webDir": "www",
   "plugins": {
     "FirebaseAuthentication": {

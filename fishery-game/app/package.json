@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "海風フィッシャリー Androidアプリ（Capacitor + Firebase）",
+  "description": "今日も大漁ですか？ Androidアプリ（Capacitor + Firebase）",
   "scripts": {
     "build": "node build.mjs",
     "sync": "npm run build && cap sync android",

@@ -1,4 +1,4 @@
-<title>海風フィッシャリー</title>
+<title>今日も大漁ですか？</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=DM+Mono:wght@500&display=swap">
 <style>
@@ -19,6 +19,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 header{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;margin-bottom:10px}
 #help{padding:4px 12px;font-size:.85rem}
 h1{font-size:1.25rem;font-weight:900;margin:0;letter-spacing:.04em}
+h1 small{display:block;font-size:.62rem;font-weight:500;color:var(--sub);letter-spacing:.02em;margin-top:1px}
 .hud{display:flex;gap:14px;flex-wrap:wrap;color:var(--sub);font-size:.9rem}
 .hud b{color:var(--fg)}
 #money{color:var(--accent);font-size:1.1rem}
@@ -108,7 +109,7 @@ textarea{width:100%;min-height:76px;background:var(--panel);color:var(--fg);bord
 </style>
 
 <header>
-  <h1>海風フィッシャリー</h1><span class="hb"><button class="ghost" id="help">遊び方</button></span>
+  <h1>今日も大漁ですか？<small>〜すきま時間の釣り経営〜</small></h1><span class="hb"><button class="ghost" id="help">遊び方</button></span>
   <div class="hud"><span><b id="day" class="num">1</b>日目</span><span id="clock" class="num">6:00</span><span id="money" class="num">¥500</span></div>
   <div class="rank" id="rankbox" role="button" tabindex="0" aria-label="ランクと特典を見る"><span id="rank">見習い漁師</span><div class="bar"><i id="goal"></i></div><span class="nx" id="goalv"></span></div>
   <div class="perkline" id="perk"></div>
@@ -1795,9 +1796,9 @@ function bindCloud(){
 function notifyPlan(){
   if(!window.AppNotify||G.noNotif)return;
   const now=Date.now(),items=[];
-  if(G.crew>0)items.push({k:'away',at:now+8*3600e3,title:'海風フィッシャリー',body:'漁師たちの留守の水揚げが満タンです。受け取りに戻ろう！'});
+  if(G.crew>0)items.push({k:'away',at:now+8*3600e3,title:'今日も大漁ですか？',body:'漁師たちの留守の水揚げが満タンです。受け取りに戻ろう！'});
   const d=new Date();d.setHours(19,0,0,0);if(!(dailyReady()&&d.getTime()>now))d.setDate(d.getDate()+1);
-  items.push({k:'daily',at:d.getTime(),title:'海風フィッシャリー',body:'今日のデイリーボーナス（おまかせ釣り券・食事券）を受け取ろう'});
+  items.push({k:'daily',at:d.getTime(),title:'今日も大漁ですか？',body:'今日のデイリーボーナス（おまかせ釣り券・食事券）を受け取ろう'});
   AppNotify.schedule(items);
 }
 function renderSet(){

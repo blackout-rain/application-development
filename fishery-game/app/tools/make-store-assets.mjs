@@ -60,8 +60,8 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
       x.restore();
       fish(x, 'タイ', 1366, 1080, 700, -.28);
       x.fillStyle = '#eaf3f1'; x.textAlign = 'center'; x.font = '900 190px "Hiragino Maru Gothic ProN","Zen Maru Gothic","Noto Sans CJK JP",sans-serif';
-      x.fillText('海風フィッシャリー', 1366, 1700);
-      x.fillStyle = '#ffb454'; x.font = '700 80px "Noto Sans CJK JP",sans-serif'; x.fillText('釣って、売って、育てる', 1366, 1860);
+      x.fillText('今日も大漁ですか？', 1366, 1700);
+      x.fillStyle = '#ffb454'; x.font = '700 80px "Noto Sans CJK JP",sans-serif'; x.fillText('〜すきま時間の釣り経営〜', 1366, 1860);
       return c.toDataURL('image/png');
     };
     const feature = () => {
@@ -72,8 +72,8 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
       // 文字の読みやすさのため、左側を少し暗くする
       const sh = x.createLinearGradient(0, 0, 640, 0); sh.addColorStop(0, 'rgba(6,20,32,.78)'); sh.addColorStop(1, 'rgba(6,20,32,0)');
       x.fillStyle = sh; x.fillRect(0, 0, 700, 500);
-      x.textAlign = 'left'; x.fillStyle = '#ffb454'; x.font = '700 30px "Noto Sans CJK JP",sans-serif'; x.fillText('釣り船経営シミュレーション', 56, 150);
-      x.fillStyle = '#eaf3f1'; x.font = '900 78px "Hiragino Maru Gothic ProN","Zen Maru Gothic","Noto Sans CJK JP",sans-serif'; x.fillText('海風', 56, 245); x.fillText('フィッシャリー', 56, 330);
+      x.textAlign = 'left'; x.fillStyle = '#ffb454'; x.font = '700 30px "Noto Sans CJK JP",sans-serif'; x.fillText('〜すきま時間の釣り経営〜', 56, 150);
+      x.fillStyle = '#eaf3f1'; x.font = '900 78px "Hiragino Maru Gothic ProN","Zen Maru Gothic","Noto Sans CJK JP",sans-serif'; x.fillText('今日も', 56, 245); x.fillText('大漁ですか？', 56, 330);
       x.fillStyle = '#cfe6f0'; x.font = '500 28px "Noto Sans CJK JP",sans-serif'; x.fillText('釣って、売って、育てる。', 56, 410);
       return c.toDataURL('image/png');
     };
@@ -126,8 +126,8 @@ for (const [file, , setup, wait] of SCENES) {
     const d = {}; SP.forEach(s => { if (s.a <= 3 || (s.a === 4 && s.w >= 10)) d[s.n] = { c: 3 + (s.w % 7), best: s.max, min: s.min }; });
     Object.assign(G, {
       seen: 1, day: 23, min: 480, money: 128450, earned: 420000, rankGot: 8, boat: 4, crew: 6, area: 4, level: 27, exp: 1200, bp: 4, catches: 640, home: 0, dailyNo: -1,
-      lv: { rod: 4, line: 4, bait: 3, cool: 4, mkt: 3 }, stat: { str: 30, vit: 30, agi: 24, dex: 28, luk: 26 }, alloc: { str: 8, vit: 8, agi: 0, dex: 6, luk: 2 },
-      fac: { house: 2, tank: 3, trophy: 2 }, comp: { 0: 1, 1: 1, 2: 1, 3: 1 }, bossGot: { 0: 1, 1: 1, 2: 1 }, dex: d,
+      lv: { rod: 4, line: 4, bait: 3, cool: 4, mkt: 3 }, stat: { str: 30, vit: 30, agi: 24, dex: 28, luk: 26, foc: 14, biz: 12, lead: 10 }, alloc: { str: 8, vit: 8, agi: 0, dex: 6, luk: 2, foc: 0, biz: 0, lead: 0 },
+      fac: { house: 3, tank: 3, trophy: 2, plant: 2, farm: 1 }, comp: { 0: 1, 1: 1, 2: 1, 3: 1 }, bossGot: { 0: 1, 1: 1, 2: 1 }, dex: d,
       tk: { auto: 6, meal: 2 }, meal: { n: '海鮮定食', fx: { exp: .15 }, left: 8 }, fish: [], streak: 3
     });
     ['サバ', 'タイ', 'ブリ', 'カツオ', 'カンパチ', 'イカ', 'ヒラメ'].forEach((n, i) => { const sp = SP.find(s => s.n === n); G.fish.push({ n, size: Math.round(sp.min + (sp.max - sp.min) * (.35 + .09 * i)), fresh: 100 - i * 4 }); });

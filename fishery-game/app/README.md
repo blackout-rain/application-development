@@ -1,4 +1,4 @@
-# 海風フィッシャリー — Androidアプリ化（Capacitor + Firebase + Googleログイン）
+# 今日も大漁ですか？ 〜すきま時間の釣り経営〜 — Androidアプリ化（Capacitor + Firebase + Googleログイン）
 
 ゲーム本体は、1つのHTMLファイル（`../index.html`）です。このフォルダは、それを **Androidアプリ**として包み、
 **Googleログインでデータを引き継げる**ようにするための部品です。
