@@ -84,7 +84,8 @@
       openTab('fish');
     }
     function evening() {
-      openTab('sell'); click('#sellall');
+      openTab('sell'); for (let i = 0; i < 6; i++) { if (!click('[data-deliver]')) break; openTab('sell') }   // 注文の納品（実際のボタン）
+      click('#sellall');
       if (G.debt > 0 && G.money > G.debt * 1.5) { openTab('town'); click('[data-repay="all"]') }   // 借りていたら返す（実際の返済ボタンを通す）
       openTab('home');
       const reserve = G.crew * AREAS[G.boat].wage * 3 + 500;

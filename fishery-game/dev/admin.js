@@ -56,6 +56,7 @@
     if (G.bp < 0) bad.push('bp がマイナス');
     fin('debt', G.debt); if (G.debt < 0) bad.push('debt がマイナス');
     if (G.ev && !EVS[G.ev]) bad.push('ev（できごと）が不正');
+    (G.ord || []).forEach(o => { if (!SP.find(s => s.n === o.n)) bad.push('注文 不明な魚 ' + o.n); if (!(o.q >= 1)) bad.push('注文 数量が不正') });
     if (G.cr && G.cr.length > G.crew) bad.push('従業員の名簿が人数より多い');
     ST.forEach(s => { fin('stat.' + s.k, G.stat[s.k]); if (G.stat[s.k] < 1) bad.push(`stat.${s.k} が1未満`); if (G.stat[s.k] - 1 < G.alloc[s.k]) bad.push(`alloc.${s.k} が合計より大きい`) });
     if (G.fish.length > cap()) bad.push(`魚箱が上限超え（${G.fish.length}/${cap()}）`);
