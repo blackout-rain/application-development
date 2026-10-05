@@ -285,7 +285,7 @@ const RANKS=[
   [2500000,'船団長',{gold:30000,cap:5},'祝い金¥30,000・魚箱+5'],
   [14000000,'網元',{gold:60000,sell:5,rare:1},'祝い金¥60,000・売値+5%・珍しい魚がさらに寄る'],
   [70000000,'海の名士',{gold:100000,tens:15,reel:10},'祝い金¥100,000・糸が強く、巻き上げも速く'],
-  [320000000,'漁業王',{gold:300000,sell:10},'祝い金¥300,000・売値+10%']];
+  [300000000,'漁業王',{gold:300000,sell:10},'祝い金¥300,000・売値+10%']];
 const avgP=s=>(s.min+s.max)/2*s.p;
 const AVG=AREAS.map((_,a)=>{const l=SP.filter(s=>s.a===a&&!s.boss);return l.reduce((x,s)=>x+s.w*avgP(s),0)/l.reduce((x,s)=>x+s.w,0)});
 const tier=sp=>sp.boss?4:sp.w<=3?3:sp.w<=6?2:sp.w<=12?1:0;
@@ -631,7 +631,7 @@ function rollEvent(){G.fix=0;if(feat('bank')&&G.boat>=1&&Math.random()<.05){G.fi
 /* ---------- state ---------- */
 const KEY='umikaze-fishery-v1';
 const $=s=>document.querySelector(s);
-const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
+const yen=n=>Math.abs(n)>=1e8?'¥'+(n/1e8).toFixed(Math.abs(n)>=1e9?1:2)+'億':'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
