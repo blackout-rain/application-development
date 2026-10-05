@@ -271,7 +271,9 @@ const FAC=[
   {k:'house',n:'自宅',d:'住まいが大きくなります。雇える漁師の人数が増えます。',names:['テント','小屋','木造の家','立派な家'],c:[2000,8000,30000],eff:l=>`雇える漁師 ${4+2*l}人まで`},
   {k:'tank',n:'生け簀',d:'売れ残った魚を元気なまま保管します。夜でも鮮度が落ちません。',names:['なし','小さな生け簀','生け簀','大きな生け簀','巨大な生け簀'],c:[1500,6000,20000,60000],eff:l=>l?`${tankCap(l)}匹まで鮮度を保つ`:'なし'},
   {k:'trophy',n:'魚拓棚',d:'釣った魚の魚拓を飾ります。眺めて楽しいうえに、経験値のボーナスも。',names:['なし','小さな棚','魚拓棚','魚拓の壁'],c:[2500,10000,40000],eff:l=>`経験値 +${[0,10,20,35][l]}%`},
-  {k:'plant',n:'加工場',d:'魚を加工品にします。干物は売値×1.3、缶詰（Lv2〜）は×1.6で、腐りません。加工には夜を越す必要があり、加工賃（売値の8%）がかかります。',names:['なし','干物小屋','加工場','缶詰工場'],c:[8000,40000,200000],eff:l=>l?`1晩に${plantCap(l)}匹まで加工${l>=2?'・缶詰も作れる':''}`:'なし'}];
+  {k:'plant',n:'加工場',d:'魚を加工品にします。干物は売値×1.3、缶詰（Lv2〜）は×1.6で、腐りません。加工には夜を越す必要があり、加工賃（売値の8%）がかかります。',names:['なし','干物小屋','加工場','缶詰工場'],c:[8000,40000,200000],eff:l=>l?`1晩に${plantCap(l)}匹まで加工${l>=2?'・缶詰も作れる':''}`:'なし'},
+  {k:'farm',n:'養殖いかだ',d:'小さな魚を預けて育てます。毎日少しずつ大きくなり、引き上げると大きな魚になります（飼料代がかかります）。',names:['なし','小さないかだ','いかだ','大きないかだ'],c:[15000,70000,300000],eff:l=>l?`${farmCap(l)}匹まで養殖できる`:'なし'}];
+const farmCap=l=>[0,2,4,7][l||0];
 const plantCap=l=>[0,3,6,10][l||0];
 const PROC=[{n:'干物',mul:1.3,nights:1,lv:1},{n:'缶詰',mul:1.6,nights:2,lv:2}],PROC_FEE=.08;
 const crewMax=()=>4+2*G.fac.house;
@@ -308,6 +310,16 @@ const evCrew=()=>ev()?ev().crew||1:1,evSell=()=>ev()?ev().sell||0:0,evDiff=()=>e
 const REPX=[0,5,15,35,70,120];
 const repLv=()=>{let l=0;REPX.forEach((x,i)=>{if(G.rep>=x)l=i});return l};
 const ordMul=()=>1.3+.04*repLv(),ordMax=()=>3+(repLv()>=4?1:0);
+/* ---------- エサ・ルアー ---------- */
+// 魚には好物のエサがある。つけると、好物の魚が2.5倍よく釣れる（1投ごとに1個使う）。店で10個入りを買う
+const BAITS=[
+  {k:'krill',n:'オキアミ',d:'アジ型・細長い魚',shapes:['a','l'],cost:1},
+  {k:'worm',n:'ゴカイ',d:'根魚・ヒラメなど底の魚',shapes:['r','f'],cost:1},
+  {k:'lure',n:'ルアー',d:'ブリ・マグロなど大型の回遊魚',shapes:['b','t'],cost:1.5},
+  {k:'live',n:'生き餌',d:'カニ・イカ・タコ・エビ',shapes:['e'],cost:1.2}];
+const BAIT_MUL=2.5;
+const baitOf=sp=>{const sh=sp.d?sp.d[2]:'e';return BAITS.find(b=>b.shapes.includes(sh))||BAITS[0]};
+const baitPack=b=>Math.round(tourBase()*3*b.cost/10)*10;
 /* ---------- ライバル漁師（週間売上） ---------- */
 // 毎晩ライバルが稼ぎ、7日ごと（大会の日の夜）に、自分の1週間の収入と順位を競う
 const RV_SKILL=[.55,.75,.95,1.15,1.4];
@@ -352,7 +364,7 @@ function refreshOrders(){G.ord=G.ord.filter(o=>o.until>=G.day&&SP.some(s=>s.n===
 const ordMatch=(o,f)=>f.n===o.n&&f.size>=o.sz&&f.fresh>=o.fr;
 // 注文のために残しておく魚（「すべて売る」で売らない）。魚箱の半分まで
 function reservedIdx(){
-  const set=new Set(),lim=Math.floor(cap()/2);
+  const set=new Set(),lim=Math.floor(cap()/2);if(!feat('orders'))return set;
   G.ord.forEach(o=>{G.fish.map((f,i)=>({f,i})).filter(x=>!set.has(x.i)&&ordMatch(o,x.f)).sort((a,b)=>price(a.f,0)-price(b.f,0)).slice(0,o.q).forEach(x=>{if(set.size<lim)set.add(x.i)})});
   return set;
 }
@@ -367,7 +379,7 @@ function deliver(id){
 /* ---------- 釣り大会 ---------- */
 // 7日ごとの大会。参加すると、その日に自分で釣った魚（主は除く）のうち、いちばん高い1匹で、ライバル5人と競う
 const TOUR_EVERY=7,RIVALS=['ゲンさん','港のカイ','漁協のミサキ','旅の釣り師ソウ','覆面の釣り師'];
-const isTourDay=()=>G.day%TOUR_EVERY===0;
+const isTourDay=()=>feat('tour')&&G.day%TOUR_EVERY===0;
 const tourIn=()=>!!(G.tour&&G.tour.in&&G.tour.day===G.day);
 const tourBase=()=>AVG[G.area]||AVG[0];
 const tourFee=()=>Math.round(tourBase()*3/10)*10,tourPrize=p=>Math.round(tourBase()*[40,20,10][p]/10)*10;
@@ -399,13 +411,13 @@ const SEASON_LEN=12,SEASONS=[{n:'春',e:'🌸'},{n:'夏',e:'🌻'},{n:'秋',e:'�
 const seasonOf=()=>Math.floor((G.day-1)/SEASON_LEN)%4;
 const SEA_SET={'タイ':0,'サヨリ':0,'カツオ':0,'ニシン':0,'メバル':0,'アジ':1,'キス':1,'クロダイ':1,'シイラ':1,'クマノミ':1,'ブダイ':1,'サバ':2,'イワシ':2,'サケ':2,'ハゼ':2,'クルマエビ':2,'サワラ':2,'ブリ':3,'ヒラメ':3,'カレイ':3,'タラ':3,'イセエビ':3,'フグ':3,'ホッケ':3,'タラバガニ':3,'アンコウ':3,'キンメダイ':3};
 const seasonOfSp=sp=>{if(sp.n in SEA_SET)return SEA_SET[sp.n];let h=0;for(const ch of sp.n)h=(h*31+ch.charCodeAt(0))%997;return h%4};
-const inSeason=sp=>!sp.boss&&seasonOfSp(sp)===seasonOf();
+const inSeason=sp=>feat('season')&&!sp.boss&&seasonOfSp(sp)===seasonOf();
 const SEA_PRICE=1.15,SEA_WEIGHT=1.5;
 const WX=[{n:'晴れ',e:'☀️',d:''},{n:'くもり',e:'☁️',d:'アタリが早い'},{n:'雨',e:'🌧️',d:'珍しい魚が寄りやすいが、糸が切れやすい'}];
 const wxWait=()=>G.wx===1?.85:1,wxDiff=()=>G.wx===2?1.08:1,wxRare=()=>G.wx===2?1:0;
 // 潮：毎日2時間の満潮の時間帯があり、アタリが早く、珍しい魚が寄りやすい（時間帯は日によって変わる）
 const tideStartH=()=>6+((G.day*5)%9);
-const tideNow=()=>{const s=tideStartH()*60;return !G.home&&G.min>=s&&G.min<s+120};
+const tideNow=()=>{const s=tideStartH()*60;return feat('tide')&&!G.home&&G.min>=s&&G.min<s+120};
 const tideRare=()=>tideNow()?1:0,tideWait=()=>tideNow()?.9:1;
 /* ---------- 加工場 ---------- */
 const procFee=f=>Math.round(price(f,0)*PROC_FEE*(1-.25*techLv('pack')));
@@ -418,9 +430,46 @@ function startProc(i,k){
   save();hud();renderAll();toast(`${f.n}を${pr.n}にしています（${pr.nights}晩）`);
 }
 function finishProc(){const done=G.proc.filter(x=>x.until<=G.day);if(!done.length)return;G.proc=G.proc.filter(x=>x.until>G.day);done.forEach(x=>G.prod.push({n:x.n,kind:x.kind,v:x.v}));setTimeout(()=>toast(`加工品が${done.length}個できあがりました（市場タブ）`),1200)}
+const farmFree=()=>Math.max(0,farmCap(G.fac.farm)-G.farm.length);
+const farmVal=x=>price({n:x.n,size:Math.round(x.sz),fresh:100},0);
+function startFarm(i){const f=G.fish[i],sp=f&&SPM.get(f.n);if(!f||sp.boss||farmFree()<1)return;G.fish.splice(i,1);G.farm.push({n:f.n,sz:f.size});save();hud();renderAll();toast(`${f.n}を養殖いかだに入れました`)}
+function harvestFarm(i){const x=G.farm[i];if(!x)return;if(G.fish.length>=cap()){toast('魚箱がいっぱいです。先に売ろう');return}G.farm.splice(i,1);G.fish.push({n:x.n,size:Math.round(x.sz),fresh:100});save();hud();renderAll();toast(`${x.n}（${Math.round(x.sz)}cm）を引き上げました`)}
+function growFarm(){G.farm.forEach(x=>{const sp=SPM.get(x.n);x.sz=Math.min(sp.max,x.sz+Math.max(.2,(sp.max-x.sz)*.12))})}
 function sellProd(){
   const sum=G.prod.reduce((a,x)=>a+x.v,0);if(!sum)return;
   G.prod.forEach(x=>{G.rev[x.n]=(G.rev[x.n]||0)+x.v});G.prod=[];G.money+=sum;led('sell',sum);earn(sum);save();hud();renderAll();toast(`加工品を${yen(sum)}で売りました`);
+}
+/* ---------- 機能の段階解放 ---------- */
+// 一度に機能が増えて混乱しないよう、レベル・ランク・新しい海域・主の討伐に応じて少しずつ解放する
+const nBoss=()=>Object.keys(G.bossGot).length;
+const FEATS=[
+  {k:'report',n:'経営レポート（市場タブ）',h:'レベル3',ok:()=>G.level>=3},
+  {k:'orders',n:'注文と評判（市場タブ）',h:'レベル5',ok:()=>G.level>=5},
+  {k:'ach',n:'実績（図鑑タブ）',h:'レベル5',ok:()=>G.level>=5},
+  {k:'bank',n:'銀行と船の保険（街タブ）',h:'船を買って、沖合に出られるようになる',ok:()=>G.boat>=1},
+  {k:'season',n:'季節と天気',h:'レベル8',ok:()=>G.level>=8},
+  {k:'tour',n:'釣り大会とライバル漁師（街タブ）',h:'レベル10',ok:()=>G.level>=10},
+  {k:'roles',n:'従業員の役割（営業）',h:'レベル10',ok:()=>G.level>=10},
+  {k:'branch',n:'支店（街タブ）',h:'主を1体釣る',ok:()=>nBoss()>=1},
+  {k:'plant',n:'加工場（自宅・設備タブ）',h:'深海に出られるようになる',ok:()=>G.boat>=2},
+  {k:'bait',n:'釣具店（エサ・ルアー）',h:'レベル12',ok:()=>G.level>=12},
+  {k:'tide',n:'潮（満潮）',h:'レベル12',ok:()=>G.level>=12},
+  {k:'farm',n:'養殖いかだ（自宅・設備タブ）',h:'主を2体釣る',ok:()=>nBoss()>=2},
+  {k:'hireX',n:'経験者の雇用（自宅・設備タブ）',h:'レベル15',ok:()=>G.level>=15},
+  {k:'tech',n:'研究所（街タブ）',h:'サンゴ礁の島に出られるようになる',ok:()=>G.boat>=3},
+  {k:'events',n:'毎朝のできごと',h:'ランク「船長」',ok:()=>rankIdx()>=6}];
+const feat=k=>!!(G.fu&&G.fu[k]);
+function checkFeat(){
+  const first=!G.fuInit;G.fuInit=1;
+  const nw=FEATS.filter(f=>!feat(f.k)&&f.ok());
+  if(!nw.length){if(first)save();return}
+  nw.forEach(f=>{G.fu[f.k]=1});
+  if(!first){banner('新しい機能が解放！',nw.map(f=>f.n).join('・'),'#6cc4ff');toast(`新機能：${nw.map(f=>f.n).join('、')}`);sfx(3)}
+  save();
+}
+function lockedHtml(){
+  const l=FEATS.filter(f=>!feat(f.k));if(!l.length)return '';
+  return `<h2>これから解放される機能</h2><div class="card" style="font-size:.82rem">${l.slice(0,6).map(f=>`<div class="ln"><span>🔒 ${f.n}</span><span style="color:var(--sub);font-size:.76rem;text-align:right">${f.h}</span></div>`).join('')}${l.length>6?`<div style="color:var(--sub);font-size:.76rem;margin-top:4px">ほか${l.length-6}件</div>`:''}<div style="color:var(--sub);font-size:.76rem;margin-top:6px">レベルを上げたり、新しい海域に出たり、主を釣ると、新しい機能が使えるようになります。</div></div>`;
 }
 /* ---------- 実績 ---------- */
 const dexN=()=>NORM.filter(s=>G.dex[s.n]).length;
@@ -467,6 +516,7 @@ const ACH=[
   {id:'day100',n:'百日の航海',d:'100日目を迎える',ok:()=>G.day>=100,r:{auto:5,meal:3}}];
 const achRw=r=>[r.bp&&`BP+${r.bp}`,r.auto&&`おまかせ釣り券×${r.auto}`,r.meal&&`食事券×${r.meal}`].filter(Boolean).join('・');
 function checkAch(){
+  if(!feat('ach'))return;
   const got=[];
   ACH.forEach(a=>{if(!G.ach[a.id]&&a.ok()){G.ach[a.id]=G.day;const r=a.r;G.bp+=r.bp||0;G.tk.auto+=r.auto||0;G.tk.meal+=r.meal||0;got.push(a)}});
   if(!got.length)return;
@@ -475,7 +525,7 @@ function checkAch(){
   banner('実績解除！',`${names}　${achRw(tot)}`,'#c08cff');
   toast(`実績解除：${got.map(a=>a.n).join('、')}（${achRw(tot)}）`);sfx(2);save();
 }
-function rollEvent(){G.fix=0;if(G.boat>=1&&Math.random()<.05){G.fix=repairCost();setTimeout(()=>toast(`🔧 船が故障！ ${G.ins?'保険に入っているので修理費は無料です':`修理費${yen(G.fix)}（夜に支払います）`}`),2600)}const wr=Math.random();G.wx=wr<.5?0:wr<.8?1:2;G.ev=null;if(G.day>=3&&Math.random()<.3){G.ev=EVK[Math.floor(Math.random()*EVK.length)];const e=EVS[G.ev];banner(`今日のできごと：${e.n}`,e.d,'#6cc4ff')}}
+function rollEvent(){G.fix=0;if(feat('bank')&&G.boat>=1&&Math.random()<.05){G.fix=repairCost();setTimeout(()=>toast(`🔧 船が故障！ ${G.ins?'保険に入っているので修理費は無料です':`修理費${yen(G.fix)}（夜に支払います）`}`),2600)}const wr=Math.random();G.wx=feat('season')?(wr<.5?0:wr<.8?1:2):0;G.ev=null;if(feat('events')&&G.day>=3&&Math.random()<.3){G.ev=EVK[Math.floor(Math.random()*EVK.length)];const e=EVS[G.ev];banner(`今日のできごと：${e.n}`,e.d,'#6cc4ff')}}
 
 /* ---------- state ---------- */
 const KEY='umikaze-fishery-v1';
@@ -484,7 +534,7 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0,plant:0},rankGot:0,crewToday:0,rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
 function migrate(s){
   if(!s||s.v!==1)return null;
   const fs0=s.fs===undefined?(s.big?1:0):s.fs;
@@ -551,10 +601,10 @@ function quote(idx){
 }
 
 /* ---------- fishing core ---------- */
-function pickSpecies(area=G.area){
+function pickSpecies(area=G.area,bk=null){
   const list=SP.filter(s=>s.a===area&&!s.boss);
   const bt=G.lv.bait+perks().rare+mealFx('rare')+wxRare()+tideRare()+.4*sx('luk');
-  const ws=list.map(s=>s.w*(s.w<=12?1+.25*bt:1)*(inSeason(s)?SEA_WEIGHT:1));
+  const ws=list.map(s=>s.w*(s.w<=12?1+.25*bt:1)*(inSeason(s)?SEA_WEIGHT:1)*(bk&&baitOf(s).k===bk?BAIT_MUL:1));
   let r=Math.random()*ws.reduce((a,b)=>a+b,0);
   for(let i=0;i<list.length;i++){r-=ws[i];if(r<=0)return list[i]}
   return list[0];
@@ -566,6 +616,7 @@ function press(){
   switch(S.st){
     case'idle':
       if(G.fish.length>=cap()){if(G.autoSell&&G.fish.length){sell(G.fish.map((_,i)=>i));toast('魚箱がいっぱいなので自動で売りました')}else{say('魚箱がいっぱい。市場で売ろう。');return}}
+      S.bk=null;if(G.baitSel&&G.bt[G.baitSel]>0){G.bt[G.baitSel]--;S.bk=G.baitSel;if(!G.bt[G.baitSel])toast(`${BAITS.find(b=>b.k===G.baitSel).n}を使い切りました（街の釣具店で買えます）`)}
       S.st='wait';S.t=rnd(1.2,3.5)/(1+.2*G.lv.bait+.03*sx('agi'))*wxWait()*tideWait();say('浮きを見守ろう…');break;
     case'wait':
       S.st='idle';say('早すぎた。仕掛けを引き上げた。');break;
@@ -579,7 +630,7 @@ function release(){S.holding=false}
 const bossChance=()=>Math.min(.08,.03*(1+.04*sx('luk')+.1*perks().rare));
 function rollFish(){
   const bs=bossOf(G.area);
-  const sp=(bs&&G.comp[G.area]&&Math.random()<bossChance())?bs:pickSpecies();
+  const sp=(bs&&G.comp[G.area]&&Math.random()<bossChance())?bs:pickSpecies(G.area,S.bk);
   S.sp=sp;S.size=Math.round(sp.min+(sp.max-sp.min)*Math.pow(Math.random(),Math.max(1.1,1.8-.015*sx('luk'))));S.tier=tier(sp);
 }
 const newFight=(sp,size)=>({pw:sp.s*(.8+.4*(size-sp.min)/(sp.max-sp.min))*(1+.2*sp.a),prog:sp.boss?25:35,tens:0,struggle:false,flip:1,timer:rnd(.6,1.2)});
@@ -782,14 +833,14 @@ function crewStep(dt){
 }
 
 /* ---------- 経営レポート ---------- */
-const recOf=d=>{const inc=(d.sell||0)+(d.ord||0)+(d.prize||0)+(d.crew||0)+(d.gold||0),exp=(d.wage||0)+(d.upk||0)+(d.int||0)+(d.proc||0)+(d.fee||0)+(d.repair||0)+(d.ins||0)+(d.meal||0)+(d.tk||0);return{d:d.d,inc,exp,pf:inc-exp,buy:d.buy||0}};
+const recOf=d=>{const inc=(d.sell||0)+(d.ord||0)+(d.prize||0)+(d.crew||0)+(d.gold||0),exp=(d.wage||0)+(d.upk||0)+(d.int||0)+(d.proc||0)+(d.fee||0)+(d.repair||0)+(d.ins||0)+(d.feed||0)+(d.meal||0)+(d.tk||0);return{d:d.d,inc,exp,pf:inc-exp,buy:d.buy||0}};
 const signYen=n=>(n<0?'-':'+')+yen(Math.abs(n));
 // 1日ぶんの収支表。dayEnd（夜の画面）と、市場タブの「今日の収支」で使う
 function pnlHtml(d,crewLabel){
   const r=recOf(d),row=(l,v,neg)=>v?`<div class="ln"><span>${l}</span><b class="num ${neg?'down':'up'}">${neg?'-':'+'}${yen(v)}</b></div>`:'';
   return `<div class="card" style="margin:0 0 8px;padding:8px 10px"><b style="font-size:.85rem">今日の収支</b>
     ${row('魚の売上',d.sell||0)}${row('注文の納品',d.ord||0)}${row('大会の賞金',d.prize||0)}${row(crewLabel||'従業員の水揚げ',d.crew||0)}${row('祝い金・ボーナス',d.gold||0)}
-    ${row('従業員の給料',d.wage||0,1)}${row('船の維持費',d.upk||0,1)}${row('借入の利息',d.int||0,1)}${row('加工賃',d.proc||0,1)}${row('大会の参加費',d.fee||0,1)}${row('船の修理費',d.repair||0,1)}${row('保険料',d.ins||0,1)}${row('食事・券',(d.meal||0)+(d.tk||0),1)}
+    ${row('従業員の給料',d.wage||0,1)}${row('船の維持費',d.upk||0,1)}${row('借入の利息',d.int||0,1)}${row('加工賃',d.proc||0,1)}${row('大会の参加費',d.fee||0,1)}${row('船の修理費',d.repair||0,1)}${row('保険料',d.ins||0,1)}${row('養殖の飼料代',d.feed||0,1)}${row('食事・券',(d.meal||0)+(d.tk||0),1)}
     <div class="ln" style="border-top:1px solid var(--line);margin-top:4px;padding-top:4px"><span><b>営業利益</b></span><b class="num ${r.pf<0?'down':'up'}">${signYen(r.pf)}</b></div>
     ${row('設備・船・人への投資',r.buy,1)}</div>`;
 }
@@ -823,6 +874,7 @@ function dayEnd(){
   G.fish=G.fish.filter(f=>f.fresh>0);
   const pay=Math.min(wage,G.money);G.money-=pay;led('wage',pay);
   const upk=Math.min(upkeepCost(),G.money);G.money-=upk;led('upk',upk);
+  const feed=Math.min(G.farm.reduce((a,x)=>a+Math.round(farmVal(x)*.03),0),G.money);G.money-=feed;led('feed',feed);
   const insp=G.ins?Math.min(premium(),G.money):0;G.money-=insp;led('ins',insp);
   let fixNote='';if(G.fix){if(G.ins)fixNote='🔧 船が故障したが、保険で修理費は無料';else{const fp=Math.min(G.fix,G.money);G.money-=fp;G.debt+=G.fix-fp;led('repair',fp);fixNote=`🔧 船が故障：修理費${yen(G.fix)}${G.fix>fp?'（払えない分は借入に）':''}`}G.fix=0}
   const intr=Math.round(G.debt*LOAN_RATE),ip=Math.min(intr,G.money);G.money-=ip;G.debt+=intr-ip;led('int',ip);   // 払えない利息は借入に上乗せ
@@ -830,7 +882,7 @@ function dayEnd(){
   Object.keys(G.sat).forEach(k=>{G.sat[k]*=.5;if(G.sat[k]<.004)delete G.sat[k]});G.stall=0;   // 需給は一晩で半分もどる
   SP.forEach(s=>{G.prev[s.n]=G.mult[s.n];G.mult[s.n]=clamp(G.mult[s.n]+rnd(-.15,.15)+(1-G.mult[s.n])*.2,.6,1.6)});
   const hot=NORM.slice().sort((a,b)=>(G.mult[b.n]/G.prev[b.n])-(G.mult[a.n]/G.prev[a.n]))[0];
-  rvStep();const tr=tourSettle(),rs=isTourDay()?rvSettle():null;
+  if(feat('tour'))rvStep();const tr=tourSettle(),rs=isTourDay()?rvSettle():null;
   $('#box').innerHTML=`<h3>${G.day}日目 終了</h3>
     ${pnlHtml(G.led,`従業員の水揚げ（${G.crew}人）`)}${rs?`<div class="card" style="margin:0 0 8px;padding:8px 10px"><b style="font-size:.85rem">📊 週間売上ランキング：${rs.place+1}位／6人</b><div style="font-size:.8rem;margin:2px 0">${rs.bp?`BP+${rs.bp}・評判+${rs.rp}${rs.place===0?'・おまかせ釣り券×2':''}`:'入賞ならず'}</div><div class="kv" style="font-size:.78rem">${rs.all.map((x,i)=>`<span style="${x.me?'color:var(--accent);font-weight:700':''}">${i+1}. ${x.n}</span><b class="num">${yen(x.s)}</b>`).join('')}</div></div>`:''}${tr?`<div class="card" style="margin:0 0 8px;padding:8px 10px"><b style="font-size:.85rem">🏆 釣り大会の結果：${tr.place+1}位／6人</b><div style="font-size:.8rem;margin:2px 0">${tr.best?`あなたのベスト：${tr.bn}（${yen(tr.best)}）`:'魚を釣れませんでした…'}　${tr.prize?`賞金 +${yen(tr.prize)}`:'賞金なし'}${tr.place===0?'・おまかせ釣り券×2':''}</div><div class="kv" style="font-size:.78rem">${tr.all.map((x,i)=>`<span style="${x.me?'color:var(--accent);font-weight:700':''}">${i+1}. ${x.n}</span><b class="num">${yen(x.s)}</b>`).join('')}</div></div>`:''}${ups.map(u=>`<div class="ln"><span>🎉 ${u}</span></div>`).join('')}${fixNote?`<div class="ln"><span>${fixNote}</span></div>`:''}${G.debt?`<div class="ln"><span>借入残高</span><b class="num down">${yen(G.debt)}</b></div>`:''}${ev()?`<div class="ln"><span>今日のできごと</span><b>${ev().e} ${ev().n}</b></div>`:''}
     <div class="ln"><span>傷んで捨てた魚</span><b class="num">${spoiled}匹</b></div>${keep.size?`<div class="ln"><span>生け簀で守った魚</span><b class="num">${keep.size}匹</b></div>`:''}
@@ -843,7 +895,7 @@ function dayEnd(){
 }
 function sleep(){
   G.hist.push(Object.assign({d:G.day},G.led));if(G.hist.length>30)G.hist.shift();G.led={};
-  G.day++;G.min=360;G.home=0;S.st='idle';rollEvent();finishProc();if(isTourDay())setTimeout(()=>toast(`🏆 今日は釣り大会！ 街タブから参加できます（参加費${yen(tourFee())}）`),3600);const no=G.ord.length;refreshOrders();if(G.ord.length>no)setTimeout(()=>toast('新しい注文が届いています（市場タブ）'),1800);save();hud();renderAll();label();
+  G.day++;G.min=360;G.home=0;S.st='idle';rollEvent();finishProc();growFarm();if(isTourDay())setTimeout(()=>toast(`🏆 今日は釣り大会！ 街タブから参加できます（参加費${yen(tourFee())}）`),3600);const no=G.ord.length;if(feat('orders'))refreshOrders();if(G.ord.length>no)setTimeout(()=>toast('新しい注文が届いています（市場タブ）'),1800);save();hud();renderAll();label();
   say('新しい朝。今日も釣りに出よう。');openTab('fish');toast(`${G.day}日目の朝`);
   if(Cloud.kind==='app'&&Cloud.status==='signedout'&&G.day>=2&&!G.nudged){G.nudged=1;save();setTimeout(showNudge,1500)}
 }
@@ -904,8 +956,8 @@ function hud(){
   setHtml(document.querySelector('[data-tab=town]'),`街${dailyReady()?'<i class="dot">!</i>':''}`);
   setHtml(document.querySelector('[data-tab=set]'),`設定${Cloud.kind==='app'&&Cloud.status==='signedout'&&hasProgress()?'<i class="dot">!</i>':''}`);
   $('#tkn').textContent=G.tk.auto;
-  $('#evline').textContent=[G.fix>0&&`🔧 船が故障中（${G.ins?'保険で無料':`修理費${yen(G.fix)}・夜に支払い`}）`,isTourDay()&&(tourIn()?`🏆 大会参加中：ベスト ${yen(G.tour.best)}`:'🏆 今日は釣り大会！（街タブから参加）'),(!G.home&&`🌊 ${tideNow()?'満潮中！（アタリが早く、珍しい魚が寄る）':`満潮 ${tideStartH()}:00〜${tideStartH()+2}:00`}`),`${SEASONS[seasonOf()].e}${SEASONS[seasonOf()].n}（${(G.day-1)%SEASON_LEN+1}/${SEASON_LEN}日目）・${WX[G.wx||0].e}${WX[G.wx||0].n}${WX[G.wx||0].d?'：'+WX[G.wx||0].d:''}`,ev()&&`${ev().e} 今日のできごと：${ev().n}（${ev().d}）`,G.debt>0&&`💳 借入 ${yen(G.debt)}`].filter(Boolean).join('　');
-  checkAch();
+  $('#evline').textContent=[G.baitSel&&`🪱 ${BAITS.find(b=>b.k===G.baitSel).n}（残り${G.bt[G.baitSel]}）`,G.fix>0&&`🔧 船が故障中（${G.ins?'保険で無料':`修理費${yen(G.fix)}・夜に支払い`}）`,isTourDay()&&(tourIn()?`🏆 大会参加中：ベスト ${yen(G.tour.best)}`:'🏆 今日は釣り大会！（街タブから参加）'),(feat('tide')&&!G.home&&`🌊 ${tideNow()?'満潮中！（アタリが早く、珍しい魚が寄る）':`満潮 ${tideStartH()}:00〜${tideStartH()+2}:00`}`),feat('season')&&`${SEASONS[seasonOf()].e}${SEASONS[seasonOf()].n}（${(G.day-1)%SEASON_LEN+1}/${SEASON_LEN}日目）・${WX[G.wx||0].e}${WX[G.wx||0].n}${WX[G.wx||0].d?'：'+WX[G.wx||0].d:''}`,ev()&&`${ev().e} 今日のできごと：${ev().n}（${ev().d}）`,G.debt>0&&`💳 借入 ${yen(G.debt)}`].filter(Boolean).join('　');
+  checkFeat();checkAch();
   $('#mealline').textContent=G.meal?`食事効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回`:'';
 }
 function renderAreas(){
@@ -919,30 +971,33 @@ function renderSell(){
   const items=sorted.map(({f,i,p})=>{
     const sp=SP.find(s=>s.n===f.n);
     return `<div class="item"><div class="t">${ico(sp)}${f.n}${tag(sp)} <span class="num">${f.size}cm</span> <span class="stars">${stars(sp,f.size)}</span></div>
-      <button class="buy" data-i="${i}">${yen(quote([i]).sum)}</button><div class="s">鮮度 <span class="num">${f.fresh}%</span>　サイズ補正 <span class="num">×${sizeMul(sp,f.size).toFixed(2)}</span></div>${(G.fac.plant||0)>0&&procFree()>0?`<div class="row" style="grid-column:1/-1;gap:6px;margin-top:4px">${PROC.filter(pr=>G.fac.plant>=pr.lv).map((pr,k)=>`<button class="chip" data-proc="${i}:${k}" style="font-size:.76rem;padding:4px 10px">${pr.n}にする（売値×${pr.mul}・${pr.nights}晩・加工賃${yen(procFee(f))}）</button>`).join('')}</div>`:''}</div>`}).join('');
+      <button class="buy" data-i="${i}">${yen(quote([i]).sum)}</button><div class="s">鮮度 <span class="num">${f.fresh}%</span>　サイズ補正 <span class="num">×${sizeMul(sp,f.size).toFixed(2)}</span></div>${(G.fac.farm||0)>0&&farmFree()>0&&!sp.boss?`<div class="row" style="grid-column:1/-1;gap:6px;margin-top:4px"><button class="chip" data-farm="${i}" style="font-size:.76rem;padding:4px 10px">養殖いかだで育てる（毎日ぐんぐん大きくなる）</button></div>`:''}${(G.fac.plant||0)>0&&procFree()>0?`<div class="row" style="grid-column:1/-1;gap:6px;margin-top:4px">${PROC.filter(pr=>G.fac.plant>=pr.lv).map((pr,k)=>`<button class="chip" data-proc="${i}:${k}" style="font-size:.76rem;padding:4px 10px">${pr.n}にする（売値×${pr.mul}・${pr.nights}晩・加工賃${yen(procFee(f))}）</button>`).join('')}</div>`:''}</div>`}).join('');
   const market=NORM.filter(s=>s.a<=G.boat).map(s=>{
     const m=G.mult[s.n],d=m-G.prev[s.n],sv=G.sat[s.n]||0;
     return `<div class="ln"><span>${ico(s)}${s.n}${inSeason(s)?' <span class="tag" style="background:var(--good)">旬</span>':''}</span><span class="num">${sv?`<span class="down" style="font-size:.78rem">需給−${Math.round(sv*100)}%</span> `:''}×${m.toFixed(2)} <span class="${d>=0?'up':'down'}">${d>=0?'▲':'▼'}</span></span></div>`}).join('');
-  if(!G.ordSeq)refreshOrders();   // 初回だけ。あとは毎朝
+  if(feat('orders')&&!G.ordSeq)refreshOrders();   // 初回だけ。あとは毎朝
   const rsv=reservedIdx(),all=G.fish.map((_,i)=>i).filter(i=>!rsv.has(i)),qa=quote(all),sc=stallCap();
   const plantSec=(G.fac.plant||0)>0||G.prod.length?`<h2>加工場${(G.fac.plant||0)>0?` <span class="num">${G.proc.length}/${plantCap(G.fac.plant)}</span>`:''}</h2><div class="card" style="margin:0;font-size:.82rem">${G.proc.length?`<div class="kv">${G.proc.map(x=>`<span>${x.kind}：${x.n}</span><b class="num">${x.until<=G.day?'まもなく':`${x.until-G.day}晩あと`}</b>`).join('')}</div>`:'<div style="color:var(--sub)">加工中の魚はありません。下の魚箱の「干物にする」などで加工できます。</div>'}
     <div class="kv" style="margin-top:6px"><span>加工品の在庫</span><b class="num">${G.prod.length}個（${yen(G.prod.reduce((a,x)=>a+x.v,0))}）</b></div>
     <button class="big" id="sellprod" style="margin-top:6px" ${G.prod.length?'':'disabled'}>加工品をすべて売る</button></div>`:'';
-  const rx=REPX[repLv()+1],ordSec=`<h2>注文（常連さんから）</h2><div style="color:var(--sub);font-size:.78rem;margin:-2px 0 6px">評判 Lv${repLv()}（${G.rep}pt${rx?`・次のLvまで${rx-G.rep}`:'・最高'}）：報酬×${ordMul().toFixed(2)}・注文${ordMax()}件・融資の上限+${Math.round(15*repLv())}%</div><div class="list">${G.ord.map(o=>{const sp=SP.find(s=>s.n===o.n),have=G.fish.filter(f=>ordMatch(o,f)).length,ok=have>=o.q;
-    return `<div class="item"><div class="t">${ico(sp)}${o.n} ×${o.q}匹</div><button class="buy" data-deliver="${o.id}" ${ok?'':'disabled'}>納品</button><div class="s">${o.sz}cm以上・鮮度${o.fr}%以上・売値の${ordMul().toFixed(2)}倍<br>魚箱に条件に合う魚 <span class="num ${ok?'up':''}">${Math.min(have,o.q)}/${o.q}</span>　期限 ${o.until}日目まで</div></div>`}).join('')}</div>`;
+  const farmSec=(G.fac.farm||0)>0||G.farm.length?`<h2>養殖いかだ <span class="num">${G.farm.length}/${farmCap(G.fac.farm)}</span></h2><div class="list">${G.farm.map((x,i)=>{const sp=SPM.get(x.n),nx=Math.min(sp.max,x.sz+Math.max(.2,(sp.max-x.sz)*.12));return `<div class="item"><div class="t">${ico(sp)}${x.n} <span class="num">${Math.round(x.sz)}cm</span> <span class="stars">${stars(sp,Math.round(x.sz))}</span></div><button class="buy" data-harvest="${i}">引き上げる<br><span class="num" style="font-size:.74rem">${yen(farmVal(x))}</span></button><div class="s">あしたは ${Math.round(nx)}cm（最大 ${sp.max}cm）・飼料代 毎晩${yen(Math.round(farmVal(x)*.03))}</div></div>`}).join('')||'<p style="color:var(--sub);font-size:.82rem;margin:0">いかだは空です。魚箱の魚の「養殖いかだで育てる」から入れよう。</p>'}</div>`:'';
+  const rx=REPX[repLv()+1],ordSec=!feat('orders')?'':`<h2>注文（常連さんから）</h2><div style="color:var(--sub);font-size:.78rem;margin:-2px 0 6px">評判 Lv${repLv()}（${G.rep}pt${rx?`・次のLvまで${rx-G.rep}`:'・最高'}）：報酬×${ordMul().toFixed(2)}・注文${ordMax()}件・融資の上限+${Math.round(15*repLv())}%</div><div class="list">${G.ord.map(o=>{const sp=SP.find(s=>s.n===o.n),have=G.fish.filter(f=>ordMatch(o,f)).length,ok=have>=o.q;
+    return `<div class="item"><div class="t">${ico(sp)}${o.n} ×${o.q}匹</div><button class="buy" data-deliver="${o.id}" ${ok?'':'disabled'}>納品</button><div class="s">${o.sz}cm以上・鮮度${o.fr}%以上・売値の${ordMul().toFixed(2)}倍・好物 ${baitOf(sp).n}<br>魚箱に条件に合う魚 <span class="num ${ok?'up':''}">${Math.min(have,o.q)}/${o.q}</span>　期限 ${o.until}日目まで</div></div>`}).join('')}</div>`;
   const ship=`<div class="card" style="margin:10px 0 0;font-size:.82rem"><b>出荷先（高い魚から、直売所の枠→卸売市場の順に自動で回します）</b>
       <div class="kv" style="margin-top:6px"><span>卸売市場</span><b>いつでも売れる</b><span style="grid-column:1/-1;color:var(--sub);font-size:.76rem">同じ魚を続けて売ると、1匹ごとに値崩れ（−${Math.round(SAT_STEP*100)}%・最大−${Math.round(SAT_MAX*100)}%）。翌朝には半分もどります。</span>
       <span>直売所</span><b class="num">${sc?`今日あと ${stallLeft()}/${sc}匹`:'未開設'}</b><span style="grid-column:1/-1;color:var(--sub);font-size:.76rem">${sc?`売値×${STALL_MUL}・値崩れしにくい（半分）。枠は直売所のレベルで増えます（1日 3＋2×Lv匹）。`:'「自宅・設備」タブで直売所を強化すると使えます。'}</span></div></div>`;
   $('#p-sell').innerHTML=`<h2>魚箱（${G.fish.length}/${cap()}）</h2><p style="color:var(--sub);font-size:.8rem;margin:0 0 8px">大きい魚（★が多い魚）ほど高く売れます。</p>
-    <button class="big" id="sellall" ${all.length?'':'disabled'}>すべて売る ${yen(qa.sum)}</button>${rsv.size?`<div style="color:var(--sub);font-size:.76rem;margin-top:4px">注文に使える魚${rsv.size}匹は残します（1匹ずつなら売れます）</div>`:''}${ordSec}${plantSec}${ship}
+    <button class="big" id="sellall" ${all.length?'':'disabled'}>すべて売る ${yen(qa.sum)}</button>${rsv.size?`<div style="color:var(--sub);font-size:.76rem;margin-top:4px">注文に使える魚${rsv.size}匹は残します（1匹ずつなら売れます）</div>`:''}${ordSec}${plantSec}${farmSec}${ship}
     <div class="card" style="margin:10px 0 0;font-size:.82rem"><b>売値ボーナス</b>
-      <div class="kv" style="margin-top:6px"><span>直売所 Lv${G.lv.mkt}（自宅・設備タブで強化）</span><b class="num">+${5*G.lv.mkt}%</b><span>ランク特典</span><b class="num">+${perks().sell}%</b><span>営業の従業員（育てるほど増える）</span><b class="num">+${Math.round(salesBonus()*100)}%</b><span>エリアコンプ（そのエリアの魚のみ）</span><b class="num">+5%／エリア</b></div>
+      <div class="kv" style="margin-top:6px"><span>直売所 Lv${G.lv.mkt}（自宅・設備タブで強化）</span><b class="num">+${5*G.lv.mkt}%</b><span>ランク特典</span><b class="num">+${perks().sell}%</b>${feat('roles')?`<span>営業の従業員（育てるほど増える）</span><b class="num">+${Math.round(salesBonus()*100)}%</b>`:''}<span>エリアコンプ（そのエリアの魚のみ）</span><b class="num">+5%／エリア</b></div>
       <div style="color:var(--sub);margin-top:6px">このほか、魚の大きさ・鮮度・今日の相場でも値段が変わります。</div></div>
     <div class="list" style="margin-top:10px">${items||'<p style="color:var(--sub)">魚箱は空です。釣りに出よう。</p>'}</div>
-    <h2>経営</h2>${pnlHtml(G.led)}${reportHtml().replace("<h2>経営レポート</h2>","")}
-    <h2>今日の相場</h2><p style="color:var(--sub);font-size:.78rem;margin:0 0 6px">${SEASONS[seasonOf()].n}の旬の魚（<span class="tag" style="background:var(--good)">旬</span>）は、よく釣れて売値も+${Math.round((SEA_PRICE-1)*100)}%です。</p><div>${market}</div>`;
+    ${feat('report')?`<h2>経営</h2>${pnlHtml(G.led)}${reportHtml().replace("<h2>経営レポート</h2>","")}`:''}
+    <h2>今日の相場</h2><p style="color:var(--sub);font-size:.78rem;margin:0 0 6px;${feat('season')?'':'display:none'}">${SEASONS[seasonOf()].n}の旬の魚（<span class="tag" style="background:var(--good)">旬</span>）は、よく釣れて売値も+${Math.round((SEA_PRICE-1)*100)}%です。</p><div>${market}</div>`;
   $('#p-sell').querySelectorAll('.buy').forEach(b=>b.onclick=()=>sell([+b.dataset.i]));
   const sa=$('#sellall');if(sa)sa.onclick=()=>sell(all);
+  $('#p-sell').querySelectorAll('[data-farm]').forEach(b=>b.onclick=()=>startFarm(+b.dataset.farm));
+  $('#p-sell').querySelectorAll('[data-harvest]').forEach(b=>b.onclick=()=>harvestFarm(+b.dataset.harvest));
   $('#p-sell').querySelectorAll('[data-proc]').forEach(b=>b.onclick=()=>{const [i,k]=b.dataset.proc.split(':');startProc(+i,+k)});
   const sp2=$('#sellprod');if(sp2)sp2.onclick=sellProd;
   $('#p-sell').querySelectorAll('[data-deliver]').forEach(b=>b.onclick=()=>deliver(+b.dataset.deliver));
@@ -966,11 +1021,11 @@ function renderShop(){
   const cs=CR(),nF=cs.filter(m=>m.r===0).length,nS=cs.length-nF,wsum=cs.reduce((a,m)=>a+wageOf(m),0);
   const crew=`<div class="item"><div class="t">従業員を雇う <span class="num">${G.crew}/${crewMax()}人</span></div>
     <button class="buy" data-crew="1" ${G.crew>=crewMax()||G.money<cc?'disabled':''}>${G.crew>=crewMax()?'—':yen(cc)}</button>
-    <div class="s"><b>釣り師</b>は釣りに同行して、1日約${yen(h)}を水揚げ。<b>営業</b>は水揚げの代わりに、魚の売値を底上げ（Lv×+${Math.round(SALES_PER*100)}%・全員で+${Math.round(SALES_MAX*100)}%まで）。<br>働いた日数でレベルが上がり、水揚げも給料も増えます。一人ひとりに<b>特性</b>があります（釣り上手・商売上手・勤勉・倹約家・のんびり屋・ふつう）。給料の基本は${yen(w)}/日。雇える人数は自宅を大きくすると増えます（今は${crewMax()}人まで）。</div>
-    <div class="row" style="grid-column:1/-1;flex-wrap:wrap;gap:6px;margin:4px 0">${[2,3,4,5].map(l=>`<button class="chip" data-hire="${l}" ${G.crew>=crewMax()||G.money<hireCost(l)?'disabled':''}>経験者 Lv${l}（水揚げ×${(1+CLV_F*(l-1)).toFixed(2)}・給料×${(1+CLV_W*(l-1)).toFixed(2)}）${yen(hireCost(l))}</button>`).join('')}</div></div>
-    ${cs.length?`<div class="card" style="margin:0;font-size:.82rem"><div class="kv"><span>釣り師／営業</span><b class="num">${nF}人／${nS}人</b><span>営業ボーナス（売値）</span><b class="num">+${Math.round(salesBonus()*100)}%</b><span>給料の合計</span><b class="num down">${yen(wsum)}/日</b></div></div>`:''}
+    <div class="s">${feat('roles')?`<b>釣り師</b>は釣りに同行して、1日約${yen(h)}を水揚げ。<b>営業</b>は水揚げの代わりに、魚の売値を底上げ（Lv×+${Math.round(SALES_PER*100)}%・全員で+${Math.round(SALES_MAX*100)}%まで）。`:`いっしょに釣りに出て、1人あたり1日約${yen(h)}を水揚げ。`}<br>働いた日数でレベルが上がり、水揚げも給料も増えます。一人ひとりに<b>特性</b>があります（釣り上手・商売上手・勤勉・倹約家・のんびり屋・ふつう）。給料の基本は${yen(w)}/日。雇える人数は自宅を大きくすると増えます（今は${crewMax()}人まで）。</div>
+    ${!feat('hireX')?'':`<div class="row" style="grid-column:1/-1;flex-wrap:wrap;gap:6px;margin:4px 0">${[2,3,4,5].map(l=>`<button class="chip" data-hire="${l}" ${G.crew>=crewMax()||G.money<hireCost(l)?'disabled':''}>経験者 Lv${l}（水揚げ×${(1+CLV_F*(l-1)).toFixed(2)}・給料×${(1+CLV_W*(l-1)).toFixed(2)}）${yen(hireCost(l))}</button>`).join('')}</div>`}</div>
+    ${cs.length&&feat('roles')?`<div class="card" style="margin:0;font-size:.82rem"><div class="kv"><span>釣り師／営業</span><b class="num">${nF}人／${nS}人</b><span>営業ボーナス（売値）</span><b class="num">+${Math.round(salesBonus()*100)}%</b><span>給料の合計</span><b class="num down">${yen(wsum)}/日</b></div></div>`:''}
     ${cs.map((m,i)=>{const l=clv(m),nx=CLVX[l]&&clvx(l);return `<div class="item"><div class="t">${m.n} <span class="num">Lv${l}</span> <span class="stars">${'★'.repeat(l)}${'☆'.repeat(5-l)}</span> <span class="tag" style="background:var(--panel2);color:var(--fg)">${TRAITS[m.t].n}</span></div>
-      <button class="chip" data-role="${i}" aria-pressed="${m.r?'true':'false'}" style="grid-row:span 2">${CROLE[m.r]}</button>
+      ${feat('roles')?`<button class="chip" data-role="${i}" aria-pressed="${m.r?'true':'false'}" style="grid-row:span 2">${CROLE[m.r]}</button>`:'<span></span>'}
       <div class="s"><span style="color:var(--accent)">${TRAITS[m.t].d}</span><br>${m.r?`売値+${Math.round(SALES_PER*l*(TRAITS[m.t].s||1)*100)}%`:`1日約${yen(h*fishMul(m))}を水揚げ`}・給料${yen(wageOf(m))}/日・${nx?`次のLvまであと${Math.ceil(nx-m.x)}日`:'最高レベル'}</div><div class="row" style="grid-column:1/-1;justify-content:flex-end"><button class="ghost" data-retire="${i}" style="font-size:.74rem;padding:3px 10px">辞めてもらう</button></div></div>`}).join('')}`;
   $('#p-shop').innerHTML=`<h2>設備：道具</h2><div class="list">${ups}</div><h2>船</h2><div class="list">${boat}</div><h2>人</h2><div class="list">${crew}</div>`;
   const sh=$('#p-shop');
@@ -988,10 +1043,10 @@ function renderDex(){
   const got=NORM.filter(s=>G.dex[s.n]).length,bg=Object.keys(G.bossGot).length;
   const card=s=>{const d=G.dex[s.n];
     return `<div class="item"><img class="ic ${d?'':'off'}" src="${icon(s)}" alt=""><div class="t">${d?s.n:'？？？'}${tag(s)}</div>
-      <div class="s">${d?`最大 <span class="stars">${stars(s,d.best)}</span> <span class="num">${d.best}cm</span><br>最小 <span class="stars">${stars(s,d.min)}</span> <span class="num">${d.min}cm</span><br>×${d.c}匹　<span class="num" style="opacity:.7">(${s.min}〜${s.max}cm)</span>`:`${AREAS[s.a].name}に生息`}</div></div>`};
+      <div class="s">${d?`最大 <span class="stars">${stars(s,d.best)}</span> <span class="num">${d.best}cm</span><br>最小 <span class="stars">${stars(s,d.min)}</span> <span class="num">${d.min}cm</span><br>×${d.c}匹・好物 ${baitOf(s).n}　<span class="num" style="opacity:.7">(${s.min}〜${s.max}cm)</span>`:`${AREAS[s.a].name}に生息`}</div></div>`};
   const lock=(s,i)=>`<div class="item"><img class="ic off" src="${icon(s)}" alt=""><div class="t">？？？${tag(s)}</div><div class="s">${G.comp[i]?'この海域の主が潜んでいる…':'この海域をコンプすると現れる'}</div></div>`;
   $('#p-dex').innerHTML=`<h2>図鑑 <span class="num">${got}/${NORM.length}</span>　<span class="num" style="color:var(--bad)">主 ${bg}/${AREAS.length}</span></h2><p style="color:var(--sub);font-size:.8rem;margin:0 0 10px">★は、その魚の大きさの範囲のどのあたりかを表します（★1＝小さい、★5＝大きい）。海域の魚を全種類釣るとコンプボーナス。コンプすると主が現れます。</p>`+
-    `<h2>実績 <span class="num">${ACH.filter(a=>G.ach[a.id]).length}/${ACH.length}</span></h2><div class="card" style="margin:0 0 10px;font-size:.82rem">${ACH.map(a=>{const d=G.ach[a.id];return `<div class="ln" style="${d?'':'opacity:.6'}"><span>${d?'🏅':'🔒'} <b>${a.n}</b>　<span style="color:var(--sub)">${a.d}</span></span><span class="num" style="font-size:.74rem;color:${d?'var(--good)':'var(--sub)'}">${d?`${d}日目`:achRw(a.r)}</span></div>`}).join('')}</div>`+
+    (!feat('ach')?'':`<h2>実績 <span class="num">${ACH.filter(a=>G.ach[a.id]).length}/${ACH.length}</span></h2><div class="card" style="margin:0 0 10px;font-size:.82rem">${ACH.map(a=>{const d=G.ach[a.id];return `<div class="ln" style="${d?'':'opacity:.6'}"><span>${d?'🏅':'🔒'} <b>${a.n}</b>　<span style="color:var(--sub)">${a.d}</span></span><span class="num" style="font-size:.74rem;color:${d?'var(--good)':'var(--sub)'}">${d?`${d}日目`:achRw(a.r)}</span></div>`}).join('')}</div>`)+
     AREAS.map((a,i)=>{const l=areaSp(i),f=l.filter(s=>G.dex[s.n]).length,bs=bossOf(i);
       return `<h2>${a.name} <span class="num">${f}/${l.length}</span>${G.comp[i]?' <span class="tag" style="background:var(--good)">コンプ</span>':''}</h2><div class="dex">${l.map(card).join('')}${G.dex[bs.n]?card(bs):lock(bs,i)}</div>`}).join('');
 }
@@ -1362,22 +1417,26 @@ function renderTown(){
     <h2>切符売り場</h2><div class="list">
       <div class="item"><div class="t">おまかせ釣り券 <span class="num" style="color:var(--accent)">所持${G.tk.auto}枚</span></div><button class="buy" data-buytk="auto:1" ${G.money<autoCost()?'disabled':''}>${yen(autoCost())}</button><div class="s">1枚で5回ぶんの釣りを自動で進めます。<br><button class="chip" data-buytk="auto:5" ${G.money<autoCost()*5?'disabled':''} style="margin-top:6px">5枚まとめて ${yen(autoCost()*5)}</button></div></div>
       <div class="item"><div class="t">食事券 <span class="num" style="color:var(--accent)">所持${G.tk.meal}枚</span></div><button class="buy" data-buytk="meal:1" ${G.money<mealTkCost()?'disabled':''}>${yen(mealTkCost())}</button><div class="s">食堂でお金の代わりに使えます。</div></div></div>
-    <h2>ライバル漁師（週間売上）</h2><div class="card"><div class="kv" style="font-size:.84rem">${rvStandings().map((x,i)=>`<span style="${x.me?'color:var(--accent);font-weight:700':''}">${i+1}. ${x.n}</span><b class="num">${yen(x.s)}</b>`).join('')}</div>
-      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">毎週、1週間の収入（売上・水揚げ・賞金など）で競います。次の発表は ${tourNext()}日目の夜。入賞でBPと評判、1位はおまかせ釣り券もらえます。${G.rv.last?`<br>前回：${G.rv.last.place+1}位`:''}　通算の1位：${G.rv.wins}回</div></div>
-    <h2>釣り大会</h2><div class="card">${isTourDay()?(tourIn()?`<div><b>参加中！</b> 今日の最高の一匹：<b class="num">${yen(G.tour.best)}</b>${G.tour.bn?`（${G.tour.bn}）`:''}<div style="color:var(--sub);font-size:.8rem;margin-top:4px">夜にランキングが発表されます。高く売れる魚を釣ろう（おまかせ釣りは対象外・主は除く）。</div></div>`:`<div><b>今日は大会の日です！</b></div><button class="big" id="tourGo" style="margin-top:6px" ${G.home||G.money<tourFee()?'disabled':''}>参加する（参加費${yen(tourFee())}）</button>`):`<div>次の大会は <b class="num">${tourNext()}日目</b>（あと${tourNext()-G.day}日）</div>`}
+${feat('tour')?`    <h2>ライバル漁師（週間売上）</h2><div class="card"><div class="kv" style="font-size:.84rem">${rvStandings().map((x,i)=>`<span style="${x.me?'color:var(--accent);font-weight:700':''}">${i+1}. ${x.n}</span><b class="num">${yen(x.s)}</b>`).join('')}</div>
+      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">毎週、1週間の収入（売上・水揚げ・賞金など）で競います。次の発表は ${tourNext()}日目の夜。入賞でBPと評判、1位はおまかせ釣り券もらえます。${G.rv.last?`<br>前回：${G.rv.last.place+1}位`:''}　通算の1位：${G.rv.wins}回</div></div>`:''}
+${feat('tour')?`    <h2>釣り大会</h2><div class="card">${isTourDay()?(tourIn()?`<div><b>参加中！</b> 今日の最高の一匹：<b class="num">${yen(G.tour.best)}</b>${G.tour.bn?`（${G.tour.bn}）`:''}<div style="color:var(--sub);font-size:.8rem;margin-top:4px">夜にランキングが発表されます。高く売れる魚を釣ろう（おまかせ釣りは対象外・主は除く）。</div></div>`:`<div><b>今日は大会の日です！</b></div><button class="big" id="tourGo" style="margin-top:6px" ${G.home||G.money<tourFee()?'disabled':''}>参加する（参加費${yen(tourFee())}）</button>`):`<div>次の大会は <b class="num">${tourNext()}日目</b>（あと${tourNext()-G.day}日）</div>`}
       <div class="kv" style="margin-top:6px;font-size:.82rem"><span>賞金 1位／2位／3位</span><b class="num">${yen(tourPrize(0))}／${yen(tourPrize(1))}／${yen(tourPrize(2))}</b>${G.tourLast?`<span>前回（${G.tourLast.day}日目）</span><b class="num">${G.tourLast.place+1}位${G.tourLast.prize?`・${yen(G.tourLast.prize)}`:''}</b>`:''}<span>通算</span><b class="num">${G.tourN}回出場・優勝${G.tourWin}回</b></div>
-      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">7日ごとに開催。参加すると、その日に自分で釣った魚のうち、いちばん高い1匹でライバル5人と競います。</div></div>
-    <h2>支店（産地ブランド）</h2><div class="list">${AREAS.map((a,i)=>i>G.boat?'':`<div class="item"><div class="t">${a.name}支店 <span class="num">Lv${brLv(i)}${brLv(i)>=2?' MAX':''}</span></div><button class="buy" data-branch="${i}" ${brLv(i)>=2||G.money<branchCost(i,brLv(i))?'disabled':''}>${brLv(i)>=2?'—':yen(branchCost(i,brLv(i)))}</button><div class="s">${a.name}の魚の売値 +${6*brLv(i)}%（次のLvで +${6*(brLv(i)+1)}%）・維持費 毎晩${yen(Math.round((brLv(i)>=2?0:branchCost(i,brLv(i)))*.003))}ずつ増える</div></div>`).join('')}</div>
-    <h2>研究所</h2><div class="list">${TECH.map(t=>{const l=techLv(t.k),max=l>=t.c.length,c=t.c[l];return `<div class="item"><div class="t">${t.n} <span class="num">Lv${l}${max?' MAX':''}</span></div><button class="buy" data-tech="${t.k}" ${max||G.money<c?'disabled':''}>${max?'—':yen(c)}</button><div class="s">${t.d}</div></div>`}).join('')}</div>
-    <h2>船の保険</h2><div class="card"><div class="kv"><span>加入状況</span><b>${G.ins?'加入中':'未加入'}</b><span>保険料（毎晩）</span><b class="num">${G.boat>0?yen(premium()):'—'}</b><span>故障したときの修理費</span><b class="num">${G.boat>0?yen(repairCost()):'—'}</b></div>
+      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">7日ごとに開催。参加すると、その日に自分で釣った魚のうち、いちばん高い1匹でライバル5人と競います。</div></div>`:''}
+${feat('branch')?`    <h2>支店（産地ブランド）</h2><div class="list">${AREAS.map((a,i)=>i>G.boat?'':`<div class="item"><div class="t">${a.name}支店 <span class="num">Lv${brLv(i)}${brLv(i)>=2?' MAX':''}</span></div><button class="buy" data-branch="${i}" ${brLv(i)>=2||G.money<branchCost(i,brLv(i))?'disabled':''}>${brLv(i)>=2?'—':yen(branchCost(i,brLv(i)))}</button><div class="s">${a.name}の魚の売値 +${6*brLv(i)}%（次のLvで +${6*(brLv(i)+1)}%）・維持費 毎晩${yen(Math.round((brLv(i)>=2?0:branchCost(i,brLv(i)))*.003))}ずつ増える</div></div>`).join('')}</div>`:''}
+${feat('tech')?`    <h2>研究所</h2><div class="list">${TECH.map(t=>{const l=techLv(t.k),max=l>=t.c.length,c=t.c[l];return `<div class="item"><div class="t">${t.n} <span class="num">Lv${l}${max?' MAX':''}</span></div><button class="buy" data-tech="${t.k}" ${max||G.money<c?'disabled':''}>${max?'—':yen(c)}</button><div class="s">${t.d}</div></div>`}).join('')}</div>`:''}
+${feat('bait')?`    <h2>釣具店（エサ・ルアー）</h2><div class="card"><div style="color:var(--sub);font-size:.78rem;margin-bottom:6px">魚には好物のエサがあります。つけると、好物の魚が${BAIT_MUL}倍よく釣れます（1投で1個）。注文や大会で狙いたい魚があるときに。図鑑にも好物が載ります。</div>
+      ${BAITS.map(b=>`<div class="ln" style="align-items:center;gap:6px"><span><b>${b.n}</b> <span style="color:var(--sub);font-size:.76rem">${b.d}</span><br><span class="num" style="font-size:.78rem">在庫 ${G.bt[b.k]}個</span></span><span style="display:flex;gap:6px"><button class="chip" data-baitsel="${b.k}" aria-pressed="${G.baitSel===b.k?'true':'false'}">${G.baitSel===b.k?'使用中':'使う'}</button><button class="chip" data-baitbuy="${b.k}" ${G.money<baitPack(b)?'disabled':''}>10個 ${yen(baitPack(b))}</button></span></div>`).join('')}
+      <button class="ghost" id="baitOff" style="margin-top:6px" ${G.baitSel?'':'disabled'}>エサをつけない</button></div>`:''}
+${feat('bank')?`    <h2>船の保険</h2><div class="card"><div class="kv"><span>加入状況</span><b>${G.ins?'加入中':'未加入'}</b><span>保険料（毎晩）</span><b class="num">${G.boat>0?yen(premium()):'—'}</b><span>故障したときの修理費</span><b class="num">${G.boat>0?yen(repairCost()):'—'}</b></div>
       <button class="chip" id="insBtn" ${G.boat>0?'':'disabled'} style="margin-top:8px">${G.ins?'保険をやめる':'保険に入る'}</button>
-      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">朝に、ときどき船が故障します（約20日に1回）。保険に入っていると修理費は無料です。保険料は夜の収支から引かれます。</div></div>
-    <h2>銀行</h2><div class="card"><div class="kv"><span>借入残高</span><b class="num ${G.debt?'down':''}">${yen(G.debt)}</b><span>あと借りられる額</span><b class="num">${yen(loanAvail())}</b><span>利息（毎晩・残高の${LOAN_RATE*100}%）</span><b class="num">${yen(Math.round(G.debt*LOAN_RATE))}</b></div>
+      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">朝に、ときどき船が故障します（約20日に1回）。保険に入っていると修理費は無料です。保険料は夜の収支から引かれます。</div></div>`:''}
+${feat('bank')?`    <h2>銀行</h2><div class="card"><div class="kv"><span>借入残高</span><b class="num ${G.debt?'down':''}">${yen(G.debt)}</b><span>あと借りられる額</span><b class="num">${yen(loanAvail())}</b><span>利息（毎晩・残高の${LOAN_RATE*100}%）</span><b class="num">${yen(Math.round(G.debt*LOAN_RATE))}</b></div>
       <div class="row" style="margin-top:8px;flex-wrap:wrap">${[.25,.5,1].map(f=>Math.floor(loanAvail()*f/1000)*1000).filter((a,i,ar)=>a>0&&ar.indexOf(a)===i).map(a=>`<button class="chip" data-loan="${a}">${yen(a)}借りる</button>`).join('')||'<span style="color:var(--sub);font-size:.8rem">いまは借りられません</span>'}</div>
       <div class="row" style="margin-top:6px;flex-wrap:wrap"><button class="chip" data-repay="half" ${G.debt&&G.money?'':'disabled'}>半分返す</button><button class="chip" data-repay="all" ${G.debt&&G.money?'':'disabled'}>全額返す</button></div>
-      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">船や設備を早く買うための資金に。利息は夜の収支で引かれます（払えない分は借入に上乗せ）。借りられる額は、これまでの売上に応じて増えます。</div></div>
+      <div style="color:var(--sub);font-size:.78rem;margin-top:6px">船や設備を早く買うための資金に。利息は夜の収支で引かれます（払えない分は借入に上乗せ）。借りられる額は、これまでの売上に応じて増えます。</div></div>`:''}
     <h2>おまかせ釣り</h2><p style="color:var(--sub);font-size:.82rem;margin:0 0 8px">券を使うと、釣りを自動で進めます。釣れるかどうかは、自分のステータスと装備で決まります。主は出ません。時間は普通に進みます。</p>
     <div class="row" style="margin-top:0"><button class="big" id="townAuto1" style="flex:1;width:auto" ${G.tk.auto<1?'disabled':''}>5回おまかせ（券1枚）</button><button class="ghost" id="townAutoAll" ${G.tk.auto<1?'disabled':''}>残りぜんぶ</button></div>`;
+  $('#p-town').insertAdjacentHTML('beforeend',lockedHtml());
   const t=$('#p-town');
   $('#daily').onclick=claimDaily;
   t.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>eat(+b.dataset.meal,false));
@@ -1385,6 +1444,9 @@ function renderTown(){
   t.querySelectorAll('[data-buytk]').forEach(b=>b.onclick=()=>{const [k,n]=b.dataset.buytk.split(':');buyTk(k,+n)});
   t.querySelectorAll('[data-loan]').forEach(b=>b.onclick=()=>{const a=Math.min(+b.dataset.loan,loanAvail());if(a>0){G.money+=a;G.debt+=a;G.borrowed=1;save();hud();renderAll();toast(`${yen(a)}を借りました`)}});
   t.querySelectorAll('[data-repay]').forEach(b=>b.onclick=()=>{const a=Math.min(G.debt,G.money,b.dataset.repay==='half'?Math.ceil(G.debt/2):G.debt);if(a>0){G.money-=a;G.debt-=a;save();hud();renderAll();toast(`${yen(a)}を返しました`)}});
+  t.querySelectorAll('[data-baitsel]').forEach(b=>b.onclick=()=>{G.baitSel=b.dataset.baitsel;save();hud();renderAll()});
+  t.querySelectorAll('[data-baitbuy]').forEach(b=>b.onclick=()=>{const bt=BAITS.find(x=>x.k===b.dataset.baitbuy),c=baitPack(bt);if(G.money>=c){G.money-=c;led('buy',c);G.bt[bt.k]+=10;if(!G.baitSel)G.baitSel=bt.k;save();hud();renderAll();toast(`${bt.n}を10個買いました`)}});
+  const bo=$('#baitOff');if(bo)bo.onclick=()=>{G.baitSel='';save();hud();renderAll()};
   const ib=$('#insBtn');if(ib)ib.onclick=()=>{G.ins=G.ins?0:1;save();hud();renderAll();toast(G.ins?'船の保険に入りました':'保険をやめました')};
   t.querySelectorAll('[data-branch]').forEach(b=>b.onclick=()=>{const a=+b.dataset.branch,l=brLv(a),c=branchCost(a,l);if(l<2&&G.money>=c){G.money-=c;led('buy',c);G.br[a]=l+1;save();hud();renderAll();toast(`${AREAS[a].name}支店がLv${l+1}になった！`);sfx(1)}});
   t.querySelectorAll('[data-tech]').forEach(b=>b.onclick=()=>{const k=b.dataset.tech,tc=TECH.find(x=>x.k===k),l=techLv(k),c=tc.c[l];if(c&&G.money>=c){G.money-=c;led('buy',c);G.tech[k]=l+1;save();hud();renderAll();toast(`${tc.n}がLv${l+1}になった！`);sfx(1)}});
@@ -1395,7 +1457,7 @@ function renderTown(){
 /* ---------- home ---------- */
 function renderHome(){
   const night=G.home;
-  const list=FAC.map(f=>{const l=G.fac[f.k],max=l>=f.c.length;
+  const list=FAC.filter(f=>!FEATS.some(x=>x.k===f.k)||feat(f.k)||(G.fac[f.k]||0)>0).map(f=>{const l=G.fac[f.k],max=l>=f.c.length;
     return `<div class="item"><div class="t">${f.n} <span class="num">Lv${l}</span> <span class="tag" style="background:var(--accent)">${f.names[l]}</span></div>
       <button class="buy" data-fac="${f.k}" ${max||G.money<f.c[l]?'disabled':''}>${max?'MAX':yen(f.c[l])}</button>
       <div class="s">${f.d}<br>効果：${f.eff(l)}${max?'':`　→　次：${f.eff(l+1)}`}</div></div>`}).join('');
@@ -1469,6 +1531,14 @@ function toolsArt(c,ts){
   const fl=G.fish.slice(0,3).map(f=>SP.find(s=>s.n===f.n));fl.forEach((sp,i)=>drawSp(c,sp,x0+12+i*15,174,16));
   c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';c.textAlign='center';c.fillText('道具小屋',338,126);c.textAlign='right';c.fillText(m?`直売所 Lv${m}（売値+${5*m}%）`:'直売所（未強化）',478,m?158-m*2:170);c.textAlign='left';
 }
+function farmArt(c,ts){
+  const lv=G.fac.farm||0;if(!lv)return;
+  const x=96,y=304+Math.sin(ts/900)*1.2,w=40+lv*14;
+  c.fillStyle='#8a6a44';c.fillRect(x,y,w,7);c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=1.2;c.strokeRect(x+2,y-12,w-4,12);
+  c.fillStyle='rgba(120,200,255,.3)';c.fillRect(x+2,y-12,w-4,12);
+  for(let k=0;k<Math.min(G.farm.length,5);k++){c.fillStyle='#ffb454';c.beginPath();c.ellipse(x+8+k*((w-16)/5)+Math.sin(ts/500+k)*2,y-6,4,2,0,0,7);c.fill()}
+  c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';c.fillText(`養殖 ${G.farm.length}/${farmCap(lv)}`,x,y+19);
+}
 function plantArt(c,ts){
   const lv=G.fac.plant||0,x=306,y=226;
   c.font='bold 10px sans-serif';c.fillStyle='rgba(255,255,255,.85)';
@@ -1519,7 +1589,7 @@ function drawHome(ts){
   c.strokeStyle='rgba(255,255,255,.18)';c.lineWidth=1.5;for(let r=0;r<3;r++){c.beginPath();for(let x=0;x<=480;x+=8){const y=312+r*10+Math.sin(x/30+ts/700+r)*2;x?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()}
   c.fillStyle='#6b4f38';c.fillRect(0,288,480,12);
   houseArt(c,G.fac.house,night,ts);
-  trophyArt(c);toolsArt(c,ts);tankArt(c,ts);plantArt(c,ts);boatArt(c,ts);
+  trophyArt(c);toolsArt(c,ts);tankArt(c,ts);plantArt(c,ts);farmArt(c,ts);boatArt(c,ts);
   for(let i=0;i<G.crew;i++)person(c,24+i*22,294+Math.sin(ts/500+i)*.6,COLS[i%10],HATS[i%5],.8);
   person(c,112,258+Math.sin(ts/400)*.8,'#ffb454','#c0392b',1.1);
   if(night){c.fillStyle='rgba(10,19,48,.25)';c.fillRect(0,0,480,340)}
@@ -1642,17 +1712,19 @@ const HELP=[
  {t:'ようこそ！',b:'<p>魚を釣って、売って、船と仲間を増やす釣り船経営ゲームです。</p><p>目標は、売上を増やして最高ランク「漁業王」になること。まずは釣りから始めましょう。</p>'},
  {t:'釣り方',b:'<ol><li><span class="k">投げる</span>を押して浮きを待つ</li><li>浮きが沈んで「！」が出たら、すぐ<span class="k">アワセ！</span></li><li>ヒットしたら<span class="k">巻く</span>ボタンを押し続けて寄せる</li><li>魚が暴れている間は<b>指を離す</b>。落ち着いたらまた巻く</li></ol><p>テンションが満タンになると糸が切れ、寄せ具合が満タンになると釣れます。パソコンならスペースキーでも操作できます。</p>'},
  {t:'魚を売る',b:'<p>釣った魚は魚箱に入ります（容量があります）。<span class="k">市場</span>タブで売ってお金にしましょう。</p><p>値段は、大きさ（★の数）・鮮度・今日の相場で決まります。大きい魚ほど高く売れ、経験値も多くもらえます。売れ残りは夜のたびに鮮度が落ちるので、早めに売るのがおすすめです。</p><p>同じ魚を続けて売ると<b>値崩れ</b>します（翌朝には半分もどる）。直売所を強化すると、1日に数匹だけ高く売れる<b>直売所の枠</b>が使えます。「すべて売る」は、高い魚から順に自動で有利な出荷先へ回します。市場タブの<b>経営レポート</b>で、収入・経費・稼ぎ頭の魚を確認できます。</p>'},
- {t:'ライバル漁師',b:'<p><span class="k">街</span>タブに、ライバル漁師5人との<b>週間売上</b>ランキングがあります。1週間の収入（売上・水揚げ・賞金・納品）が多いほど上位です。</p><p>7日ごとの夜に発表され、<b>3位まで</b>にBPと評判、<b>1位</b>はおまかせ釣り券もらえます。</p>'},
- {t:'釣り大会',b:'<p>7日ごとに<b>釣り大会</b>が開かれます。<span class="k">街</span>タブから、その日の朝に参加できます（参加費あり）。</p><ol><li>参加した日に、<b>自分で釣った魚</b>のうち、いちばん高い1匹の値段で競います（おまかせ釣り・従業員・主は対象外）</li><li>夜にライバル5人とのランキングが発表され、<b>3位まで賞金</b>、1位はおまかせ釣り券ももらえます</li><li>旬の魚や、大物を狙うと有利です</li></ol>'},
- {t:'季節と天気',b:'<p>12日ごとに<b>季節</b>が変わります（春→夏→秋→冬）。画面の上に、今の季節と今日の天気が出ます。</p><ol><li>その季節が<b>旬</b>の魚は、よく釣れて、売値も+15%。市場タブの相場に「旬」と出ます</li><li>毎日2時間の<b>満潮</b>があり、その間はアタリが早く、珍しい魚が寄りやすくなります（時間帯は日によって変わります）</li><li>天気は毎朝変わります。<b>くもり</b>はアタリが早い。<b>雨</b>は珍しい魚が寄りやすいが、糸が切れやすい</li></ol><p>旬の魚を狙って釣り、旬のうちに売ったり、加工したりすると得です。</p>'},
- {t:'支店',b:'<p><span class="k">街</span>タブの<b>支店</b>で、海域ごとに支店を出せます（各2段階）。その海域の魚が<b>産地ブランド</b>として、売値+6%／Lv で売れます。毎晩の維持費が少し増えます。</p>'},
- {t:'研究開発',b:'<p><span class="k">街</span>タブの<b>研究所</b>で、お金を投じて恒久的な強化ができます（各3段階）。</p><ul><li>冷凍技術：売れ残りの鮮度が落ちにくい</li><li>省エネ船：船の維持費が減る</li><li>流通網：魚の売値アップ</li><li>漁具改良：巻き上げが速く、テンションが上がりにくい</li><li>人材育成：従業員が早くレベルアップ</li><li>加工技術：加工賃が減り、加工品が高く売れる</li></ul>'},
- {t:'加工場',b:'<p><span class="k">自宅・設備</span>タブで<b>加工場</b>を建てると、魚を加工品にできます。</p><ol><li><span class="k">市場</span>タブの魚の下にある「干物にする」「缶詰にする」を押す（加工賃は売値の8%）</li><li>夜を越すと完成（干物1晩・缶詰2晩）。市場タブの「加工品をすべて売る」で売れます</li><li>干物は売値×1.3、缶詰は×1.6。完成した加工品は<b>腐らず</b>、相場や値崩れの影響を受けません</li><li>1晩に加工できる数は、加工場のレベルで増えます</li></ol>'},
- {t:'実績',b:'<p><span class="k">図鑑</span>タブの下に<b>実績</b>の一覧があります。条件を満たすと自動で解除され、<b>BP・おまかせ釣り券・食事券</b>がもらえます。</p>'},
- {t:'注文',b:'<p><span class="k">市場</span>タブに、常連さんからの<b>注文</b>が毎朝届きます（最大3件・期限は2日）。</p><ol><li>「アジ×3匹・25cm以上・鮮度70%以上」のように条件があります</li><li>魚箱に条件に合う魚がそろったら<b>納品</b>。<b>売値の1.3倍〜</b>で買い取ってもらえます（評判が上がると倍率が増える）</li><li>納品・大会の入賞・主の討伐で<b>評判</b>が上がります。評判が高いと、注文の報酬・注文の件数・融資の上限が増えます</li><li>注文に使える魚は、「すべて売る」では売らずに残します</li><li>鮮度は一晩で落ちます。生け簀があると守れます</li></ol>'},
- {t:'保険と故障',b:'<p>朝に、ときどき<b>船が故障</b>します（約20日に1回）。夜に<b>修理費</b>（船の値段の3%）がかかります。</p><p><span class="k">街</span>タブの<b>船の保険</b>に入ると、修理費が無料になります。保険料は毎晩、船の値段の0.2%です。</p>'},
- {t:'銀行とできごと',b:'<p><span class="k">街</span>タブの<b>銀行</b>でお金を借りられます。船や設備を早く買って稼ぎを増やす近道ですが、<b>利息</b>が毎晩かかります（残高の0.8%）。返せるときに返しましょう。借りられる額は、これまでの売上に応じて増えます。</p><p>船には毎晩<b>維持費</b>がかかります（船の値段の0.4%）。</p><p>朝、ときどき<b>できごと</b>が起きます：豊漁（水揚げ増）・不漁・荒天（釣りは難しいが売値が上がる）・観光フェア（売値アップ）・大量入荷（売値ダウン）。画面の上に今日のできごとが出ます。</p>'},
- {t:'従業員を育てる',b:'<p><span class="k">自宅・設備</span>タブで従業員を雇えます。1人ずつ名前と役割があります。</p><ol><li><b>釣り師</b>：いっしょに釣りに出て、毎日お金を水揚げする</li><li><b>営業</b>：水揚げはしないが、魚の売値を底上げする（全員で+15%まで）</li><li>役割は、名前の横のボタンでいつでも切り替えられる</li><li>働いた日数でレベルが上がる。水揚げも売値ボーナスも増えるが、<b>給料も上がる</b></li><li>一人ひとりに<b>特性</b>があります。気に入らなければ「辞めてもらう」で入れ替えられます</li></ol><p>序盤は釣り師が得、お金がたまってきたら営業を混ぜると売上が伸びます。夜の収支や、市場タブの経営レポートで、人件費の重さを確認しよう。</p>'},
+ {t:'ライバル漁師',k:'tour',b:'<p><span class="k">街</span>タブに、ライバル漁師5人との<b>週間売上</b>ランキングがあります。1週間の収入（売上・水揚げ・賞金・納品）が多いほど上位です。</p><p>7日ごとの夜に発表され、<b>3位まで</b>にBPと評判、<b>1位</b>はおまかせ釣り券もらえます。</p>'},
+ {t:'釣り大会',k:'tour',b:'<p>7日ごとに<b>釣り大会</b>が開かれます。<span class="k">街</span>タブから、その日の朝に参加できます（参加費あり）。</p><ol><li>参加した日に、<b>自分で釣った魚</b>のうち、いちばん高い1匹の値段で競います（おまかせ釣り・従業員・主は対象外）</li><li>夜にライバル5人とのランキングが発表され、<b>3位まで賞金</b>、1位はおまかせ釣り券ももらえます</li><li>旬の魚や、大物を狙うと有利です</li></ol>'},
+ {t:'エサ・ルアー',k:'bait',b:'<p>魚には<b>好物のエサ</b>があります（図鑑や注文に表示）。<span class="k">街</span>タブの<b>釣具店</b>で10個入りを買い、「使う」にすると、1投ごとに1個使って、好物の魚が2.5倍よく釣れます。</p><p>注文や釣り大会で狙う魚が決まっているときに便利です。</p>'},
+ {t:'季節と天気',k:'season',b:'<p>12日ごとに<b>季節</b>が変わります（春→夏→秋→冬）。画面の上に、今の季節と今日の天気が出ます。</p><ol><li>その季節が<b>旬</b>の魚は、よく釣れて、売値も+15%。市場タブの相場に「旬」と出ます</li><li>毎日2時間の<b>満潮</b>があり、その間はアタリが早く、珍しい魚が寄りやすくなります（時間帯は日によって変わります）</li><li>天気は毎朝変わります。<b>くもり</b>はアタリが早い。<b>雨</b>は珍しい魚が寄りやすいが、糸が切れやすい</li></ol><p>旬の魚を狙って釣り、旬のうちに売ったり、加工したりすると得です。</p>'},
+ {t:'支店',k:'branch',b:'<p><span class="k">街</span>タブの<b>支店</b>で、海域ごとに支店を出せます（各2段階）。その海域の魚が<b>産地ブランド</b>として、売値+6%／Lv で売れます。毎晩の維持費が少し増えます。</p>'},
+ {t:'研究開発',k:'tech',b:'<p><span class="k">街</span>タブの<b>研究所</b>で、お金を投じて恒久的な強化ができます（各3段階）。</p><ul><li>冷凍技術：売れ残りの鮮度が落ちにくい</li><li>省エネ船：船の維持費が減る</li><li>流通網：魚の売値アップ</li><li>漁具改良：巻き上げが速く、テンションが上がりにくい</li><li>人材育成：従業員が早くレベルアップ</li><li>加工技術：加工賃が減り、加工品が高く売れる</li></ul>'},
+ {t:'養殖',k:'farm',b:'<p><span class="k">自宅・設備</span>タブで<b>養殖いかだ</b>を建てると、魚を預けて育てられます。</p><ol><li><span class="k">市場</span>タブの魚の下の「養殖いかだで育てる」で預ける（主は不可）</li><li>毎日少しずつ大きくなる（最大サイズまで）。飼料代は毎晩、魚の値段の3%</li><li>「引き上げる」で魚箱にもどせます。大きくなった魚は高く売れ、注文のサイズ条件も満たせます</li></ol>'},
+ {t:'加工場',k:'plant',b:'<p><span class="k">自宅・設備</span>タブで<b>加工場</b>を建てると、魚を加工品にできます。</p><ol><li><span class="k">市場</span>タブの魚の下にある「干物にする」「缶詰にする」を押す（加工賃は売値の8%）</li><li>夜を越すと完成（干物1晩・缶詰2晩）。市場タブの「加工品をすべて売る」で売れます</li><li>干物は売値×1.3、缶詰は×1.6。完成した加工品は<b>腐らず</b>、相場や値崩れの影響を受けません</li><li>1晩に加工できる数は、加工場のレベルで増えます</li></ol>'},
+ {t:'実績',k:'ach',b:'<p><span class="k">図鑑</span>タブの下に<b>実績</b>の一覧があります。条件を満たすと自動で解除され、<b>BP・おまかせ釣り券・食事券</b>がもらえます。</p>'},
+ {t:'注文',k:'orders',b:'<p><span class="k">市場</span>タブに、常連さんからの<b>注文</b>が毎朝届きます（最大3件・期限は2日）。</p><ol><li>「アジ×3匹・25cm以上・鮮度70%以上」のように条件があります</li><li>魚箱に条件に合う魚がそろったら<b>納品</b>。<b>売値の1.3倍〜</b>で買い取ってもらえます（評判が上がると倍率が増える）</li><li>納品・大会の入賞・主の討伐で<b>評判</b>が上がります。評判が高いと、注文の報酬・注文の件数・融資の上限が増えます</li><li>注文に使える魚は、「すべて売る」では売らずに残します</li><li>鮮度は一晩で落ちます。生け簀があると守れます</li></ol>'},
+ {t:'保険と故障',k:'bank',b:'<p>朝に、ときどき<b>船が故障</b>します（約20日に1回）。夜に<b>修理費</b>（船の値段の3%）がかかります。</p><p><span class="k">街</span>タブの<b>船の保険</b>に入ると、修理費が無料になります。保険料は毎晩、船の値段の0.2%です。</p>'},
+ {t:'銀行とできごと',k:'bank',b:'<p><span class="k">街</span>タブの<b>銀行</b>でお金を借りられます。船や設備を早く買って稼ぎを増やす近道ですが、<b>利息</b>が毎晩かかります（残高の0.8%）。返せるときに返しましょう。借りられる額は、これまでの売上に応じて増えます。</p><p>船には毎晩<b>維持費</b>がかかります（船の値段の0.4%）。</p><p>朝、ときどき<b>できごと</b>が起きます：豊漁（水揚げ増）・不漁・荒天（釣りは難しいが売値が上がる）・観光フェア（売値アップ）・大量入荷（売値ダウン）。画面の上に今日のできごとが出ます。</p>'},
+ {t:'従業員を育てる',k:'roles',b:'<p><span class="k">自宅・設備</span>タブで従業員を雇えます。1人ずつ名前と役割があります。</p><ol><li><b>釣り師</b>：いっしょに釣りに出て、毎日お金を水揚げする</li><li><b>営業</b>：水揚げはしないが、魚の売値を底上げする（全員で+15%まで）</li><li>役割は、名前の横のボタンでいつでも切り替えられる</li><li>働いた日数でレベルが上がる。水揚げも売値ボーナスも増えるが、<b>給料も上がる</b></li><li>一人ひとりに<b>特性</b>があります。気に入らなければ「辞めてもらう」で入れ替えられます</li></ol><p>序盤は釣り師が得、お金がたまってきたら営業を混ぜると売上が伸びます。夜の収支や、市場タブの経営レポートで、人件費の重さを確認しよう。</p>'},
  {t:'設備を強化する',b:'<p><span class="k">自宅・設備</span>タブでお金を使って強化できます。</p><ol><li><b>釣り竿</b>：巻き上げが速くなる</li><li><b>釣り糸</b>：テンションが上がりにくい</li><li><b>エサ</b>：アタリが早く、珍しい魚が寄る</li><li><b>クーラーボックス</b>：魚箱が広がり、鮮度も保てる</li><li><b>漁師を雇う</b>：釣り場でいっしょに釣って稼いでくれる（給料もかかる）</li></ol>'},
  {t:'新しい海域へ',b:'<ol><li><span class="k">自宅・設備</span>タブの「船」で次の船を買うと、新しい海域に出られます</li><li>小型ボート（'+yen(BOATS[0].c)+'）で沖合、大型漁船（'+yen(BOATS[1].c)+'）で深海</li><li>さらにクルーザーでサンゴ礁の島、砕氷船で氷海、ムーンクラフトで幻の海域</li><li>買ったら<span class="k">釣り</span>タブの海域ボタンで行き先を選ぶ</li></ol><p>先の海域ほど、高く売れる大きな魚がいます。</p>'},
  {t:'レアな魚',b:'<p>海域ごとに、めったに釣れないレアな魚がいます。<span class="tag" style="background:#6cc4ff">レア</span><span class="tag" style="background:#c08cff">超レア</span><span class="tag" style="background:#ffd24a">伝説</span></p><p>レアな魚がかかると、アタリの時点で気配が違います。釣り上げると派手な演出が出ます。図鑑でまだ釣っていない魚を探しましょう。エサの強化やランクの特典で、珍しい魚が寄りやすくなります。</p>'},
@@ -1662,7 +1734,7 @@ const HELP=[
  {t:'忙しい人のための機能',b:'<ol><li><span class="k">街</span>タブの<b>デイリーボーナス</b>で、おまかせ釣り券と食事券が毎日もらえる</li><li><b>おまかせ釣り</b>：券1枚で、5回ぶんの釣りを自動で進める（釣れるかどうかは自分のステータスで決まる）</li><li><b>外食</b>：食堂で食事すると、経験値アップなどの効果が次の12回の釣りの間続く</li><li><b>留守中の水揚げ</b>：漁師がいると、アプリを閉じている間もお金を稼いでくれる（最大8時間ぶん）</li><li>設定で<b>自動売却</b>をONにすると、魚箱がいっぱいのときに自動で売る</li></ol>'},
  {t:'1日とランク',b:'<p>釣り1回ごとに40分進み、18時になると1日が終わります。夜は給料を払って自宅に帰り、施設を整えて眠ると朝になります。相場も毎日変わります。</p><p>売上が増えるとランクが上がり、<b>祝い金と特典</b>（売値アップ、魚箱拡大など）がもらえます。画面上部のランクをタップすると一覧が見られます。それでは、いってらっしゃい！</p>'}];
 function showHelp(i=0){
-  const h=HELP[i],last=i===HELP.length-1;
+  const L=HELP.filter(x=>!x.k||feat(x.k)),h=L[i]||L[0],last=i>=L.length-1;
   $('#box').innerHTML=`<div class="help"><h3>${h.t}</h3>${h.b}<div class="row"><button class="ghost" id="hp" ${i?'':'disabled'}>戻る</button><button class="big" id="hn" style="flex:1;width:auto">${last?'はじめる':'次へ'}</button></div><p class="dots">${i+1} / ${HELP.length}</p></div>`;
   $('#veil').hidden=false;
   $('#hp').onclick=()=>showHelp(i-1);
