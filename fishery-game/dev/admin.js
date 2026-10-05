@@ -58,6 +58,7 @@
     if (G.ev && !EVS[G.ev]) bad.push('ev（できごと）が不正');
     if (!(G.wx >= 0 && G.wx <= 2)) bad.push('wx（天気）が範囲外');
     Object.entries(G.tech || {}).forEach(([k, v]) => { const t = TECH.find(z => z.k === k); if (!t) bad.push('研究 不明 ' + k); else if (!(v >= 0 && v <= t.c.length)) bad.push('研究 Lv範囲外 ' + k) });
+    Object.entries(G.br || {}).forEach(([k, v]) => { if (!AREAS[k] || !(v >= 0 && v <= 2)) bad.push('支店 不正 ' + k) });
     Object.keys(G.ach || {}).forEach(k => { if (!ACH.find(z => z.id === k)) bad.push('実績 不明なID ' + k) });
     (G.ord || []).forEach(o => { if (!SP.find(s => s.n === o.n)) bad.push('注文 不明な魚 ' + o.n); if (!(o.q >= 1)) bad.push('注文 数量が不正') });
     if (G.cr && G.cr.length > G.crew) bad.push('従業員の名簿が人数より多い');
