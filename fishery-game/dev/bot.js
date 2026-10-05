@@ -88,7 +88,7 @@
       for (let i = 0; i < 2; i++) { if (!click('[data-proc]')) break; openTab('sell') }   // 加工場（あれば）に魚を出す
       click('#sellprod'); openTab('sell');
       click('#sellall');
-      if (G.debt > 0 && G.money > G.debt * 1.5) { openTab('town'); click('[data-repay="all"]') }   // 借りていたら返す（実際の返済ボタンを通す）
+      if (G.debt > 0) { openTab('town'); click('[data-repay="all"]'); if (G.debt > 0) click('[data-repay="half"]') }   // 借りていたら返す（実際の返済ボタンを通す）
       openTab('home');
       const reserve = G.crew * AREAS[G.boat].wage * 3 + 500;
       for (let i = 0; i < 14; i++) {
@@ -113,7 +113,7 @@
       if (r < .2) { G.diff = (G.diff + 1) % 3; G.fs = Math.floor(Math.random() * 3); applyUi(); save() }
       else if (r < .4) { applySave(migrate(JSON.parse(JSON.stringify(G))), 'ボット：保存→読み込み'); }
       else if (r < .7) { ['fish', 'sell', 'town', 'home', 'stat', 'dex', 'set'].forEach(t => guard('画面 ' + t, () => openTab(t))); openTab('fish') }
-      else if (r < .8) { guard('銀行', () => { openTab('town'); click('[data-loan]'); openTab('fish') }) }
+      else if (r < .8) { guard('銀行', () => { if (G.debt === 0) { openTab('town'); click('[data-loan]') } openTab('fish') }) }
       else if (r < .85) { guard('ランク一覧', () => { showRanks(); closeModals() }) }
       else { const a = Math.floor(Math.random() * (G.boat + 1)); guard('主の診断', () => { showBossAdvice(a, 0); closeModals() }) }
     }
@@ -158,7 +158,7 @@
         first('rank' + rk, G.day); first('area' + G.boat, G.day); [10, 20, 30, 40, 50, 99].forEach(L => { if (G.level >= L) first('lv' + L, G.day) });
         AREAS.forEach((_, i) => { if (G.comp[i]) first('comp' + i, G.day) });
         if (G.crew >= crewMax()) first('crewMax', G.day);
-        rep.timeline.push({ day: G.day, lv: G.level, money: G.money, earned: G.earned, rank: RANKS[rk][1], boat: G.boat, area: G.area, crew: G.crew, catches: G.catches, dex: Object.keys(G.dex).length, comp: Object.keys(G.comp).length, boss: Object.keys(G.bossGot).length });
+        rep.timeline.push({ led: G.hist.length ? Object.assign({}, G.hist[G.hist.length - 1]) : null, day: G.day, lv: G.level, money: G.money, earned: G.earned, rank: RANKS[rk][1], boat: G.boat, area: G.area, crew: G.crew, catches: G.catches, dex: Object.keys(G.dex).length, comp: Object.keys(G.comp).length, boss: Object.keys(G.bossGot).length });
         // 停滞・釣れない日の検出
         if (G.earned <= lastEarned) stagn++; else stagn = 0; lastEarned = G.earned;
         if (stagn === 4) rep.warnings.push(`${G.day}日目：4日間、売上が増えていません（進行が止まっている可能性）`);
