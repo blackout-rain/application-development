@@ -403,6 +403,10 @@ const inSeason=sp=>!sp.boss&&seasonOfSp(sp)===seasonOf();
 const SEA_PRICE=1.15,SEA_WEIGHT=1.5;
 const WX=[{n:'晴れ',e:'☀️',d:''},{n:'くもり',e:'☁️',d:'アタリが早い'},{n:'雨',e:'🌧️',d:'珍しい魚が寄りやすいが、糸が切れやすい'}];
 const wxWait=()=>G.wx===1?.85:1,wxDiff=()=>G.wx===2?1.08:1,wxRare=()=>G.wx===2?1:0;
+// 潮：毎日2時間の満潮の時間帯があり、アタリが早く、珍しい魚が寄りやすい（時間帯は日によって変わる）
+const tideStartH=()=>6+((G.day*5)%9);
+const tideNow=()=>{const s=tideStartH()*60;return !G.home&&G.min>=s&&G.min<s+120};
+const tideRare=()=>tideNow()?1:0,tideWait=()=>tideNow()?.9:1;
 /* ---------- 加工場 ---------- */
 const procFee=f=>Math.round(price(f,0)*PROC_FEE*(1-.25*techLv('pack')));
 const procFree=()=>Math.max(0,plantCap(G.fac.plant)-G.proc.length);
@@ -549,7 +553,7 @@ function quote(idx){
 /* ---------- fishing core ---------- */
 function pickSpecies(area=G.area){
   const list=SP.filter(s=>s.a===area&&!s.boss);
-  const bt=G.lv.bait+perks().rare+mealFx('rare')+wxRare()+.4*sx('luk');
+  const bt=G.lv.bait+perks().rare+mealFx('rare')+wxRare()+tideRare()+.4*sx('luk');
   const ws=list.map(s=>s.w*(s.w<=12?1+.25*bt:1)*(inSeason(s)?SEA_WEIGHT:1));
   let r=Math.random()*ws.reduce((a,b)=>a+b,0);
   for(let i=0;i<list.length;i++){r-=ws[i];if(r<=0)return list[i]}
@@ -562,7 +566,7 @@ function press(){
   switch(S.st){
     case'idle':
       if(G.fish.length>=cap()){if(G.autoSell&&G.fish.length){sell(G.fish.map((_,i)=>i));toast('魚箱がいっぱいなので自動で売りました')}else{say('魚箱がいっぱい。市場で売ろう。');return}}
-      S.st='wait';S.t=rnd(1.2,3.5)/(1+.2*G.lv.bait+.03*sx('agi'))*wxWait();say('浮きを見守ろう…');break;
+      S.st='wait';S.t=rnd(1.2,3.5)/(1+.2*G.lv.bait+.03*sx('agi'))*wxWait()*tideWait();say('浮きを見守ろう…');break;
     case'wait':
       S.st='idle';say('早すぎた。仕掛けを引き上げた。');break;
     case'bite':hook();break;
@@ -900,7 +904,7 @@ function hud(){
   setHtml(document.querySelector('[data-tab=town]'),`街${dailyReady()?'<i class="dot">!</i>':''}`);
   setHtml(document.querySelector('[data-tab=set]'),`設定${Cloud.kind==='app'&&Cloud.status==='signedout'&&hasProgress()?'<i class="dot">!</i>':''}`);
   $('#tkn').textContent=G.tk.auto;
-  $('#evline').textContent=[G.fix>0&&`🔧 船が故障中（${G.ins?'保険で無料':`修理費${yen(G.fix)}・夜に支払い`}）`,isTourDay()&&(tourIn()?`🏆 大会参加中：ベスト ${yen(G.tour.best)}`:'🏆 今日は釣り大会！（街タブから参加）'),`${SEASONS[seasonOf()].e}${SEASONS[seasonOf()].n}（${(G.day-1)%SEASON_LEN+1}/${SEASON_LEN}日目）・${WX[G.wx||0].e}${WX[G.wx||0].n}${WX[G.wx||0].d?'：'+WX[G.wx||0].d:''}`,ev()&&`${ev().e} 今日のできごと：${ev().n}（${ev().d}）`,G.debt>0&&`💳 借入 ${yen(G.debt)}`].filter(Boolean).join('　');
+  $('#evline').textContent=[G.fix>0&&`🔧 船が故障中（${G.ins?'保険で無料':`修理費${yen(G.fix)}・夜に支払い`}）`,isTourDay()&&(tourIn()?`🏆 大会参加中：ベスト ${yen(G.tour.best)}`:'🏆 今日は釣り大会！（街タブから参加）'),(!G.home&&`🌊 ${tideNow()?'満潮中！（アタリが早く、珍しい魚が寄る）':`満潮 ${tideStartH()}:00〜${tideStartH()+2}:00`}`),`${SEASONS[seasonOf()].e}${SEASONS[seasonOf()].n}（${(G.day-1)%SEASON_LEN+1}/${SEASON_LEN}日目）・${WX[G.wx||0].e}${WX[G.wx||0].n}${WX[G.wx||0].d?'：'+WX[G.wx||0].d:''}`,ev()&&`${ev().e} 今日のできごと：${ev().n}（${ev().d}）`,G.debt>0&&`💳 借入 ${yen(G.debt)}`].filter(Boolean).join('　');
   checkAch();
   $('#mealline').textContent=G.meal?`食事効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回`:'';
 }
@@ -1640,7 +1644,7 @@ const HELP=[
  {t:'魚を売る',b:'<p>釣った魚は魚箱に入ります（容量があります）。<span class="k">市場</span>タブで売ってお金にしましょう。</p><p>値段は、大きさ（★の数）・鮮度・今日の相場で決まります。大きい魚ほど高く売れ、経験値も多くもらえます。売れ残りは夜のたびに鮮度が落ちるので、早めに売るのがおすすめです。</p><p>同じ魚を続けて売ると<b>値崩れ</b>します（翌朝には半分もどる）。直売所を強化すると、1日に数匹だけ高く売れる<b>直売所の枠</b>が使えます。「すべて売る」は、高い魚から順に自動で有利な出荷先へ回します。市場タブの<b>経営レポート</b>で、収入・経費・稼ぎ頭の魚を確認できます。</p>'},
  {t:'ライバル漁師',b:'<p><span class="k">街</span>タブに、ライバル漁師5人との<b>週間売上</b>ランキングがあります。1週間の収入（売上・水揚げ・賞金・納品）が多いほど上位です。</p><p>7日ごとの夜に発表され、<b>3位まで</b>にBPと評判、<b>1位</b>はおまかせ釣り券もらえます。</p>'},
  {t:'釣り大会',b:'<p>7日ごとに<b>釣り大会</b>が開かれます。<span class="k">街</span>タブから、その日の朝に参加できます（参加費あり）。</p><ol><li>参加した日に、<b>自分で釣った魚</b>のうち、いちばん高い1匹の値段で競います（おまかせ釣り・従業員・主は対象外）</li><li>夜にライバル5人とのランキングが発表され、<b>3位まで賞金</b>、1位はおまかせ釣り券ももらえます</li><li>旬の魚や、大物を狙うと有利です</li></ol>'},
- {t:'季節と天気',b:'<p>12日ごとに<b>季節</b>が変わります（春→夏→秋→冬）。画面の上に、今の季節と今日の天気が出ます。</p><ol><li>その季節が<b>旬</b>の魚は、よく釣れて、売値も+15%。市場タブの相場に「旬」と出ます</li><li>天気は毎朝変わります。<b>くもり</b>はアタリが早い。<b>雨</b>は珍しい魚が寄りやすいが、糸が切れやすい</li></ol><p>旬の魚を狙って釣り、旬のうちに売ったり、加工したりすると得です。</p>'},
+ {t:'季節と天気',b:'<p>12日ごとに<b>季節</b>が変わります（春→夏→秋→冬）。画面の上に、今の季節と今日の天気が出ます。</p><ol><li>その季節が<b>旬</b>の魚は、よく釣れて、売値も+15%。市場タブの相場に「旬」と出ます</li><li>毎日2時間の<b>満潮</b>があり、その間はアタリが早く、珍しい魚が寄りやすくなります（時間帯は日によって変わります）</li><li>天気は毎朝変わります。<b>くもり</b>はアタリが早い。<b>雨</b>は珍しい魚が寄りやすいが、糸が切れやすい</li></ol><p>旬の魚を狙って釣り、旬のうちに売ったり、加工したりすると得です。</p>'},
  {t:'支店',b:'<p><span class="k">街</span>タブの<b>支店</b>で、海域ごとに支店を出せます（各2段階）。その海域の魚が<b>産地ブランド</b>として、売値+6%／Lv で売れます。毎晩の維持費が少し増えます。</p>'},
  {t:'研究開発',b:'<p><span class="k">街</span>タブの<b>研究所</b>で、お金を投じて恒久的な強化ができます（各3段階）。</p><ul><li>冷凍技術：売れ残りの鮮度が落ちにくい</li><li>省エネ船：船の維持費が減る</li><li>流通網：魚の売値アップ</li><li>漁具改良：巻き上げが速く、テンションが上がりにくい</li><li>人材育成：従業員が早くレベルアップ</li><li>加工技術：加工賃が減り、加工品が高く売れる</li></ul>'},
  {t:'加工場',b:'<p><span class="k">自宅・設備</span>タブで<b>加工場</b>を建てると、魚を加工品にできます。</p><ol><li><span class="k">市場</span>タブの魚の下にある「干物にする」「缶詰にする」を押す（加工賃は売値の8%）</li><li>夜を越すと完成（干物1晩・缶詰2晩）。市場タブの「加工品をすべて売る」で売れます</li><li>干物は売値×1.3、缶詰は×1.6。完成した加工品は<b>腐らず</b>、相場や値崩れの影響を受けません</li><li>1晩に加工できる数は、加工場のレベルで増えます</li></ol>'},
