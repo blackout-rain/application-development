@@ -318,6 +318,29 @@ await t('次の目標：船を買えるときに知らせ、ボタンで該当�
 });
 await t('次の目標：夜は「休もう」が最優先', 'mid', async p => eq(await ev(p, () => { G.home = 1; return goalList()[0].t.includes('夜') }), true));
 
+/* ---------- 色違い ---------- */
+await t('色違い：全魚種で、元と違う色の絵になり、同じ種はいつも同じ色', 'mid', async p => {
+  const r = await ev(p, () => { const bad = []; for (const s of NORM) { const v = vSp(s), v2 = vSp(s); if (v !== v2) bad.push('不安定' + s.n); if (s.d && JSON.stringify(v.d) === JSON.stringify(s.d)) bad.push('同色' + s.n); if (!s.d && !v.vf) bad.push('絵文字フィルタなし' + s.n); if (!icon(v) || icon(v) === icon(s)) bad.push('アイコン' + s.n) } return bad });
+  return eq(r, [], '問題');
+});
+await t('色違い：売値4倍・経験値2倍、確率は1.2%〜4%', 'mid', async p => {
+  const r = await ev(p, () => { const a = price({ n: 'アジ', size: 25, fresh: 100 }), b = price({ n: 'アジ', size: 25, fresh: 100, v: 1 }); const sp = SP.find(s => s.n === 'アジ'); const e1 = expGain(sp, 25, false, false), e2 = expGain(sp, 25, false, true); G.stat.luk = 1; const c0 = variantChance(); G.stat.luk = 999; const c1 = variantChance(); return { ratio: +(b / a).toFixed(1), eratio: +(e2 / e1).toFixed(1), c0, c1 } });
+  return r.ratio === 4 && r.eratio >= 1.7 && r.eratio <= 2.6 && r.c0 === .012 && r.c1 === .04 ? true : JSON.stringify(r);
+});
+await t('色違い：釣り上げると、魚箱・図鑑に記録され、保存しても残る', 'mid', async p => {
+  const r = await ev(p, () => { G.fish = []; const sp = SP.find(s => s.n === 'タイ'); S.sp = sp; S.size = 50; S.v = 1; S.dsp = vSp(sp); S.st = 'fight'; landed(); closeModals(); const f = G.fish[G.fish.length - 1]; const o = migrate(JSON.parse(JSON.stringify(G))); return { v: f.v, name: fname(f), vc: G.dex['タイ'].vc, keep: o.fish[o.fish.length - 1].v, dexKeep: o.dex['タイ'].vc } });
+  return r.v === 1 && r.name.endsWith('タイ') && r.name.length > 2 && r.vc >= 1 && r.keep === 1 && r.dexKeep >= 1 ? true : JSON.stringify(r);
+});
+await t('色違い：養殖・加工を通しても、色違いのまま／値段が保たれる', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.farm = 1; G.fac.farm = 2; G.fu.plant = 1; G.fac.plant = 2; G.money = 1e7; G.fish = [{ n: 'タイ', size: 50, fresh: 100, v: 1 }]; const base = price(G.fish[0]); startFarm(0); const inFarm = G.farm[0].v; harvestFarm(0); const back = G.fish[0].v; startProc(0, 0); return { inFarm, back, prod: G.proc[0].v > base * 1.2 } });
+  return r.inFarm === 1 && r.back === 1 && r.prod ? true : JSON.stringify(r);
+});
+await t('色違い：おまかせ釣りでも出て、結果に表示される', 'mid', async p => {
+  const r = await ev(p, () => { delete G.fu.missions; G.stat.luk = 99999; let v = 0, shown = false; for (let k = 0; k < 80 && !shown; k++) { G.home = 0; G.min = 360; S.st = 'idle'; G.fish = []; G.tk.auto = 3; autoFish(1); const txt = document.getElementById('box').innerText; if (G.fish.some(f => f.v)) { v++; shown = txt.includes('色違い') } closeModals() } return { v, shown } });
+  return r.v > 0 && r.shown ? true : JSON.stringify(r);
+});
+await t('色違い：主には出ない', 'mid', async p => eq(await ev(p, () => { let n = 0; for (let i = 0; i < 3000; i++) { G.comp[G.area] = 1; const bs = bossOf(G.area); S.sp = bs; rollFish(); if (S.sp.boss && S.v) n++ } return n }), 0));
+
 /* ---------- 表示 ---------- */
 await t('金額表示：負数・巨大な値・小数でも崩れない', 'mid', async p => eq(await ev(p, () => [yen(0), yen(-1500), yen(1234567), yen(2.4e8), yen(1.5e9), yen(0.4)]), ['¥0', '-¥1,500'.replace('-¥', '¥-'), '¥1,234,567', '¥2.40億', '¥1.5億'.replace('1.5億', '15.0億'), '¥0']));
 await t('全タブを、文字サイズ3種類・幅320pxで開いても、横スクロールしない', 'all', async p => {
