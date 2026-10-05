@@ -27,12 +27,18 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: 製品版に管理者機能が混ざっていないか
         run: node check-prod.mjs
+      - name: 翻訳の検査（ぬけ・{1}やタグの食い違い）
+        run: node i18n.mjs check
       - name: 開発版をビルド
         run: node build-dev.mjs
       - name: 機能テスト（qa）
         run: node qa.mjs --no-build
       - name: モンキーテスト（ランダム操作）
         run: node monkey.mjs --no-build --steps 300 --seeds 2
+      - name: 英語表示のモンキーテスト（日本語の残りも検出）
+        run: node monkey.mjs --no-build --lang en --steps 300 --seeds 2
+      - name: 英語表示の自動プレイ（日本語の残りを探す）
+        run: node i18n-leak.mjs --no-build --days 20
       - name: 失敗時に開発版を保存
         if: failure()
         uses: actions/upload-artifact@v4

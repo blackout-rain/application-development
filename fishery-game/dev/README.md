@@ -41,3 +41,13 @@ node dev/check-prod.mjs       # 製品版に、管理者機能が混ざってい
 
 手元でも同じことができます：`cd fishery-game/dev && npm ci && npx playwright install chromium && npm run qa`
 失敗したときは、そのときの開発版（`dist/index.html`）がワークフローの成果物として残ります。
+
+## 多言語（日本語／English）
+- 文章は `T("日本語の原文", [差し込む値])` で書く。原文の `{1}` `{2}` が、差し込む値の場所。英訳は `index.html` の `EN`（`/*EN_BEGIN*/ … /*EN_END*/`）に「原文 → 英訳」で入っている。
+- 魚など、保存データのIDになっている日本語の名前は、`NAMES`（`/*NAMES_BEGIN*/ … /*NAMES_END*/`）で、**表示だけ**英語に置き換える（画面の文字を、`MutationObserver` で置き換える）。保存データは、どちらの言語でも同じ。
+- 全角の記号（、。（）・：！？）は、英語表示のとき自動で半角の記号に直る。
+- 言語は、設定タブの「言語 / Language」で切り替える（切り替えるとページを読み込み直す）。選ばなければ、端末の言語（`navigator.language`）で自動。保存先は `localStorage` の `umikaze-lang`。
+- 新しい文章を足したら、`node dev/i18n.mjs check` で「訳のぬけ」「{1}やHTMLタグの食い違い」を確認する。ぬけがあるとCIが失敗する。
+  - `node dev/i18n.mjs keys` … 原文の一覧（使われ方つき） / `apply file.json` … 翻訳をまとめて取り込む / `prune` … 使われなくなった訳を消す
+- 英語表示のテスト：`node dev/monkey.mjs --lang en`（ランダム操作。日本語の残りもエラー扱い）、`node dev/i18n-leak.mjs`（英語のまま自動プレイして、日本語の残りを探す）、`node dev/qa.mjs`（名前が `[EN]` で始まるテストが英語表示）。
+- 注意：単数・複数が崩れない書き方にする（「{1} day(s)」でなく「Day {1}」や「×{1}」）。魚の名前の前に a/an を付けない。
