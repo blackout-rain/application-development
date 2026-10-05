@@ -11,11 +11,14 @@
     "i18n": "node i18n.mjs check",
     "order": "node check-order.mjs",
     "leak": "node i18n-leak.mjs --days 30",
-    "monkey-en": "node monkey.mjs --lang en --steps 300 --seeds 2"
+    "monkey-en": "node monkey.mjs --lang en --steps 300 --seeds 2",
+    "format": "prettier --write \"../js/**/*.js\" ../css/game.css",
+    "format:check": "prettier --check \"../js/**/*.js\" ../css/game.css"
   },
   "devDependencies": {
-    "playwright": "1.56.1",
     "acorn": "8.18.0",
-    "acorn-walk": "8.3.5"
+    "acorn-walk": "8.3.5",
+    "playwright": "1.56.1",
+    "prettier": "^3.3.3"
   }
 }

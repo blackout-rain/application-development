@@ -27,6 +27,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: 製品版に管理者機能が混ざっていないか
         run: node check-prod.mjs
+      - name: コードの書式の検査（prettier）
+        run: npx prettier --check "../js/**/*.js" ../css/game.css
       - name: ファイルの読み込み順の検査
         run: node check-order.mjs
       - name: 翻訳の検査（ぬけ・{1}やタグの食い違い）
