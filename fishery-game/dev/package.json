@@ -9,6 +9,7 @@
     "qa": "node qa.mjs",
     "monkey": "node monkey.mjs --steps 300 --seeds 2",
     "i18n": "node i18n.mjs check",
+    "order": "node check-order.mjs",
     "leak": "node i18n-leak.mjs --days 30",
     "monkey-en": "node monkey.mjs --lang en --steps 300 --seeds 2"
   },

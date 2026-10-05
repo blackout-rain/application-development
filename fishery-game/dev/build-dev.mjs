@@ -1,12 +1,13 @@
 // 開発版（管理者パネル付き）を作る。出力: dev/dist/index.html
-//  - ../index.html（製品版と同じゲーム本体）に、dev/admin.js を取り込む
+//  - ゲーム本体（index.html と、css・js・i18n）を1つにまとめて、dev/admin.js と bot.js を取り込む
 //  - 保存先のキーを別にする（製品版・本番データと混ざらない）
 //  - タイトルに DEV を付ける
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { bundleGame } from './bundle.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
-let game = readFileSync(path.join(here, '../index.html'), 'utf8');
+let game = bundleGame();   // index.html が読み込む css・js・i18n を、1つのHTMLにまとめたもの
 const admin = readFileSync(path.join(here, 'admin.js'), 'utf8');
 const bot = readFileSync(path.join(here, 'bot.js'), 'utf8');
 

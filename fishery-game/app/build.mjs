@@ -1,9 +1,10 @@
-// ../index.html（ゲーム本体）から、アプリ用の www/ を作る
+// ../index.html と css・js・i18n（ゲーム本体）から、アプリ用の www/ を作る
 //  - 単体のHTMLを、普通のHTML文書の形に包む
 //  - ネットのフォント（Google Fonts）への依存をやめる（フォールバックの日本語フォントが使われる）
 //  - Firebase連携（cloud.js）を、ゲームより先に読み込ませる
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { build } from 'esbuild';
+import { bundleGame } from '../dev/bundle.mjs';
 
 mkdirSync('www', { recursive: true });
 
@@ -19,7 +20,7 @@ await build({
   outfile: 'www/notify.js', logLevel: 'info'
 });
 
-let game = readFileSync('../index.html', 'utf8');
+let game = bundleGame();   // index.html・css・js・i18n を、1つにまとめる
 game = game.replace(/<link[^>]*fonts\.(googleapis|gstatic)\.com[^>]*>\s*/g, '');
 if (game.includes('<script>') === false) throw new Error('ゲームの<script>が見つかりません');
 game = game.replace('<script>', '<script src="cloud.js"></script>\n<script src="notify.js"></script>\n<script>');

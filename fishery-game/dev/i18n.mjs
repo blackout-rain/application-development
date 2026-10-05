@@ -6,55 +6,61 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 const here = path.dirname(fileURLToPath(import.meta.url));
-const file = path.join(here, '../index.html');
-const html = readFileSync(file, 'utf8');
-const a0 = html.indexOf('<script>') + 8, b0 = html.lastIndexOf('</script>');
-const src = html.slice(a0, b0);
+const root = path.join(here, '..');
+const html = readFileSync(path.join(root, 'index.html'), 'utf8');
 const JP = /[ぁ-んァ-ヶ一-龠]/;
+// ゲームのスクリプトを、ファイルごとに読む（index.html の <script src> の順）。英訳の本体（i18n/）は、対象から外す
+const jsFiles = [...html.matchAll(/<script src="((?:js)\/[^"]+)"><\/script>/g)].map(m => m[1]);
+const EN_FILE = path.join(root, 'i18n/en.js'), NAMES_FILE = path.join(root, 'i18n/names.js');
 
 // 原文を集める（acorn を使う。無ければ npm i acorn）
 function load(name) { try { return createRequire(import.meta.url)(name) } catch (e) { return createRequire(path.join(process.env.ACORN_DIR || here, '/'))(name) } }
 const acorn = load('acorn'), walk = load('acorn-walk');
-const ast = acorn.parse(src, { ecmaVersion: 2022 });
 const found = new Map();      // 原文 → 使われ方
-walk.ancestor(ast, {
-  CallExpression(n, _, anc) {
-    if (n.callee.type !== 'Identifier' || n.callee.name !== 'T') return;
-    const a = n.arguments[0]; if (!a) return;
-    let key = null;
-    if (a.type === 'Literal' && typeof a.value === 'string') key = a.value;
-    else if (a.type === 'TemplateLiteral') key = a.quasis.map(q => q.value.cooked).join('{}');
-    if (key === null || !JP.test(key)) return;
-    if (!found.has(key)) {
-      const line = src.slice(0, n.start).split('\n').length + html.slice(0, a0).split('\n').length - 1;
-      const before = src.slice(Math.max(0, n.start - 90), n.start).replace(/\s+/g, ' ');
-      found.set(key, { line, before, args: n.arguments[1] ? src.slice(n.arguments[1].start, n.arguments[1].end).slice(0, 160) : '' });
+for (const f of jsFiles) {
+  const src = readFileSync(path.join(root, f), 'utf8');
+  const ast = acorn.parse(src, { ecmaVersion: 2022 });
+  walk.ancestor(ast, {
+    CallExpression(n, _, anc) {
+      if (n.callee.type !== 'Identifier' || n.callee.name !== 'T') return;
+      const a = n.arguments[0]; if (!a) return;
+      let key = null;
+      if (a.type === 'Literal' && typeof a.value === 'string') key = a.value;
+      else if (a.type === 'TemplateLiteral') key = a.quasis.map(q => q.value.cooked).join('{}');
+      if (key === null || !JP.test(key)) return;
+      if (!found.has(key)) {
+        const line = src.slice(0, n.start).split('\n').length;
+        const before = src.slice(Math.max(0, n.start - 90), n.start).replace(/\s+/g, ' ');
+        found.set(key, { file: f, line, before, args: n.arguments[1] ? src.slice(n.arguments[1].start, n.arguments[1].end).slice(0, 160) : '' });
+      }
     }
-  }
-});
-// 静的なHTMLの文字
-const stat = new Map();
-for (const m of html.slice(0, a0).matchAll(/<([a-z0-9]+)[^>]*\bdata-i18n(?:-aria)?(?:="([^"]*)")?[^>]*>([^<]*)</g)) {
-  const k = m[2] || m[3]; if (k && JP.test(k) && !found.has(k)) stat.set(k, { line: 0, before: 'static html <' + m[1] + '>', args: '' });
+  });
 }
-for (const m of html.slice(0, a0).matchAll(/data-i18n-aria="([^"]*)"/g)) if (!found.has(m[1])) stat.set(m[1], { line: 0, before: 'aria-label', args: '' });
+// 静的なHTMLの文字（index.html の data-i18n）
+const stat = new Map();
+for (const m of html.matchAll(/<([a-z0-9]+)[^>]*\bdata-i18n(?:-aria)?(?:="([^"]*)")?[^>]*>([^<]*)</g)) {
+  const k = m[2] || m[3]; if (k && JP.test(k) && !found.has(k)) stat.set(k, { file: 'index.html', line: 0, before: 'static html <' + m[1] + '>', args: '' });
+}
+for (const m of html.matchAll(/data-i18n-aria="([^"]*)"/g)) if (!found.has(m[1])) stat.set(m[1], { file: 'index.html', line: 0, before: 'aria-label', args: '' });
 for (const [k, v] of stat) found.set(k, v);
 
+// i18n/en.js（EN）・i18n/names.js（NAMES）の、/*EN_BEGIN*/ … /*EN_END*/ の中身
+const blockFile = name => name === 'EN' ? EN_FILE : NAMES_FILE;
 function block(name) {
   const re = new RegExp(`/\\*${name}_BEGIN\\*/([\\s\\S]*?)/\\*${name}_END\\*/`);
-  const m = src.match(re); if (!m) return {};
+  const m = readFileSync(blockFile(name), 'utf8').match(re); if (!m) return {};
   return Function('"use strict";return ({' + m[1] + '})')();
 }
 const EN = block('EN');
 
 const cmd = process.argv[2];
-// index.html の EN / NAMES ブロックを書きかえる
+// i18n/en.js・i18n/names.js の EN / NAMES ブロックを書きかえる
 function writeBlock(name, obj) {
   const lines = Object.entries(obj).map(([k, v]) => JSON.stringify(k) + ':' + JSON.stringify(v) + ',').join('\n');
   const re = new RegExp(`(/\\*${name}_BEGIN\\*/)[\\s\\S]*?(/\\*${name}_END\\*/)`);
-  const cur = readFileSync(file, 'utf8');
+  const f = blockFile(name), cur = readFileSync(f, 'utf8');
   if (!re.test(cur)) throw new Error(name + ' のマーカーがありません');
-  writeFileSync(file, cur.replace(re, (m, a, b) => a + '\n' + lines + '\n' + b));
+  writeFileSync(f, cur.replace(re, (m, a, b) => a + '\n' + lines + '\n' + b));
 }
 if (cmd === 'apply' || cmd === 'apply-names') {
   const name = cmd === 'apply' ? 'EN' : 'NAMES', cur = cmd === 'apply' ? block('EN') : block('NAMES');

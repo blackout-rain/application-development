@@ -1,5 +1,5 @@
 /*__UMIKAZE_ADMIN__*/
-// 管理者（開発）用パネル。ゲーム本体（index.html）には含まれない。開発版のビルド（dev/build-dev.mjs）だけが取り込む。
+// 管理者（開発）用パネル。ゲーム本体（index.html・js/ など）には含まれない。開発版のビルド（dev/build-dev.mjs）だけが取り込む。
 // 進行を加速して、テストやバグ探しを楽にするための道具。製品版には入れてはいけない（dev/check-prod.mjs が検査する）。
 (function () {
   'use strict';
