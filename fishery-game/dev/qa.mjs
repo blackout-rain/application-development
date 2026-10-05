@@ -64,7 +64,7 @@ await t('魚箱が空でも、すべて売るでエラーにならない', 'mid'
 
 /* ---------- 注文 ---------- */
 await t('注文：納品で魚が減り、報酬が入り、評判が上がる', 'mid', async p => {
-  const r = await ev(p, () => { G.fu.orders = 1; refreshOrders(); const o = G.ord[0]; G.fish = []; for (let i = 0; i < o.q; i++) G.fish.push({ n: o.n, size: o.sz + 1, fresh: 100 }); const m0 = G.money, r0 = G.rep; deliver(o.id); return { gone: G.fish.length, paid: G.money > m0, rep: G.rep > r0, left: G.ord.some(x => x.id === o.id), done: G.orderDone } });
+  const r = await ev(p, () => { G.fu.orders = 1; refreshOrders(); const o = G.ord[0]; G.fish = []; for (let i = 0; i < o.q; i++) G.fish.push({ n: o.n, size: o.sz + 1, fresh: 100, g: o.g === undefined ? 0 : o.g }); const m0 = G.money, r0 = G.rep; deliver(o.id); return { gone: G.fish.length, paid: G.money > m0, rep: G.rep > r0, left: G.ord.some(x => x.id === o.id), done: G.orderDone } });
   return r.gone === 0 && r.paid && r.rep && !r.left && r.done >= 1 ? true : JSON.stringify(r);
 });
 await t('注文：条件に足りない魚（小さい・鮮度）では納品できない', 'mid', async p => {
@@ -72,7 +72,7 @@ await t('注文：条件に足りない魚（小さい・鮮度）では納品�
   return r[0] === r[1] && r[1] === r[2] ? true : JSON.stringify(r);
 });
 await t('注文：すべて売るで、注文用の魚は残る（魚箱の半分まで）', 'mid', async p => {
-  const r = await ev(p, () => { G.fu.orders = 1; refreshOrders(); const o = G.ord[0]; G.fish = []; for (let i = 0; i < o.q; i++) G.fish.push({ n: o.n, size: o.sz + 1, fresh: 100 }); G.fish.push({ n: 'イワシ', size: 12, fresh: 100 }); const rsv = reservedIdx(); return { rsv: rsv.size, cap: cap(), q: o.q } });
+  const r = await ev(p, () => { G.fu.orders = 1; refreshOrders(); const o = G.ord[0]; G.fish = []; for (let i = 0; i < o.q; i++) G.fish.push({ n: o.n, size: o.sz + 1, fresh: 100, g: o.g === 1 ? 1 : 0 }); G.fish.push({ n: 'イワシ', size: 12, fresh: 100 }); const rsv = reservedIdx(); return { rsv: rsv.size, cap: cap(), q: o.q } });
   return r.rsv === Math.min(r.q, Math.floor(r.cap / 2)) ? true : JSON.stringify(r);
 });
 await t('注文：期限切れは翌々日に消えて、補充される', 'mid', async p => {
@@ -232,7 +232,7 @@ await t('留守の水揚げ：8時間が上限・お金がマイナスになら�
   return r.a ? true : JSON.stringify(r);
 });
 await t('おまかせ釣り：5回ぶん進み、券が減り、時刻が進む', 'mid', async p => {
-  const r = await ev(p, () => { G.home = 0; G.min = 360; S.st = 'idle'; G.fish = []; delete G.fu.missions; G.tk.auto = 3; autoFish(1); const used = 3 - G.tk.auto; const adv = G.min - 360; closeModals(); return { used, adv, want: 5 * ATTEMPT_MIN } });
+  const r = await ev(p, () => { G.home = 0; G.min = 360; S.st = 'idle'; G.fish = []; G.ach = Object.fromEntries(ACH.map(a => [a.id, 1])); G.msn = { day: G.day, items: [], bonus: 1 }; G.tk.auto = 3; autoFish(1); const used = 3 - G.tk.auto; const adv = G.min - 360; closeModals(); return { used, adv, want: 5 * ATTEMPT_MIN } });
   return r.used === 1 && r.adv === r.want ? true : JSON.stringify(r);
 });
 await t('通常の釣り：夜（home）は投げられない', 'mid', async p => eq(await ev(p, () => { G.home = 1; S.st = 'idle'; press(); return S.st }), 'idle'));
@@ -340,6 +340,28 @@ await t('色違い：おまかせ釣りでも出て、結果に表示される',
   return r.v > 0 && r.shown ? true : JSON.stringify(r);
 });
 await t('色違い：主には出ない', 'mid', async p => eq(await ev(p, () => { let n = 0; for (let i = 0; i < 3000; i++) { G.comp[G.area] = 1; const bs = bossOf(G.area); S.sp = bs; rollFish(); if (S.sp.boss && S.v) n++ } return n }), 0));
+
+/* ---------- オス・メス ---------- */
+await t('オスメス：釣れた魚に性別があり、図鑑に数が記録され、ペアで祝い金', 'mid', async p => {
+  const r = await ev(p, () => { G.dex = {}; G.fish = []; const sp = SP.find(s => s.n === 'アジ'); const seen = new Set(); let bonus = 0; for (let i = 0; i < 40 && seen.size < 2; i++) { S.sp = sp; S.size = 22; S.v = 0; S.dsp = sp; S.g = i % 2; S.st = 'fight'; const m0 = G.money; landed(); closeModals(); seen.add(S.g); if (G.dex['アジ'].pair) { bonus = G.money - m0; break } } const d = G.dex['アジ']; return { g: d.g, pair: d.pair, bonus: bonus > 0, fishG: G.fish.every(f => f.g === 0 || f.g === 1) } });
+  return r.pair === 1 && r.g[0] >= 1 && r.g[1] >= 1 && r.bonus && r.fishG ? true : JSON.stringify(r);
+});
+await t('オスメス：メスは売値+5%', 'mid', async p => {
+  const r = await ev(p, () => { const a = price({ n: 'タイ', size: 50, fresh: 100, g: 0 }), b = price({ n: 'タイ', size: 50, fresh: 100, g: 1 }); return +(b / a).toFixed(2) });
+  return r >= 1.04 && r <= 1.06 ? true : JSON.stringify(r);
+});
+await t('オスメス：養殖でペアから稚魚が生まれる／空きがなければ生まれない／オス同士では生まれない', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.farm = 1; G.fac.farm = 3; G.farm = [{ n: 'アジ', sz: 20, fr: 100, g: 0 }, { n: 'アジ', sz: 20, fr: 100, g: 1 }]; let born = 0; for (let i = 0; i < 60; i++) { G.farm = G.farm.slice(0, 2); const n0 = G.farm.length; growFarm(); if (G.farm.length > n0) born++ } const kid = G.farm[2]; G.farm = [{ n: 'アジ', sz: 20, fr: 100, g: 0 }, { n: 'アジ', sz: 20, fr: 100, g: 0 }]; let bornMM = 0; for (let i = 0; i < 60; i++) { G.farm = G.farm.slice(0, 2); const n0 = G.farm.length; growFarm(); if (G.farm.length > n0) bornMM++ } G.farm = Array.from({ length: farmCap(G.fac.farm) }, (_, i) => ({ n: 'アジ', sz: 20, fr: 100, g: i % 2 })); const full0 = G.farm.length; for (let i = 0; i < 60; i++) growFarm(); return { born, bornMM, full: G.farm.length === full0, kidOk: !kid || (kid.sz === SP.find(s => s.n === 'アジ').min && (kid.g === 0 || kid.g === 1)) } });
+  return r.born > 3 && r.born < 30 && r.bornMM === 0 && r.full && r.kidOk ? true : JSON.stringify(r);
+});
+await t('オスメス：注文のオス/メス指定が、条件に使われる', 'mid', async p => {
+  const r = await ev(p, () => { G.fu.orders = 1; G.ord = [{ id: 99, n: 'アジ', q: 1, sz: 10, fr: 50, until: G.day + 2, g: 1 }]; G.fish = [{ n: 'アジ', size: 25, fresh: 100, g: 0 }]; const a = ordMatch(G.ord[0], G.fish[0]); G.fish[0].g = 1; const b = ordMatch(G.ord[0], G.fish[0]); G.ord[0].g = undefined; G.fish[0].g = 0; const c = ordMatch(G.ord[0], G.fish[0]); let n = 0, tot = 0; for (let i = 0; i < 1500; i++) { const o = newOrder(); tot++; if (o.g !== undefined) n++ } return { a, b, c, share: +(n / tot).toFixed(2) } });
+  return !r.a && r.b && r.c && r.share > .12 && r.share < .28 ? true : JSON.stringify(r);
+});
+await t('オスメス：古い魚（性別なし）を読み込むと、性別が付く', 'mid', async p => {
+  const r = await ev(p, () => { const o = migrate({ v: 1, fish: [{ n: 'アジ', size: 20, fresh: 100 }], farm: [{ n: 'アジ', sz: 20 }] }); return [o.fish[0].g, o.farm[0].g].every(g => g === 0 || g === 1) });
+  return r;
+});
 
 /* ---------- 表示 ---------- */
 await t('金額表示：負数・巨大な値・小数でも崩れない', 'mid', async p => eq(await ev(p, () => [yen(0), yen(-1500), yen(1234567), yen(2.4e8), yen(1.5e9), yen(0.4)]), ['¥0', '-¥1,500'.replace('-¥', '¥-'), '¥1,234,567', '¥2.40億', '¥1.5億'.replace('1.5億', '15.0億'), '¥0']));

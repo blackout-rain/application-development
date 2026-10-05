@@ -108,7 +108,7 @@
     AREAS.forEach((_, i) => checkComplete(i));
   }
   function maxAll() { UP.forEach(u => G.lv[u.k] = u.c.length); FAC.forEach(f => G.fac[f.k] = f.c.length); G.crew = crewMax(); syncCrew(true); }
-  function giveFish(n) { for (let i = 0; i < n && G.fish.length < cap(); i++) { const s = pickSpecies(); G.fish.push({ n: s.n, size: Math.round(s.min + (s.max - s.min) * Math.random()), fresh: 100 }) } }
+  function giveFish(n) { for (let i = 0; i < n && G.fish.length < cap(); i++) { const s = pickSpecies(); G.fish.push({ n: s.n, size: Math.round(s.min + (s.max - s.min) * Math.random()), fresh: 100, g: rndG() }) } }
 
   /* ---------- プリセット ---------- */
   const PRE = {
