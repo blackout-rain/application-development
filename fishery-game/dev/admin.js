@@ -54,6 +54,9 @@
     if (G.level < 1) bad.push('level が1未満');
     if (G.exp < 0 || G.exp >= expNeed(G.level) + 1) bad.push(`exp が範囲外（${G.exp}/${expNeed(G.level)}）`);
     if (G.bp < 0) bad.push('bp がマイナス');
+    fin('debt', G.debt); if (G.debt < 0) bad.push('debt がマイナス');
+    if (G.ev && !EVS[G.ev]) bad.push('ev（できごと）が不正');
+    if (G.cr && G.cr.length > G.crew) bad.push('従業員の名簿が人数より多い');
     ST.forEach(s => { fin('stat.' + s.k, G.stat[s.k]); if (G.stat[s.k] < 1) bad.push(`stat.${s.k} が1未満`); if (G.stat[s.k] - 1 < G.alloc[s.k]) bad.push(`alloc.${s.k} が合計より大きい`) });
     if (G.fish.length > cap()) bad.push(`魚箱が上限超え（${G.fish.length}/${cap()}）`);
     G.fish.forEach((f, i) => { if (!SP.find(s => s.n === f.n)) bad.push(`魚箱[${i}] 不明な魚 ${f.n}`); if (!(f.size > 0)) bad.push(`魚箱[${i}] サイズ異常`); if (!(f.fresh > 0 && f.fresh <= 100)) bad.push(`魚箱[${i}] 鮮度異常 ${f.fresh}`) });
@@ -156,6 +159,7 @@
     const t = A.ui.tab;
     if (t === 'prog') return `<h4>日にちを進める（帰港→給料→相場→朝まで自動）</h4><div class="r">${[1, 7, 30, 100].map(n => btn('skip', `+${n}日`, `data-n="${n}"`)).join('')}</div>
       <h4>お金（売上にも加算）</h4><div class="r">${[1e4, 1e6, 1e8].map(n => btn('money', '+' + num(n), `data-n="${n}"`)).join('')}</div>
+      <h4>今日のできごと</h4><div class="r">${Object.entries(EVS).map(([k, e]) => btn('ev', e.n, `data-n="${k}"`)).join('')}${btn('ev', 'なし', 'data-n="none"')}</div>
       <h4>経験値</h4><div class="r">${[1e3, 1e4, 1e5, 1e6].map(n => btn('exp', '+' + num(n), `data-n="${n}"`)).join('')}</div>
       <h4>レベルを指定（上げる方向のみ）</h4><div class="r"><input type="number" id="adm-lv" min="1" max="99" value="${A.ui.lv}">${btn('setlv', 'そのレベルまで上げる')}</div>
       <h4>ランクに到達させる</h4><div class="r"><select id="adm-rank">${RANKS.map((r, i) => `<option value="${i}" ${i === A.ui.rank ? 'selected' : ''}>${r[1]}（¥${num(r[0])}）</option>`).join('')}</select>${btn('setrank', '到達')}</div>
@@ -203,6 +207,7 @@
     close: () => { A.ui.open = false; render() },
     tab: n => { A.ui.tab = n; render() },
     skip: n => act(`+${n}日`, () => { for (let i = 0; i < n; i++) skipDay() }),
+    ev: k => act(`できごと ${k}`, () => { G.ev = k === 'none' ? null : k; hud(); renderAll() }),
     money: n => act(`お金 +${n}`, () => { G.money += +n; earn(+n) }),
     exp: n => act(`EXP +${n}`, () => addExp(+n)),
     setlv: () => act('レベル指定', () => { A.ui.lv = +$('#adm-lv').value; setLevel(A.ui.lv) }),

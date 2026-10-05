@@ -85,6 +85,7 @@
     }
     function evening() {
       openTab('sell'); click('#sellall');
+      if (G.debt > 0 && G.money > G.debt * 1.5) { openTab('town'); click('[data-repay="all"]') }   // 借りていたら返す（実際の返済ボタンを通す）
       openTab('home');
       const reserve = G.crew * AREAS[G.boat].wage * 3 + 500;
       for (let i = 0; i < 14; i++) {
@@ -108,6 +109,7 @@
       if (r < .2) { G.diff = (G.diff + 1) % 3; G.fs = Math.floor(Math.random() * 3); applyUi(); save() }
       else if (r < .4) { applySave(migrate(JSON.parse(JSON.stringify(G))), 'ボット：保存→読み込み'); }
       else if (r < .7) { ['fish', 'sell', 'town', 'home', 'stat', 'dex', 'set'].forEach(t => guard('画面 ' + t, () => openTab(t))); openTab('fish') }
+      else if (r < .8) { guard('銀行', () => { openTab('town'); click('[data-loan]'); openTab('fish') }) }
       else if (r < .85) { guard('ランク一覧', () => { showRanks(); closeModals() }) }
       else { const a = Math.floor(Math.random() * (G.boat + 1)); guard('主の診断', () => { showBossAdvice(a, 0); closeModals() }) }
     }
