@@ -8,8 +8,9 @@
 - [ ] Firebaseプロジェクトの作成（README の手順 1〜3）
 
 ## B. アプリに必要なもの
-- [ ] アプリ名、短い説明（80文字）、詳しい説明（4000文字以内）
-- [ ] アイコン 512×512 / 機能グラフィック 1024×500 / スクリーンショット（スマホ用 2枚以上）
+- [ ] アプリ名、短い説明（80文字）、詳しい説明（4000文字以内）→ `store/STORE_LISTING.md`（【　】を埋める。広告・課金の有無などの事実を確認）
+- [ ] アイコン 512×512 → `store/icon-512.png` ／ 機能グラフィック 1024×500 → `store/feature-graphic-1024x500.png` ／ スクリーンショット（スマホ用 2枚以上）→ `store/screenshots/`
+- [ ] アプリのアイコン・スプラッシュを組み込む → `npm run assets:icons`
 - [ ] パッケージ名を決める（`capacitor.config.json` の `appId`。公開後は変更できません）
 - [ ] 署名付きAAB（Android App Bundle）のビルド。Play App Signing を使う
 - [ ] プライバシーポリシーのURL（`public/privacy.html` を、Firebase Hosting で公開 → `https://プロジェクトID.web.app/privacy`）

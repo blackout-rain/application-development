@@ -10,6 +10,9 @@ src/firebase-config.js ← あなたのFirebase設定を貼る
 firestore.rules       データの守りのルール（本人だけが自分のデータを読み書き）
 public/               プライバシーポリシー・アカウント削除ページ（Firebase Hostingで公開）
 build.mjs             ../index.html から、アプリ用の www/ を作る
+assets/               アイコン・スプラッシュ画像の元（`npm run assets:icons` でAndroid用に展開）
+store/                ストア用の画像（アイコン512・フィーチャーグラフィック・スクリーンショット8枚）と、掲載文の下書き
+tools/                上の画像を作り直すスクリプト
 STORE_CHECKLIST.md    ストア申請のチェックリスト
 ```
 
@@ -52,6 +55,7 @@ cd app
 npm install
 npx cap add android      # 最初の1回だけ。android/ フォルダができる
 # → google-services.json を android/app/ に置く
+npm run assets:icons     # アイコンとスプラッシュ画像を、android/ に組み込む（assets/ の画像から）
 npm run android          # www/ を作り、Android Studio を開く
 ```
 Android Studio で、実機を選んで ▶（実行）を押します。
@@ -74,6 +78,18 @@ Android Studio で、実機を選んで ▶（実行）を押します。
 2. [Firebase CLI](https://firebase.google.com/docs/cli) で公開: `npx firebase-tools login` → `npx firebase-tools deploy --only hosting,firestore:rules`
    → `https://プロジェクトID.web.app/privacy` がプライバシーポリシーのURLになります。
 3. `STORE_CHECKLIST.md` に沿って、Play Consoleで申請します。
+
+## ストア用の画像と文章
+- `store/STORE_LISTING.md`：アプリ名・短い説明・詳しい説明・リリースノート・審査メモの下書き（【　】は自分で埋める）
+- `store/icon-512.png`：Play Store用アイコン
+- `store/feature-graphic-1024x500.png`：フィーチャーグラフィック
+- `store/screenshots/`：スマホ用スクリーンショット8枚（1080×1920。実際のゲーム画面）
+
+ゲームの見た目を変えたら、画像を作り直せます（アイコンの魚や、スクリーンショットは、ゲームから自動で作られます）。
+```bash
+npm i -D playwright && npx playwright install chromium   # 最初の1回だけ
+npm run assets:store
+```
 
 ## ゲームを直したとき
 `../index.html` を直したら、`npm run sync` を実行して、Android Studio で再ビルドします。
