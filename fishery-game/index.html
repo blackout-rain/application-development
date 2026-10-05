@@ -452,6 +452,7 @@ const FEATS=[
   {k:'roles',n:'従業員の役割（営業）',h:'レベル10',ok:()=>G.level>=10},
   {k:'branch',n:'支店（街タブ）',h:'主を1体釣る',ok:()=>nBoss()>=1},
   {k:'plant',n:'加工場（自宅・設備タブ）',h:'深海に出られるようになる',ok:()=>G.boat>=2},
+  {k:'treasure',n:'漂流物・宝箱',h:'レベル7',ok:()=>G.level>=7},
   {k:'bait',n:'釣具店（エサ・ルアー）',h:'レベル12',ok:()=>G.level>=12},
   {k:'tide',n:'潮（満潮）',h:'レベル12',ok:()=>G.level>=12},
   {k:'farm',n:'養殖いかだ（自宅・設備タブ）',h:'主を2体釣る',ok:()=>nBoss()>=2},
@@ -470,6 +471,20 @@ function checkFeat(){
 function lockedHtml(){
   const l=FEATS.filter(f=>!feat(f.k));if(!l.length)return '';
   return `<h2>これから解放される機能</h2><div class="card" style="font-size:.82rem">${l.slice(0,6).map(f=>`<div class="ln"><span>🔒 ${f.n}</span><span style="color:var(--sub);font-size:.76rem;text-align:right">${f.h}</span></div>`).join('')}${l.length>6?`<div style="color:var(--sub);font-size:.76rem;margin-top:4px">ほか${l.length-6}件</div>`:''}<div style="color:var(--sub);font-size:.76rem;margin-top:6px">レベルを上げたり、新しい海域に出たり、主を釣ると、新しい機能が使えるようになります。</div></div>`;
+}
+/* ---------- 漂流物・宝箱 ---------- */
+// 釣りの合間に、ときどき（4%）漂流物を見つける
+const TREASURE_NAMES=['流れ着いた木箱','古い宝箱','漂流瓶','ガラス玉の浮き','錆びた金庫'];
+function treasureRoll(){
+  if(!feat('treasure')||Math.random()>=.04)return;
+  const nm=TREASURE_NAMES[Math.floor(Math.random()*TREASURE_NAMES.length)],r=Math.random();G.treasure++;
+  let msg;
+  if(r<.5){const g=Math.round(tourBase()*rnd(4,12)/10)*10;G.money+=g;led('gold',g);msg=`${yen(g)}`}
+  else if(r<.7){G.tk.auto++;msg='おまかせ釣り券×1'}
+  else if(r<.85){G.tk.meal++;msg='食事券×1'}
+  else if(r<.95){G.bp++;msg='BP+1'}
+  else{const g=Math.round(tourBase()*rnd(20,40)/10)*10;G.money+=g;led('gold',g);G.bp+=2;msg=`${yen(g)}・BP+2`;banner('大当たり！',`${nm}から ${msg}`,'#ffd24a')}
+  toast(`🎁 ${nm}を見つけた！ ${msg}`);sfx(2);
 }
 /* ---------- 実績 ---------- */
 const dexN=()=>NORM.filter(s=>G.dex[s.n]).length;
@@ -512,6 +527,8 @@ const ACH=[
   {id:'br3',n:'多角経営',d:'3つの海域に支店を出す',ok:()=>AREAS.filter((_,a)=>brLv(a)>0).length>=3,r:{bp:3,auto:2}},
   {id:'brall',n:'海の商社',d:'すべての支店を最大まで',ok:()=>AREAS.every((_,a)=>brLv(a)>=2),r:{bp:8,auto:5,meal:3}},
   {id:'rv1',n:'週間チャンピオン',d:'週間売上ランキングで1位',ok:()=>G.rv.wins>=1,r:{bp:3,auto:2}},
+  {id:'tr5',n:'宝探し',d:'漂流物を5回見つける',ok:()=>G.treasure>=5,r:{bp:2,auto:1}},
+  {id:'tr20',n:'海のトレジャーハンター',d:'漂流物を20回見つける',ok:()=>G.treasure>=20,r:{bp:5,meal:3}},
   {id:'day30',n:'一か月',d:'30日目を迎える',ok:()=>G.day>=30,r:{auto:2}},
   {id:'day100',n:'百日の航海',d:'100日目を迎える',ok:()=>G.day>=100,r:{auto:5,meal:3}}];
 const achRw=r=>[r.bp&&`BP+${r.bp}`,r.auto&&`おまかせ釣り券×${r.auto}`,r.meal&&`食事券×${r.meal}`].filter(Boolean).join('・');
@@ -534,7 +551,7 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function fresh(){const mult={};SP.forEach(s=>mult[s.n]=1);
-  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
+  return{v:1,syncAt:0,syncSig:'',fs:0,nudged:0,tk:{auto:0,meal:0},meal:null,dailyNo:-1,streak:0,autoSell:0,lastSeen:0,comp:{},bossGot:{},lastUp:'',seen:0,mute:0,noFx:0,noVib:0,big:0,diff:1,home:0,level:1,exp:0,bp:0,stat:{str:1,vit:1,agi:1,dex:1,luk:1},alloc:{str:0,vit:0,agi:0,dex:0,luk:0},fac:{house:0,tank:0,trophy:0,plant:0,farm:0},rankGot:0,crewToday:0,treasure:0,fu:{},fuInit:0,farm:[],bt:{krill:0,worm:0,lure:0,live:0},baitSel:'',rv:{sc:[0,0,0,0,0],last:null,wins:0},ins:0,fix:0,br:{},tech:{},rep:0,tour:null,tourN:0,tourWin:0,tourLast:null,wx:0,proc:[],prod:[],ach:{},borrowed:0,ord:[],ordSeq:0,orderDone:0,debt:0,ev:null,cr:[],led:{},hist:[],rev:{},sat:{},stall:0,catches:0,day:1,min:360,money:500,earned:0,lv:{rod:0,line:0,bait:0,cool:0,mkt:0},boat:0,crew:0,area:0,fish:[],dex:{},mult,prev:{...mult}}}
 function migrate(s){
   if(!s||s.v!==1)return null;
   const fs0=s.fs===undefined?(s.big?1:0):s.fs;
@@ -762,7 +779,7 @@ function landed(){
   S.ok=true;tourScore(G.fish[G.fish.length-1],sp);end(true);
 }
 function end(){
-  S.holding=false;G.min+=ATTEMPT_MIN;S.st='result';S.t=0;crewRound();useMeal();save();hud();renderAll();label();
+  S.holding=false;G.min+=ATTEMPT_MIN;S.st='result';S.t=0;crewRound();useMeal();treasureRoll();save();hud();renderAll();label();
 }
 function next(){
   if(G.min>=DAY_END){dayEnd();return}
@@ -1714,6 +1731,7 @@ const HELP=[
  {t:'魚を売る',b:'<p>釣った魚は魚箱に入ります（容量があります）。<span class="k">市場</span>タブで売ってお金にしましょう。</p><p>値段は、大きさ（★の数）・鮮度・今日の相場で決まります。大きい魚ほど高く売れ、経験値も多くもらえます。売れ残りは夜のたびに鮮度が落ちるので、早めに売るのがおすすめです。</p><p>同じ魚を続けて売ると<b>値崩れ</b>します（翌朝には半分もどる）。直売所を強化すると、1日に数匹だけ高く売れる<b>直売所の枠</b>が使えます。「すべて売る」は、高い魚から順に自動で有利な出荷先へ回します。市場タブの<b>経営レポート</b>で、収入・経費・稼ぎ頭の魚を確認できます。</p>'},
  {t:'ライバル漁師',k:'tour',b:'<p><span class="k">街</span>タブに、ライバル漁師5人との<b>週間売上</b>ランキングがあります。1週間の収入（売上・水揚げ・賞金・納品）が多いほど上位です。</p><p>7日ごとの夜に発表され、<b>3位まで</b>にBPと評判、<b>1位</b>はおまかせ釣り券もらえます。</p>'},
  {t:'釣り大会',k:'tour',b:'<p>7日ごとに<b>釣り大会</b>が開かれます。<span class="k">街</span>タブから、その日の朝に参加できます（参加費あり）。</p><ol><li>参加した日に、<b>自分で釣った魚</b>のうち、いちばん高い1匹の値段で競います（おまかせ釣り・従業員・主は対象外）</li><li>夜にライバル5人とのランキングが発表され、<b>3位まで賞金</b>、1位はおまかせ釣り券ももらえます</li><li>旬の魚や、大物を狙うと有利です</li></ol>'},
+ {t:'漂流物・宝箱',k:'treasure',b:'<p>釣りの合間に、ときどき<b>漂流物や宝箱</b>が流れ着きます（約25回に1回）。お金・おまかせ釣り券・食事券・BPのどれかがもらえ、たまに大当たりも。</p>'},
  {t:'エサ・ルアー',k:'bait',b:'<p>魚には<b>好物のエサ</b>があります（図鑑や注文に表示）。<span class="k">街</span>タブの<b>釣具店</b>で10個入りを買い、「使う」にすると、1投ごとに1個使って、好物の魚が2.5倍よく釣れます。</p><p>注文や釣り大会で狙う魚が決まっているときに便利です。</p>'},
  {t:'季節と天気',k:'season',b:'<p>12日ごとに<b>季節</b>が変わります（春→夏→秋→冬）。画面の上に、今の季節と今日の天気が出ます。</p><ol><li>その季節が<b>旬</b>の魚は、よく釣れて、売値も+15%。市場タブの相場に「旬」と出ます</li><li>毎日2時間の<b>満潮</b>があり、その間はアタリが早く、珍しい魚が寄りやすくなります（時間帯は日によって変わります）</li><li>天気は毎朝変わります。<b>くもり</b>はアタリが早い。<b>雨</b>は珍しい魚が寄りやすいが、糸が切れやすい</li></ol><p>旬の魚を狙って釣り、旬のうちに売ったり、加工したりすると得です。</p>'},
  {t:'支店',k:'branch',b:'<p><span class="k">街</span>タブの<b>支店</b>で、海域ごとに支店を出せます（各2段階）。その海域の魚が<b>産地ブランド</b>として、売値+6%／Lv で売れます。毎晩の維持費が少し増えます。</p>'},
