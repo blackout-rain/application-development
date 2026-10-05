@@ -8,7 +8,7 @@ function loop(ts) {
       if (S.t <= 0) {
         rollFish();
         S.st = 'bite';
-        S.t = 1.4 + 0.05 * G.lv.bait + 0.04 * sx('agi');
+        S.t = 1.4 + 0.05 * G.lv.bait + SE.hookWindow(sx('agi'));
         say(
           S.tier >= 4
             ? T('水面が大きく盛り上がった…！ 主だ！！ アワセろ！')

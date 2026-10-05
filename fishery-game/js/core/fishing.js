@@ -2,7 +2,13 @@
 function pickSpecies(area = G.area, bk = null) {
   const list = SP.filter(s => s.a === area && !s.boss);
   const bt =
-    G.lv.bait + perks().rare + mealFx('rare') + wxRare() + tideRare() + (petFx().rare || 0) + 0.4 * sx('luk');
+    G.lv.bait +
+    perks().rare +
+    mealFx('rare') +
+    wxRare() +
+    tideRare() +
+    (petFx().rare || 0) +
+    SE.rare(sx('luk'));
   const ws = list.map(
     s =>
       s.w *
@@ -46,7 +52,7 @@ function press() {
           toast(T('{1}を使い切りました（街の釣具店で買えます）', [BAITS.find(b => b.k === G.baitSel).n]));
       }
       S.st = 'wait';
-      S.t = (rnd(1.2, 3.5) / (1 + 0.2 * G.lv.bait + 0.03 * sx('agi'))) * wxWait() * tideWait();
+      S.t = (rnd(1.2, 3.5) / (1 + 0.2 * G.lv.bait + SE.biteSpeed(sx('agi')))) * wxWait() * tideWait();
       say(T('浮きを見守ろう…'));
       break;
     case 'wait':
@@ -68,13 +74,13 @@ function press() {
 function release() {
   S.holding = false;
 }
-const bossChance = () => Math.min(0.08, 0.03 * (1 + 0.04 * sx('luk') + 0.1 * perks().rare));
+const bossChance = () => Math.min(0.08, 0.03 * (1 + SE.boss(sx('luk')) + 0.1 * perks().rare));
 function rollFish() {
   const bs = bossOf(G.area);
   const sp = bs && G.comp[G.area] && Math.random() < bossChance() ? bs : pickSpecies(G.area, S.bk);
   S.sp = sp;
   S.size = Math.round(
-    sp.min + (sp.max - sp.min) * Math.pow(Math.random(), Math.max(1.1, 1.8 - 0.015 * sx('luk')))
+    sp.min + (sp.max - sp.min) * Math.pow(Math.random(), Math.max(0.95, 1.8 - SE.size(sx('luk'))))
   );
   S.tier = tier(sp);
   S.v = !sp.boss && Math.random() < variantChance() ? 1 : 0;
@@ -132,27 +138,21 @@ function stepFight(f, holding, dt, sp, E) {
   if (f.timer <= 0) {
     f.struggle = !f.struggle;
     f.timer = f.struggle
-      ? rnd(0.6, 1.4) * (1 + 0.08 * bs) * (1 - Math.min(0.35, 0.012 * (E.foc || 0)))
+      ? rnd(0.6, 1.4) * (1 + 0.08 * bs) * SE.struggle(E.foc || 0)
       : rnd(0.8, 1.8) * (sp.boss ? Math.max(0.4, 1 - 0.08 * bs) : 1);
   }
   if (holding) {
     f.prog +=
-      ((16 * (1 + 0.3 * E.rod + pk.reel / 100) * (1 + 0.04 * E.str) * (eas < 1 ? 1.25 : 1)) /
-        (0.5 + 0.5 * pe)) *
+      ((16 * (1 + 0.3 * E.rod + pk.reel / 100) * SE.reel(E.str) * (eas < 1 ? 1.25 : 1)) / (0.5 + 0.5 * pe)) *
       (f.struggle ? 0.3 : 1) *
       dt;
     f.tens +=
-      (((f.struggle ? 60 : 20) *
-        (0.6 + 0.4 * pe) *
-        eas *
-        (1 - pk.tens / 100) *
-        (1 - Math.min(0.6, 0.025 * E.vit)) *
-        E.diff) /
+      (((f.struggle ? 60 : 20) * (0.6 + 0.4 * pe) * eas * (1 - pk.tens / 100) * SE.tension(E.vit) * E.diff) /
         (1 + 0.25 * E.line)) *
       dt;
   } else {
-    f.tens -= 45 * (1 + 0.03 * E.dex) * dt;
-    f.prog -= (f.struggle ? 10 * pe * eas : 2 * eas) * Math.max(0.3, 1 - 0.04 * E.dex) * dt;
+    f.tens -= 45 * SE.recover(E.dex) * dt;
+    f.prog -= (f.struggle ? 10 * pe * eas : 2 * eas) * SE.pull(E.dex) * dt;
   }
   f.tens = clamp(f.tens, 0, 100);
   f.prog = Math.min(f.prog, 100);
@@ -199,7 +199,7 @@ function simBoss(sp, E, n) {
   let ok = 0;
   for (let i = 0; i < n; i++) {
     const size = Math.round(
-      sp.min + (sp.max - sp.min) * Math.pow(Math.random(), Math.max(1.1, 1.8 - 0.015 * sx('luk')))
+      sp.min + (sp.max - sp.min) * Math.pow(Math.random(), Math.max(0.95, 1.8 - SE.size(sx('luk'))))
     );
     if (botFight(newFight(sp, size), sp, E) === 1) ok++;
   }

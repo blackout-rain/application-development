@@ -24,7 +24,7 @@ function price(fi, sat) {
         perks().sell / 100 +
         salesBonus() +
         0.03 * techLv('dist') +
-        Math.min(0.3, 0.003 * sx('biz')) +
+        SE.sell(sx('biz')) +
         (G.comp[sp.a] ? 0.05 : 0) +
         mealFx('sell') +
         evSell() +

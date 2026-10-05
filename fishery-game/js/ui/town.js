@@ -226,7 +226,7 @@ function autoFish(maxTickets) {
     }
     const sp = pickSpecies(),
       size = Math.round(
-        sp.min + (sp.max - sp.min) * Math.pow(Math.random(), Math.max(1.1, 1.8 - 0.015 * sx('luk')))
+        sp.min + (sp.max - sp.min) * Math.pow(Math.random(), Math.max(0.95, 1.8 - SE.size(sx('luk'))))
       );
     const res = botFight(newFight(sp, size), sp, fightEnv()); // 食事効果が切れたら、その回から反映する
     casts++;

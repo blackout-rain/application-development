@@ -53,7 +53,7 @@ function dayEnd() {
   const ups = [];
   G.cr.forEach(m => {
     const b = clv(m);
-    m.x += (TRAITS[m.t].x || 1) * (1 + Math.min(0.5, 0.01 * sx('lead')));
+    m.x += (TRAITS[m.t].x || 1) * (1 + SE.growth(sx('lead')));
     if (clv(m) > b)
       ups.push(
         T('{1}がLv{2}に昇進！（{3}と給料が上がった）', [m.n, clv(m), m.r ? T('売値ボーナス') : T('水揚げ')])

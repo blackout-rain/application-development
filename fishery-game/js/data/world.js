@@ -718,13 +718,13 @@ const ST = [
     k: 'str',
     n: T('力'),
     d: T('巻き上げの力。魚を寄せるスピードが上がります。'),
-    fx: v => T('巻き上げ速度 +{1}%', [4 * v])
+    fx: v => T('巻き上げ速度 +{1}%', [Math.round(SE.reel(v) * 100 - 100)])
   },
   {
     k: 'vit',
     n: T('体力'),
     d: T('魚の引きに耐える力。テンションが上がりにくくなります。'),
-    fx: v => T('テンション上昇 -{1}%', [Math.round(Math.min(0.6, 0.025 * v) * 100)])
+    fx: v => T('テンション上昇 -{1}%', [Math.round((1 - SE.tension(v)) * 100)])
   },
   {
     k: 'agi',
@@ -732,8 +732,8 @@ const ST = [
     d: T('アタリへの反応の速さ。アタリが早く来て、アワセの猶予も伸びます。'),
     fx: v =>
       T('アタリまで -{1}%・アワセ猶予 +{2}秒', [
-        Math.round((1 - 1 / (1 + 0.03 * v)) * 100),
-        (0.04 * v).toFixed(2)
+        Math.round((1 - 1 / (1 + SE.biteSpeed(v))) * 100),
+        SE.hookWindow(v).toFixed(2)
       ])
   },
   {
@@ -742,41 +742,34 @@ const ST = [
     d: T('糸さばきの上手さ。暴れる魚に寄せ戻されにくく、テンションも下がりやすくなります。'),
     fx: v =>
       T('寄せ戻され -{1}%・テンション回復 +{2}%', [
-        Math.round((1 - Math.max(0.3, 1 - 0.04 * v)) * 100),
-        3 * v
+        Math.round((1 - SE.pull(v)) * 100),
+        Math.round(SE.recover(v) * 100 - 100)
       ])
   },
   {
     k: 'luk',
     n: T('運'),
     d: T('レア魚や大物との出会いやすさ。'),
-    fx: v => T('レア魚の出現 +{1}%・大物サイズが出やすい', [10 * v])
+    fx: v => T('レア魚の出現 +{1}%・大物サイズが出やすい', [Math.round(25 * SE.rare(v))])
   },
   {
     k: 'foc',
     n: T('集中力'),
     d: T('魚が暴れている時間が短くなります。粘り強く寄せられます。'),
-    fx: v => T('暴れる時間 -{1}%', [Math.round(Math.min(0.35, 0.012 * v) * 100)])
+    fx: v => T('暴れる時間 -{1}%', [Math.round((1 - SE.struggle(v)) * 100)])
   },
   {
     k: 'biz',
     n: T('商才'),
     d: T('売り込みの上手さ。魚が高く売れ、従業員の給料も少し安く済みます。'),
-    fx: v =>
-      T('売値 +{1}%・給料 -{2}%', [
-        (Math.min(0.3, 0.003 * v) * 100).toFixed(1),
-        (Math.min(0.2, 0.002 * v) * 100).toFixed(1)
-      ])
+    fx: v => T('売値 +{1}%・給料 -{2}%', [(SE.sell(v) * 100).toFixed(1), (SE.wage(v) * 100).toFixed(1)])
   },
   {
     k: 'lead',
     n: T('統率力'),
     d: T('人を動かす力。従業員の水揚げが増え、早く成長します。'),
     fx: v =>
-      T('従業員の水揚げ +{1}%・成長 +{2}%', [
-        (Math.min(0.4, 0.004 * v) * 100).toFixed(1),
-        Math.round(Math.min(0.5, 0.01 * v) * 100)
-      ])
+      T('従業員の水揚げ +{1}%・成長 +{2}%', [(SE.haul(v) * 100).toFixed(1), Math.round(SE.growth(v) * 100)])
   }
 ];
 const BAL = {expSlope: 0.06, bossLvCap: 25, expMul: 0.26, expEarly: 1.2}; // バランス調整用の数値（経験値の必要量の伸び方）
@@ -937,13 +930,10 @@ const HIRE_MUL = [1, 1.8, 3, 5, 8, 12, 18, 26]; // 経験者を雇う追加料�
 const hireCost = lv => Math.round((1500 * Math.pow(1.6, G.crew) * HIRE_MUL[lv - 1]) / 100) * 100;
 const wageOf = m =>
   Math.round(
-    AREAS[G.boat].wage *
-      (1 + CLV_W * (clv(m) - 1)) *
-      (TRAITS[m.t].w || 1) *
-      (1 - Math.min(0.2, 0.002 * sx('biz')))
+    AREAS[G.boat].wage * (1 + CLV_W * (clv(m) - 1)) * (TRAITS[m.t].w || 1) * (1 - SE.wage(sx('biz')))
   );
 const fishMul = m =>
-  m.r === 0 ? (1 + CLV_F * (clv(m) - 1)) * (TRAITS[m.t].f || 1) * (1 + Math.min(0.4, 0.004 * sx('lead'))) : 0;
+  m.r === 0 ? (1 + CLV_F * (clv(m) - 1)) * (TRAITS[m.t].f || 1) * (1 + SE.haul(sx('lead'))) : 0;
 const salesBonus = () =>
   Math.min(
     SALES_MAX,
