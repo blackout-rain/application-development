@@ -306,6 +306,18 @@ await t('相棒の付け替えは、1日1回まで', 'mid', async p => {
   return r.a === 'cat' && r.b === 'gull' ? true : JSON.stringify(r);
 });
 
+/* ---------- 次の目標 ---------- */
+await t('次の目標：最大3つ、すぐできることが先、どの状態でもエラーなし', async p => {
+  const r = await ev(p, () => { const out = []; for (const k of ['blank', 'early', 'mid', 'late', 'all']) { applySave(Admin.makeState(Admin.PRE[k]), 'qa'); closeModals(); const gl = goalList(); out.push([k, gl.length <= 3, gl.every((x, i) => i === 0 || gl[i - 1].p <= x.p), gl.every(x => x.t && !/NaN|undefined/.test(x.t))]) } return out });
+  const bad = r.filter(x => !(x[1] && x[2] && x[3]));
+  return bad.length ? JSON.stringify(bad) : true;
+});
+await t('次の目標：船を買えるときに知らせ、ボタンで該当タブへ移動する', 'mid', async p => {
+  const r = await ev(p, () => { G.money = BOATS[G.boat].c + 1; G.home = 0; openTab('fish'); const txt = document.getElementById('nextgoals').innerText; const btn = [...document.querySelectorAll('#nextgoals [data-gtab]')].find(b => /買えます/.test(b.textContent)); btn && btn.click(); return { has: /買えます/.test(txt), tab: curTab } });
+  return r.has && r.tab === 'home' ? true : JSON.stringify(r);
+});
+await t('次の目標：夜は「休もう」が最優先', 'mid', async p => eq(await ev(p, () => { G.home = 1; return goalList()[0].t.includes('夜') }), true));
+
 /* ---------- 表示 ---------- */
 await t('金額表示：負数・巨大な値・小数でも崩れない', 'mid', async p => eq(await ev(p, () => [yen(0), yen(-1500), yen(1234567), yen(2.4e8), yen(1.5e9), yen(0.4)]), ['¥0', '-¥1,500'.replace('-¥', '¥-'), '¥1,234,567', '¥2.40億', '¥1.5億'.replace('1.5億', '15.0億'), '¥0']));
 await t('全タブを、文字サイズ3種類・幅320pxで開いても、横スクロールしない', 'all', async p => {

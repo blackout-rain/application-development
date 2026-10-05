@@ -51,6 +51,8 @@ h2{font-size:1rem;margin:18px 0 8px;font-weight:900}
 .item .t{font-weight:700;min-width:0}.item .s{color:var(--sub);font-size:.8rem;min-width:0}
 .buy{background:var(--accent);color:#2b1a00;border:0;border-radius:8px;padding:8px 12px;font-weight:900;grid-row:span 2;font-family:var(--mono)}
 .buy:disabled{background:var(--line);color:var(--sub);cursor:default}
+.goals{display:grid;gap:6px;margin-top:10px}.goals:empty{display:none}.goals h4{margin:0;font-size:.74rem;color:var(--sub);font-weight:700;letter-spacing:.06em}
+.goal{display:grid;grid-template-columns:1.6rem 1fr;gap:0 6px;align-items:center;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.84rem;width:100%;color:var(--fg)}.goal.now{border-color:var(--accent)}.goal .gi{font-size:1.1rem;grid-row:span 2}.goal .gp{grid-column:2;height:4px;margin-top:5px;background:var(--panel2);border-radius:3px;overflow:hidden}.goal .gp i{display:block;height:100%;background:var(--accent)}
 .up{color:var(--good)}.down{color:var(--bad)}
 .rbs{display:flex;gap:6px;align-items:flex-end;height:84px}.rb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;font-size:.68rem;color:var(--sub)}
 .rbi{width:100%;background:var(--good);border-radius:4px 4px 0 0;position:relative;overflow:hidden;opacity:.9}.rbx{position:absolute;left:0;right:0;bottom:0;background:var(--bad)}
@@ -136,6 +138,7 @@ textarea{width:100%;min-height:76px;background:var(--panel);color:var(--fg);bord
     <div class="meter"><span>寄せ具合</span><div class="bar"><i id="prog"></i></div></div>
   </div>
   <button id="act">投げる</button>
+  <div id="nextgoals" class="goals"></div>
   <div class="row" id="areas"></div>
   <p class="hint" id="hint"></p>
   <div class="row"><span class="chip">魚箱 <b id="cap" class="num"></b></span><button class="ghost" id="home">今日は帰港する</button></div>
@@ -522,6 +525,34 @@ function checkFeat(){
 function lockedHtml(){
   const l=FEATS.filter(f=>!feat(f.k));if(!l.length)return '';
   return `<h2>これから解放される機能</h2><div class="card" style="font-size:.82rem">${l.slice(0,6).map(f=>`<div class="ln"><span>🔒 ${f.n}</span><span style="color:var(--sub);font-size:.76rem;text-align:right">${f.h}</span></div>`).join('')}${l.length>6?`<div style="color:var(--sub);font-size:.76rem;margin-top:4px">ほか${l.length-6}件</div>`:''}<div style="color:var(--sub);font-size:.76rem;margin-top:6px">レベルを上げたり、新しい海域に出たり、主を釣ると、新しい機能が使えるようになります。</div></div>`;
+}
+/* ---------- 次の目標（いま何をすればいいかの案内） ---------- */
+// p が小さいほど優先。「すぐできること」を先に、そのあとに「少し先の目標」を、最大3つ出す
+function goalList(){
+  const g=[],add=(p,ic,t,tab,pct)=>g.push({p,ic,t,tab,pct});
+  if(G.home)add(0,'🌙','夜です。自宅で休んで、朝を迎えよう','home');
+  const b=G.boat<BOATS.length?BOATS[G.boat]:null;
+  if(b&&G.money>=b.c)add(1,'⛵',`「${b.n}」を買えます！（${AREAS[G.boat+1].name}に出られる）`,'home');
+  if(dailyReady())add(1,'🎁','デイリーボーナスを受け取れます','town');
+  if(feat('tour')&&isTourDay()&&!G.home&&!tourIn())add(1,'🏆','今日は釣り大会！ 参加は街タブから','town');
+  if(feat('orders')){const n=G.ord.filter(o=>G.fish.filter(f=>ordMatch(o,f)).length>=o.q).length;if(n)add(1,'📦',`注文を${n}件、納品できます（売値の${ordMul().toFixed(1)}倍）`,'sell')}
+  if(!G.home&&G.fish.length>=cap()-1&&!G.autoSell)add(1,'🐟',`魚箱がいっぱいです（${G.fish.length}/${cap()}）。市場で売ろう`,'sell');
+  if(G.bp>0)add(2,'💪',`BPが${G.bp}あります。ステータスに振り分けよう`,'stat');
+  if(feat('missions')){ensureMissions();const left=G.msn.items.filter(m=>!m.done).length;if(left)add(3,'✅',`今日のミッション あと${left}つ`,'town')}
+  if(b&&G.money<b.c)add(4,'⛵',`次の船「${b.n}」まで あと${yen(b.c-G.money)}`,'home',G.money/b.c*100);
+  const l=areaSp(G.area),rem=l.filter(s=>!G.dex[s.n]).length;
+  if(rem>0&&rem<=4)add(4,'📖',`${AREAS[G.area].name}のコンプまで あと${rem}種`,'dex',(l.length-rem)/l.length*100);
+  if(G.comp[G.area]&&!G.bossGot[G.area])add(4,'🐉',`${bossOf(G.area).n}が、釣りの最中にまれに現れます`,null);
+  if(G.crew<crewMax()){const c=hireCost(1);if(G.money>=c)add(5,'🧑','従業員を雇えます（水揚げが増えます）','home')}
+  const nf=FEATS.find(f=>!feat(f.k));if(nf)add(6,'🔓',`${nf.n}：${nf.h}`,null);
+  const ri=rankIdx(),nr=RANKS[ri+1];if(nr)add(7,'🎖️',`次のランク「${nr[1]}」まで あと${yen(nr[0]-G.earned)}`,null,(G.earned-RANKS[ri][0])/(nr[0]-RANKS[ri][0])*100);
+  return g.sort((a,b)=>a.p-b.p).slice(0,3);
+}
+function renderGoals(){
+  const el=$('#nextgoals');if(!el)return;
+  const gl=goalList();
+  setHtml(el,gl.length?`<h4>次の目標</h4>`+gl.map(x=>`<button class="goal${x.p<=1?' now':''}" ${x.tab?`data-gtab="${x.tab}"`:'disabled'}><span class="gi">${x.ic}</span><span>${x.t}</span>${x.pct!==undefined?`<span class="gp"><i style="width:${Math.max(2,Math.min(100,x.pct))}%"></i></span>`:''}</button>`).join(''):'');
+  el.querySelectorAll('[data-gtab]').forEach(b=>b.onclick=()=>openTab(b.dataset.gtab));
 }
 /* ---------- デイリーミッション ---------- */
 // 毎朝3つ。達成するたびに小さなごほうび、3つそろえるとボーナス
@@ -1078,6 +1109,7 @@ function hud(){
   $('#tkn').textContent=G.tk.auto;
   $('#evline').textContent=[G.baitSel&&`🪱 ${BAITS.find(b=>b.k===G.baitSel).n}（残り${G.bt[G.baitSel]}）`,G.fix>0&&`🔧 船が故障中（${G.ins?'保険で無料':`修理費${yen(G.fix)}・夜に支払い`}）`,isTourDay()&&!G.home&&(tourIn()?`🏆 大会参加中：ベスト ${yen(G.tour.best)}`:'🏆 今日は釣り大会！（街タブから参加）'),(feat('tide')&&!G.home&&`🌊 ${tideNow()?'満潮中！（アタリが早く、珍しい魚が寄る）':`満潮 ${tideStartH()}:00〜${tideStartH()+2}:00`}`),feat('season')&&`${SEASONS[seasonOf()].e}${SEASONS[seasonOf()].n}（${(G.day-1)%SEASON_LEN+1}/${SEASON_LEN}日目）・${WX[G.wx||0].e}${WX[G.wx||0].n}${WX[G.wx||0].d?'：'+WX[G.wx||0].d:''}`,ev()&&`${ev().e} 今日のできごと：${ev().n}（${ev().d}）`,G.debt>0&&`💳 借入 ${yen(G.debt)}`].filter(Boolean).join('　');
   checkFeat();checkAch();checkMsn();
+  if(typeof curTab!=='undefined'&&curTab==='fish')renderGoals();
   $('#mealline').textContent=G.meal?`食事効果：${G.meal.n}（${fxText(G.meal.fx)}）あと${G.meal.left}回`:'';
 }
 function renderAreas(){
@@ -1172,7 +1204,7 @@ function renderDex(){
       return `<h2>${a.name} <span class="num">${f}/${l.length}</span>${G.comp[i]?' <span class="tag" style="background:var(--good)">コンプ</span>':''}</h2><div class="dex">${l.map(card).join('')}${G.dex[bs.n]?card(bs):lock(bs,i)}</div>`}).join('');
 }
 let curTab='fish',ptrDown=false,dirty=false;
-const TABR={fish:renderAreas,sell:renderSell,town:renderTown,home:()=>{renderHome();renderShop()},stat:renderStat,dex:renderDex,set:()=>{}};
+const TABR={fish:()=>{renderAreas();renderGoals()},sell:renderSell,town:renderTown,home:()=>{renderHome();renderShop()},stat:renderStat,dex:renderDex,set:()=>{}};
 function renderAll(){hud();if(ptrDown){dirty=true;return}dirty=false;(TABR[curTab]||(()=>{}))()}
 addEventListener('pointerdown',()=>{ptrDown=true},true);
 ['pointerup','pointercancel'].forEach(ev=>addEventListener(ev,()=>{ptrDown=false;if(dirty)setTimeout(()=>{if(!ptrDown&&dirty)renderAll()},150)},true));
