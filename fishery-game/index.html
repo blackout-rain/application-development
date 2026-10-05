@@ -268,7 +268,7 @@ const ST=[
   {k:'biz',n:'商才',d:'売り込みの上手さ。魚が高く売れ、従業員の給料も少し安く済みます。',fx:v=>`売値 +${(Math.min(.3,.003*v)*100).toFixed(1)}%・給料 -${(Math.min(.2,.002*v)*100).toFixed(1)}%`},
   {k:'lead',n:'統率力',d:'人を動かす力。従業員の水揚げが増え、早く成長します。',fx:v=>`従業員の水揚げ +${(Math.min(.4,.004*v)*100).toFixed(1)}%・成長 +${Math.round(Math.min(.5,.01*v)*100)}%`}
 ];
-const BAL={expSlope:0.06,bossLvCap:25,expMul:1};   // バランス調整用の数値（経験値の必要量の伸び方）
+const BAL={expSlope:0.06,bossLvCap:25,expMul:1,expEarly:0};   // バランス調整用の数値（経験値の必要量の伸び方）
 const expNeed=l=>Math.round((30+6*l*l)*(1+BAL.expSlope*l));
 const tankCap=l=>[0,3,6,10,15][l];
 const FAC=[
@@ -779,7 +779,7 @@ function expGain(sp,size,newSp){
   const r=sizeRatio(sp,size),tb=1+trophyBonus()+mealFx('exp')+evExp()+(petFx().exp||0);
   let e=Math.round(((8+sp.s*7+tier(sp)*20+(newSp?25:0))*(.6+.9*r)+(r>=.9?10:0))*tb);
   if(sp.boss)e+=Math.round((expNeed(Math.min(G.level,BAL.bossLvCap))*(1+.3*sp.a)+e*4)*tb);
-  return Math.max(1,Math.round(e*BAL.expMul));
+  return Math.max(1,Math.round(e*BAL.expMul*(1+BAL.expEarly*Math.max(0,1-G.level/15))));   // 序盤（Lv15まで）は経験値を多めに
 }
 function growRoll(){const r=Math.random();return r<.4?0:r<.85?1:r<.98?2:3}   // 8つのステータスで、1レベルあたり合計6前後
 function addExp(n){
