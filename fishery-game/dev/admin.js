@@ -61,6 +61,8 @@
     Object.entries(G.br || {}).forEach(([k, v]) => { if (!AREAS[k] || !(v >= 0 && v <= 2)) bad.push('支店 不正 ' + k) });
     BAITS.forEach(b => { if (!(G.bt[b.k] >= 0)) bad.push('エサ在庫が不正 ' + b.k) });
     (G.farm || []).forEach(f => { const sp = SP.find(z => z.n === f.n); if (!sp || sp.boss || !(f.sz > 0)) bad.push('養殖 不正 ' + f.n) });
+    Object.keys(G.pets || {}).forEach(k => { if (!PETS.find(z => z.k === k)) bad.push('ペット 不明 ' + k) }); if (G.pet && !G.pets[G.pet]) bad.push('連れているペットを持っていない');
+    Object.keys(G.deco || {}).forEach(k => { if (!DECOS.find(z => z.k === k)) bad.push('飾り 不明 ' + k) });
     Object.keys(G.ach || {}).forEach(k => { if (!ACH.find(z => z.id === k)) bad.push('実績 不明なID ' + k) });
     (G.ord || []).forEach(o => { if (!SP.find(s => s.n === o.n)) bad.push('注文 不明な魚 ' + o.n); if (!(o.q >= 1)) bad.push('注文 数量が不正') });
     if (G.cr && G.cr.length > G.crew) bad.push('従業員の名簿が人数より多い');
