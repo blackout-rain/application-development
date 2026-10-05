@@ -65,8 +65,8 @@ h2{font-size:1rem;margin:18px 0 8px;font-weight:900}
 #veil h3{margin:0 0 10px;font-size:1.2rem}
 .ln{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:1px dashed var(--line)}
 #veil .box{max-height:88vh;overflow:auto}
-.stage{position:relative}
-#banner{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;opacity:0}
+.stage{position:relative;overflow:hidden;border-radius:12px}
+#banner{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;opacity:0;overflow:hidden}#banner b,#banner span{overflow-wrap:anywhere;padding:0 8px}
 #banner.show{animation:pop 2.6s ease-out forwards}
 #banner b{display:block;font-size:2.1rem;font-weight:900;letter-spacing:.08em;text-shadow:0 2px 14px rgba(0,0,0,.7)}
 #banner span{display:block;font-size:1.05rem;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.8)}
@@ -965,6 +965,7 @@ function reportHtml(){
 /* ---------- day cycle ---------- */
 function veilOpen(){return !$('#veil').hidden}
 function dayEnd(){
+  if(G.home)return;   // すでに夜（精算ずみ）なら、二重に精算しない
   const area=AREAS[G.boat];
   flushCrew();
   const haul=G.crewToday;G.crewToday=0;G.home=1;
@@ -997,6 +998,7 @@ function dayEnd(){
   save();hud();
 }
 function sleep(){
+  if(!G.home)return;   // 夜でないときは、日付を進めない
   G.hist.push(Object.assign({d:G.day},G.led));if(G.hist.length>30)G.hist.shift();G.led={};
   G.day++;G.min=360;G.home=0;S.st='idle';rollEvent();finishProc();growFarm();if(isTourDay())setTimeout(()=>toast(`🏆 今日は釣り大会！ 街タブから参加できます（参加費${yen(tourFee())}）`),3600);const no=G.ord.length;if(feat('orders'))refreshOrders();if(G.ord.length>no)setTimeout(()=>toast('新しい注文が届いています（市場タブ）'),1800);save();hud();renderAll();label();
   say('新しい朝。今日も釣りに出よう。');openTab('fish');toast(`${G.day}日目の朝`);
