@@ -277,6 +277,8 @@ const CLVX=[0,4,12,28,60],CROLE=['釣り師','営業'],CLV_W=.18,CLV_F=.12,SALES
 function normCrew(g){g=g||G;while(g.cr.length<g.crew){const used=new Set(g.cr.map(c=>c.n)),fr=CNAMES.filter(n=>!used.has(n)),pool=fr.length?fr:CNAMES;g.cr.push({n:pool[Math.floor(Math.random()*pool.length)],r:0,x:0})}g.cr.length=g.crew}
 const CR=()=>{normCrew();return G.cr};
 const clv=m=>{let l=1;CLVX.forEach((x,i)=>{if(m.x>=x)l=i+1});return l};
+const HIRE_MUL=[1,1.8,3,5,8];   // 経験者を雇う追加料金の倍率（Lv1〜5）
+const hireCost=(lv)=>Math.round(1500*Math.pow(1.6,G.crew)*HIRE_MUL[lv-1]/100)*100;
 const wageOf=m=>Math.round(AREAS[G.boat].wage*(1+CLV_W*(clv(m)-1)));
 const fishMul=m=>m.r===0?1+CLV_F*(clv(m)-1):0;
 const salesBonus=()=>Math.min(SALES_MAX,G.cr.reduce((a,m)=>a+(m.r===1?SALES_PER*clv(m):0),0));
@@ -799,7 +801,8 @@ function renderShop(){
   const cs=CR(),nF=cs.filter(m=>m.r===0).length,nS=cs.length-nF,wsum=cs.reduce((a,m)=>a+wageOf(m),0);
   const crew=`<div class="item"><div class="t">従業員を雇う <span class="num">${G.crew}/${crewMax()}人</span></div>
     <button class="buy" data-crew="1" ${G.crew>=crewMax()||G.money<cc?'disabled':''}>${G.crew>=crewMax()?'—':yen(cc)}</button>
-    <div class="s"><b>釣り師</b>は釣りに同行して、1日約${yen(h)}を水揚げ。<b>営業</b>は水揚げの代わりに、魚の売値を底上げ（Lv×+${Math.round(SALES_PER*100)}%・全員で+${Math.round(SALES_MAX*100)}%まで）。<br>働いた日数でレベルが上がり、水揚げも給料も増えます。給料の基本は${yen(w)}/日。雇える人数は自宅を大きくすると増えます（今は${crewMax()}人まで）。</div></div>
+    <div class="s"><b>釣り師</b>は釣りに同行して、1日約${yen(h)}を水揚げ。<b>営業</b>は水揚げの代わりに、魚の売値を底上げ（Lv×+${Math.round(SALES_PER*100)}%・全員で+${Math.round(SALES_MAX*100)}%まで）。<br>働いた日数でレベルが上がり、水揚げも給料も増えます。給料の基本は${yen(w)}/日。雇える人数は自宅を大きくすると増えます（今は${crewMax()}人まで）。</div>
+    <div class="row" style="grid-column:1/-1;flex-wrap:wrap;gap:6px;margin:4px 0">${[2,3,4,5].map(l=>`<button class="chip" data-hire="${l}" ${G.crew>=crewMax()||G.money<hireCost(l)?'disabled':''}>経験者 Lv${l}（水揚げ×${(1+CLV_F*(l-1)).toFixed(2)}・給料×${(1+CLV_W*(l-1)).toFixed(2)}）${yen(hireCost(l))}</button>`).join('')}</div></div>
     ${cs.length?`<div class="card" style="margin:0;font-size:.82rem"><div class="kv"><span>釣り師／営業</span><b class="num">${nF}人／${nS}人</b><span>営業ボーナス（売値）</span><b class="num">+${Math.round(salesBonus()*100)}%</b><span>給料の合計</span><b class="num down">${yen(wsum)}/日</b></div></div>`:''}
     ${cs.map((m,i)=>{const l=clv(m),nx=CLVX[l];return `<div class="item"><div class="t">${m.n} <span class="num">Lv${l}</span> <span class="stars">${'★'.repeat(l)}${'☆'.repeat(5-l)}</span></div>
       <button class="chip" data-role="${i}" aria-pressed="${m.r?'true':'false'}" style="grid-row:span 2">${CROLE[m.r]}</button>
@@ -808,6 +811,7 @@ function renderShop(){
   const sh=$('#p-shop');
   sh.querySelectorAll('[data-up]').forEach(e=>e.onclick=()=>{const u=UP.find(x=>x.k===e.dataset.up);const c=u.c[G.lv[u.k]];if(G.money>=c){G.money-=c;led('buy',c);G.lv[u.k]++;save();hud();renderAll()}});
   sh.querySelectorAll('[data-boat]').forEach(e=>e.onclick=()=>{if(G.money>=b.c){G.money-=b.c;led('buy',b.c);G.boat++;G.area=G.boat;save();hud();renderAll();toast(`${AREAS[G.boat].name}に出られます！釣りタブへ`);}});
+  sh.querySelectorAll('[data-hire]').forEach(e=>e.onclick=()=>{const l=+e.dataset.hire,c=hireCost(l);if(G.money>=c&&G.crew<crewMax()){G.money-=c;led('buy',c);G.crew++;normCrew();const m=G.cr[G.cr.length-1];m.x=CLVX[l-1];save();hud();renderAll();toast(`${m.n}（Lv${l}）を雇いました`)}});
   sh.querySelectorAll('[data-role]').forEach(e=>e.onclick=()=>{const m=G.cr[+e.dataset.role];if(m){m.r^=1;save();renderAll()}});
   sh.querySelectorAll('[data-crew]').forEach(e=>e.onclick=()=>{if(G.money>=cc&&G.crew<crewMax()){G.money-=cc;led('buy',cc);G.crew++;normCrew();save();hud();renderAll()}});
 }
