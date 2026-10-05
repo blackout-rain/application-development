@@ -58,7 +58,7 @@
     if (G.ev && !EVS[G.ev]) bad.push('ev（できごと）が不正');
     if (!(G.wx >= 0 && G.wx <= 2)) bad.push('wx（天気）が範囲外');
     Object.entries(G.tech || {}).forEach(([k, v]) => { const t = TECH.find(z => z.k === k); if (!t) bad.push('研究 不明 ' + k); else if (!(v >= 0 && v <= t.c.length)) bad.push('研究 Lv範囲外 ' + k) });
-    Object.entries(G.br || {}).forEach(([k, v]) => { if (!AREAS[k] || !(v >= 0 && v <= 2)) bad.push('支店 不正 ' + k) });
+    Object.entries(G.br || {}).forEach(([k, v]) => { if (!AREAS[k] || !(v >= 0 && v <= BR_MAX)) bad.push('支店 不正 ' + k) });
     BAITS.forEach(b => { if (!(G.bt[b.k] >= 0)) bad.push('エサ在庫が不正 ' + b.k) });
     (G.farm || []).forEach(f => { const sp = SP.find(z => z.n === f.n); if (!sp || sp.boss || !(f.sz > 0)) bad.push('養殖 不正 ' + f.n) });
     Object.keys(G.pets || {}).forEach(k => { if (!PETS.find(z => z.k === k)) bad.push('ペット 不明 ' + k) }); if (G.pet && !G.pets[G.pet]) bad.push('連れているペットを持っていない');
@@ -114,8 +114,8 @@
   const PRE = {
     early: { n: '序盤', day: 3, level: 5, money: 3000, earned: 6000, catches: 20, boat: 0, crew: 0, dex: 0, comp: [], lv: { rod: 1, line: 0, bait: 0, cool: 0, mkt: 0 }, fac: { house: 0, tank: 0, trophy: 0 } },
     mid: { n: '中盤', day: 25, level: 18, money: 80000, earned: 250000, catches: 220, boat: 2, crew: 4, dex: 1, comp: [0, 1], lv: { rod: 3, line: 3, bait: 2, cool: 3, mkt: 2 }, fac: { house: 1, tank: 2, trophy: 1 } },
-    late: { n: '終盤', day: 80, level: 38, money: 5000000, earned: 1200000, catches: 900, boat: 5, crew: 10, dex: 5, comp: [0, 1, 2, 3, 4, 5], boss: [0, 1, 2, 3, 4, 5], lv: { rod: 5, line: 5, bait: 5, cool: 5, mkt: 5 }, fac: { house: 3, tank: 4, trophy: 3 } },
-    all: { n: '全開放', day: 120, level: 60, money: 1e9, earned: 5e6, catches: 3000, boat: 5, crew: 10, dex: 5, comp: [0, 1, 2, 3, 4, 5], boss: [0, 1, 2, 3, 4, 5], lv: { rod: 5, line: 5, bait: 5, cool: 5, mkt: 5 }, fac: { house: 3, tank: 4, trophy: 3 } },
+    late: { n: '終盤', day: 80, level: 38, money: 5000000, earned: 12000000, catches: 900, boat: 6, crew: 12, dex: 6, comp: [0, 1, 2, 3, 4, 5], boss: [0, 1, 2, 3, 4, 5], lv: { rod: 6, line: 6, bait: 6, cool: 6, mkt: 6 }, fac: { house: 4, tank: 4, trophy: 3 } },
+    all: { n: '全開放', day: 120, level: 60, money: 1e9, earned: 5e6, catches: 3000, boat: 9, crew: 20, dex: 9, comp: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], boss: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], lv: { rod: 10, line: 10, bait: 10, cool: 10, mkt: 10 }, fac: { house: 8, tank: 6, trophy: 5, plant: 5, farm: 5 } },
     blank: { n: 'まっさら（チュートリアルなし）', day: 1, level: 1, money: 500, earned: 0, catches: 0, boat: 0, crew: 0, dex: -1, comp: [], lv: { rod: 0, line: 0, bait: 0, cool: 0, mkt: 0 }, fac: { house: 0, tank: 0, trophy: 0 } }
   };
   function makeState(p) {

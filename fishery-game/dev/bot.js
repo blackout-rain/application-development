@@ -189,7 +189,7 @@
     const m = rep.milestones, tl = rep.timeline;
     if (o.start === 'blank') {
       if (m.rank10 !== undefined && m.rank10 < 30) rep.warnings.push(`最高ランク「漁業王」まで ${m.rank10}日（1日の釣り18回なら、実時間で約${Math.round(m.rank10 * 6 / 60 * 10) / 10}時間）。進行が速すぎる可能性`);
-      if (m.area5 !== undefined && m.area5 < 20) rep.warnings.push(`全海域の解放まで ${m.area5}日。終盤の内容を、早く使い切る可能性`);
+      if (m.area9 !== undefined && m.area9 < 60) rep.warnings.push(`全海域の解放まで ${m.area9}日。終盤の内容を、早く使い切る可能性`);
       if (m.lv99 !== undefined && m.lv99 < 90) rep.warnings.push(`レベル上限（99）まで ${m.lv99}日。上限に達したあとの楽しみが必要`);
     }
     if (tl.length >= 15) { const a = tl[tl.length - 1], b = tl[tl.length - 11], inc = (a.earned - b.earned) / 10; if (inc > 0 && a.money > inc * 30) rep.warnings.push(`所持金（¥${num(a.money)}）が、日収（約¥${num(inc)}）の30日分を超えて余っています。お金の使い道が不足している可能性`); }
@@ -197,7 +197,7 @@
   };
 
   /* ----- レポート ----- */
-  const MS = [['area1', '沖合へ'], ['area2', '深海へ'], ['area3', 'サンゴ礁へ'], ['area4', '氷海へ'], ['area5', '幻の海域へ'], ['comp0', '港コンプ'], ['comp1', '沖合コンプ'], ['comp2', '深海コンプ'], ['boss0', '堤防の主を討伐'], ['boss1', '海原の主を討伐'], ['lv10', 'Lv10'], ['lv20', 'Lv20'], ['lv30', 'Lv30'], ['lv40', 'Lv40'], ['lv99', 'Lv99（上限）'], ['crewMax', '漁師が上限'], ['rank10', '漁業王']];
+  const MS = [['area1', '沖合へ'], ['area2', '深海へ'], ['area3', 'サンゴ礁へ'], ['area4', '氷海へ'], ['area5', '幻の海域へ'], ['area6', '海底火山へ'], ['area7', '沈没船の海域へ'], ['area8', '極夜の海へ'], ['area9', '竜宮の海へ'], ['comp0', '港コンプ'], ['comp1', '沖合コンプ'], ['comp2', '深海コンプ'], ['boss0', '堤防の主を討伐'], ['boss1', '海原の主を討伐'], ['lv10', 'Lv10'], ['lv20', 'Lv20'], ['lv30', 'Lv30'], ['lv40', 'Lv40'], ['lv99', 'Lv99（上限）'], ['crewMax', '漁師が上限'], ['rank10', '漁業王']];
   B.markdown = function (r) {
     const c = r.config, s = r.stats, L = [];
     L.push(`# 自動プレイのレポート（${c.days}日・腕前 ${c.skill}・乱数 ${c.seed}・開始 ${c.start}）`, '', `- 結果: **${r.ok ? 'OK（異常なし）' : 'NG（異常あり）'}**　実行 ${r.daysRun}日 / ${(r.ms / 1000).toFixed(1)}秒`);
