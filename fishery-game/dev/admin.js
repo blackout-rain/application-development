@@ -113,7 +113,7 @@
   };
   function makeState(p) {
     const o = fresh(), L = p.level;
-    Object.assign(o, { seen: 1, day: p.day, money: p.money, earned: p.earned, catches: p.catches, level: L, exp: 0, boat: p.boat, crew: p.crew, area: 0, min: 360, home: 0, lv: Object.assign({}, p.lv), fac: Object.assign({}, p.fac) });
+    Object.assign(o, { seen: 1, day: p.day, money: p.money, earned: p.earned, catches: p.catches, level: L, exp: 0, boat: p.boat, crew: p.crew, area: 0, min: 360, home: 0, lv: Object.assign({}, p.lv), fac: Object.assign({}, o.fac, p.fac) });
     const base = 1 + Math.round(1.2 * (L - 1)), spent = Math.round(3 * (L - 1) * .8), third = Math.floor(spent / 3);
     o.stat = { str: base + third, vit: base + third, agi: base, dex: base + spent - 2 * third, luk: base };
     o.alloc = { str: third, vit: third, agi: 0, dex: spent - 2 * third, luk: 0 }; o.bp = 3 * (L - 1) - spent;

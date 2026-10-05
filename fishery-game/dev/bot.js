@@ -85,6 +85,8 @@
     }
     function evening() {
       openTab('sell'); for (let i = 0; i < 6; i++) { if (!click('[data-deliver]')) break; openTab('sell') }   // 注文の納品（実際のボタン）
+      for (let i = 0; i < 2; i++) { if (!click('[data-proc]')) break; openTab('sell') }   // 加工場（あれば）に魚を出す
+      click('#sellprod'); openTab('sell');
       click('#sellall');
       if (G.debt > 0 && G.money > G.debt * 1.5) { openTab('town'); click('[data-repay="all"]') }   // 借りていたら返す（実際の返済ボタンを通す）
       openTab('home');
@@ -96,7 +98,7 @@
         if (click('[data-boat]', b => G.money - cost(b) >= reserve) || click('[data-fac="house"]', b => G.crew >= crewMax() && can(b)) || click('[data-crew]', can)) { rep.stats.purchases++; continue }
         const ups = [...document.querySelectorAll('[data-up]')].filter(b => !b.disabled && can(b)).sort((a, b) => cost(a) - cost(b));
         if (ups.length) { ups[0].click(); rep.stats.purchases++; continue }
-        if (click('[data-fac="tank"],[data-fac="trophy"]', b => can(b) && G.money - cost(b) >= reserve * 3)) { rep.stats.purchases++; continue }
+        if (click('[data-fac="tank"],[data-fac="trophy"],[data-fac="plant"]', b => can(b) && G.money - cost(b) >= reserve * 3)) { rep.stats.purchases++; continue }
         break;
       }
       for (let i = 2; i < G.crew; i += 3) if (G.cr[i] && G.cr[i].r === 0) click(`[data-role="${i}"]`);   // 3人に1人は営業にする（実際の切り替えボタンを通す）
