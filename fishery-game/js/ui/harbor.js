@@ -14,8 +14,11 @@ const HG = {
 const LG = {tip: {x: 120, y: 72}, bx: 300, by: 148, fx0: 140, fxw: 270, fy: 176, resDx: 46, resY: 112};
 let SCN = LG; // いまの場面のつくり（海域で変わる）
 const HAR = {ok: false, w: 0, h: 0, px: {}, key: '', frames: []};
-const HAR_SW = 480 / 236,
-  HAR_SH = 250 / 122; // 1ドットの、画面での大きさ（論理px）
+const HAR_K = SCENE_ART.k, // 絵の1ドット = K×K点
+  HAR_PW = 480 / SCENE_ART.w, // 1点の、画面での大きさ（論理px）
+  HAR_PH = 250 / SCENE_ART.h,
+  HAR_SW = HAR_PW * HAR_K, // 1ドットの、画面での大きさ（論理px）
+  HAR_SH = HAR_PH * HAR_K;
 function harborLoad() {
   const load = src =>
     new Promise(res => {
@@ -51,7 +54,8 @@ function harborBake(sx, step) {
     ev = clamp((p - 0.62) / 0.3, 0, 1),
     nt = clamp((p - 0.84) / 0.16, 0, 1),
     d = new Uint8ClampedArray(src.data);
-  const HOR = 48;
+  const K = HAR_K,
+    HOR = 48 * K;
   for (let r = 0; r < h; r++)
     for (let c = 0; c < w; c++) {
       const i = (r * w + c) * 4;
@@ -59,8 +63,8 @@ function harborBake(sx, step) {
         G = d[i + 1],
         B = d[i + 2];
       const sky = r < HOR,
-        sun = r < 20 && c > 184 && c < 212 && R > 235 && G > 190 && B < 150,
-        lamp = r > 14 && r < 32 && c < 40 && R > 190 && G > 130 && B < 150;
+        sun = r < 20 * K && c > 184 * K && c < 212 * K && R > 235 && G > 190 && B < 150,
+        lamp = r > 14 * K && r < 32 * K && c < 40 * K && R > 190 && G > 130 && B < 150;
       if (sun) {
         // 太陽：夕方は赤く、夜は月の色に
         const tr = R + (255 - R) * ev * 0.4,
@@ -75,7 +79,7 @@ function harborBake(sx, step) {
           G *= 1 - k * 0.26;
           B *= 1 - k * 0.5;
           if (sky) {
-            const t = clamp((r - 20) / (HOR - 20), 0, 1);
+            const t = clamp((r - 20 * K) / (HOR - 20 * K), 0, 1);
             R += (255 - R) * ev * 0.35 * t;
             G += (150 - G) * ev * 0.35 * t;
             B += (84 - B) * ev * 0.2 * t;
@@ -84,7 +88,7 @@ function harborBake(sx, step) {
           }
         }
         if (nt > 0) {
-          const inHero = c > 50 && c < 114 && r < 98,
+          const inHero = c > 50 * K && c < 114 * K && r < 98 * K,
             k = nt * (inHero ? 0.6 : 0.86); // 主人公のまわりは、街灯と月のあかりで、少し明るく
           R *= 1 - k * 0.55;
           G *= 1 - k * 0.48;
@@ -108,14 +112,14 @@ function harborBake(sx, step) {
         R = src.data[i],
         G = src.data[i + 1],
         B = src.data[i + 2];
-      const inHero = c > 50 && c < 114 && r < 98;
+      const inHero = c > 50 * K && c < 114 * K && r < 98 * K;
       water[r * w + c] = !inHero && B > 150 && B > R + 70 && G > R + 20 ? 1 : 0;
     }
   const frames = [];
   for (let f = 0; f < 4; f++) {
     const o = new ImageData(new Uint8ClampedArray(d), w, h);
     for (let r = HOR + 1; r < h; r++) {
-      const s = Math.round(Math.sin((f * Math.PI) / 2 + r * 0.55) * 1.1);
+      const s = Math.round(Math.sin((f * Math.PI) / 2 + Math.floor(r / K) * 0.55) * 1.1) * K;
       if (!s) continue;
       for (let c = 0; c < w; c++) {
         const c2 = c - s;
