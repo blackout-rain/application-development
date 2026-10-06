@@ -551,59 +551,7 @@ function drawHome(ts) {
   const c = hc,
     night = !!G.home,
     p = clamp((G.min - 360) / 720, 0, 1);
-  const sk = c.createLinearGradient(0, 0, 0, 200);
-  if (night) {
-    sk.addColorStop(0, '#0a1330');
-    sk.addColorStop(1, '#26305e');
-  } else {
-    sk.addColorStop(0, `hsl(${p < 0.7 ? 205 : 200 - ((p - 0.7) / 0.3) * 185},60%,${64 - p * 28}%)`);
-    sk.addColorStop(1, `hsl(${p < 0.7 ? 200 : 30},55%,${80 - p * 26}%)`);
-  }
-  c.fillStyle = sk;
-  c.fillRect(0, 0, 480, 340);
-  if (night) {
-    c.fillStyle = '#fff';
-    for (let i = 0; i < 40; i++) {
-      c.globalAlpha = 0.35 + 0.6 * Math.abs(Math.sin(ts / 900 + i));
-      c.fillRect((i * 97) % 480, (i * 53) % 110, 1.6, 1.6);
-    }
-    c.globalAlpha = 1;
-    c.fillStyle = '#f4efd0';
-    c.beginPath();
-    c.arc(430, 36, 15, 0, 7);
-    c.fill();
-  } else {
-    c.fillStyle = `hsl(${p < 0.7 ? 45 : 30},90%,${72 - p * 20}%)`;
-    c.beginPath();
-    c.arc(430, Math.min(90, 30 + p * 70), 18, 0, 7);
-    c.fill();
-  }
-  c.fillStyle = night ? '#17233f' : '#4f7f5a';
-  c.beginPath();
-  c.moveTo(0, 185);
-  c.quadraticCurveTo(120, 140, 240, 182);
-  c.quadraticCurveTo(360, 155, 480, 182);
-  c.lineTo(480, 210);
-  c.lineTo(0, 210);
-  c.fill();
-  c.fillStyle = night ? '#1b3a2c' : '#3f7a4a';
-  c.fillRect(0, 198, 480, 92);
-  c.fillStyle = night ? '#4a4132' : '#c8b48a';
-  c.fillRect(0, 266, 480, 8);
-  c.fillStyle = night ? '#0f2a44' : '#2a6f95';
-  c.fillRect(0, 300, 480, 40);
-  c.strokeStyle = 'rgba(255,255,255,.18)';
-  c.lineWidth = 1.5;
-  for (let r = 0; r < 3; r++) {
-    c.beginPath();
-    for (let x = 0; x <= 480; x += 8) {
-      const y = 312 + r * 10 + Math.sin(x / 30 + ts / 700 + r) * 2;
-      x ? c.lineTo(x, y) : c.moveTo(x, y);
-    }
-    c.stroke();
-  }
-  c.fillStyle = '#6b4f38';
-  c.fillRect(0, 288, 480, 12);
+  drawHomeBackdrop(c, night, p, ts);
   houseArt(c, G.fac.house, night, ts);
   trophyArt(c);
   toolsArt(c, ts);
