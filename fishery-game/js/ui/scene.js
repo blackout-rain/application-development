@@ -219,45 +219,67 @@ const HULLC = [
     '#6ab0ff',
     '#ffd24a'
   ];
-const fishX = f => 140 + (1 - f.prog / 100) * 270;
+const fishX = f => SCN.fx0 + (1 - f.prog / 100) * SCN.fxw;
 function draw(ts) {
   fitCanvas(cv, cx, 480, 250);
   cx.save();
   if (FX.shake > 0) cx.translate(rnd(-1, 1) * FX.shake * 8, rnd(-1, 1) * FX.shake * 8);
   const p = clamp((G.min - 360) / 720, 0, 1);
-  drawBackdrop(cx, G.area, p, ts);
-  const deckW = Math.min(478, 150 + G.crew * 32);
-  drawDeck(cx, G.area, deckW, p, ts);
-  CREW.forEach(cr => drawCrew(cr, ts));
-  const dusk = clamp((p - 0.5) / 0.5, 0, 1); // 夕方から夜にかけて、人物にも景色の色を乗せる
-  const rt = drawHero(cx, 44, 120, 1.5, heroSex(), {
-    pose: 'fish',
-    tint:
-      dusk > 0
-        ? dusk < 0.6
-          ? `rgba(255,130,60,${(0.22 * dusk) / 0.6})`
-          : `rgba(30,40,100,${0.22 + (0.2 * (dusk - 0.6)) / 0.4})`
-        : '',
-    bob: Math.sin(ts / 520) * 0.5,
-    lean: S.st === 'fight' ? -0.03 - S.f.tens * 0.0004 : 0 // 大物とのやりとりでは、少し体を引く
-  });
-  // 竿の続き：絵の竿の先から、糸の出る位置（TIP）まで、しなる竿を描く
-  cx.lineCap = 'round';
-  cx.strokeStyle = '#4a2f1c';
-  cx.lineWidth = 2.6;
-  cx.beginPath();
-  cx.moveTo(rt.x, rt.y);
-  cx.quadraticCurveTo(rt.x + 22, rt.y - 14, TIP.x, TIP.y);
-  cx.stroke();
-  cx.strokeStyle = '#a2704a';
-  cx.lineWidth = 1.2;
-  cx.beginPath();
-  cx.moveTo(rt.x, rt.y);
-  cx.quadraticCurveTo(rt.x + 22, rt.y - 14, TIP.x, TIP.y);
-  cx.stroke();
-  cx.lineCap = 'butt';
+  // 港の堤防は、用意された絵（主人公入り）。ほかの海域は、これまでのドット絵の背景と、横向きの主人公
+  const harbor = G.area === 0 && harborReady();
+  SCN = harbor ? HG : LG;
+  TIP.x = SCN.tip.x;
+  TIP.y = SCN.tip.y;
+  if (harbor) {
+    drawHarborScene(cx, heroSex(), p, ts);
+    CREW.forEach(cr => harborCrew(cr, ts));
+  } else {
+    drawBackdrop(cx, G.area, p, ts);
+    const deckW = Math.min(478, 150 + G.crew * 32);
+    drawDeck(cx, G.area, deckW, p, ts);
+    CREW.forEach(cr => drawCrew(cr, ts));
+    const dusk = clamp((p - 0.5) / 0.5, 0, 1); // 夕方から夜にかけて、人物にも景色の色を乗せる
+    const rt = drawHero(cx, 44, 120, 1.5, heroSex(), {
+      pose: 'fish',
+      tint:
+        dusk > 0
+          ? dusk < 0.6
+            ? `rgba(255,130,60,${(0.22 * dusk) / 0.6})`
+            : `rgba(30,40,100,${0.22 + (0.2 * (dusk - 0.6)) / 0.4})`
+          : '',
+      bob: Math.sin(ts / 520) * 0.5,
+      lean: S.st === 'fight' ? -0.03 - S.f.tens * 0.0004 : 0 // 大物とのやりとりでは、少し体を引く
+    });
+    // 竿の続き：絵の竿の先から、糸の出る位置（TIP）まで、しなる竿を描く
+    cx.lineCap = 'round';
+    cx.strokeStyle = '#4a2f1c';
+    cx.lineWidth = 2.6;
+    cx.beginPath();
+    cx.moveTo(rt.x, rt.y);
+    cx.quadraticCurveTo(rt.x + 22, rt.y - 14, TIP.x, TIP.y);
+    cx.stroke();
+    cx.strokeStyle = '#a2704a';
+    cx.lineWidth = 1.2;
+    cx.beginPath();
+    cx.moveTo(rt.x, rt.y);
+    cx.quadraticCurveTo(rt.x + 22, rt.y - 14, TIP.x, TIP.y);
+    cx.stroke();
+    cx.lineCap = 'butt';
+  }
   cx.lineWidth = 1;
   cx.strokeStyle = 'rgba(255,255,255,.8)';
+  // 糸：港の絵のときは、絵のドットの大きさにそろえて描く
+  const sline = (x0, y0, qx, qy, x1, y1, col, lw) => {
+    if (harbor) harborLine(cx, x0, y0, qx, qy, x1, y1, col);
+    else {
+      cx.strokeStyle = col;
+      cx.lineWidth = lw || 1;
+      cx.beginPath();
+      cx.moveTo(x0, y0);
+      cx.quadraticCurveTo(qx, qy, x1, y1);
+      cx.stroke();
+    }
+  };
   const st = S.st,
     tc = S.tier ? TIER[S.tier].c : null;
   if (st === 'fight') {
@@ -266,7 +288,7 @@ function draw(ts) {
       str = f.struggle;
     const fx = fishX(f) + (str ? 10 + Math.sin(ts / 90) * 5 : 0),
       fy =
-        176 +
+        SCN.fy +
         Math.sin(ts / 300) * 4 +
         (str ? Math.sin(ts / 38) * (S.tier === 3 ? 12 : 8) + Math.sin(ts / 97) * 4 : 0);
     const ang = str ? Math.sin(ts / 55) * 0.38 * f.flip + 0.15 : Math.sin(ts / 500) * 0.06;
@@ -284,12 +306,16 @@ function draw(ts) {
       }
     }
     const gb = Math.round(255 - f.tens * 2.2);
-    cx.strokeStyle = `rgba(255,${gb},${gb},.9)`;
-    cx.lineWidth = 1 + f.tens / 60;
-    cx.beginPath();
-    cx.moveTo(TIP.x, TIP.y);
-    cx.quadraticCurveTo((TIP.x + mx) / 2, Math.min(TIP.y, my) - 10 + f.tens * 0.4, mx, my);
-    cx.stroke();
+    sline(
+      TIP.x,
+      TIP.y,
+      (TIP.x + mx) / 2,
+      Math.min(TIP.y, my) - 10 + f.tens * 0.4,
+      mx,
+      my,
+      `rgba(255,${gb},${gb},.9)`,
+      1 + f.tens / 60
+    );
     cx.lineWidth = 1;
     cx.save();
     cx.translate(fx, fy);
@@ -313,12 +339,9 @@ function draw(ts) {
       cx.textAlign = 'left';
     }
   } else if (st === 'wait' || st === 'bite') {
-    const bx = 300,
-      by = 148 + (st === 'bite' ? 10 + Math.sin(ts / 50) * 6 : Math.sin(ts / 500) * 2);
-    cx.beginPath();
-    cx.moveTo(TIP.x, TIP.y);
-    cx.quadraticCurveTo((TIP.x + bx) / 2, TIP.y - 6, bx, by);
-    cx.stroke();
+    const bx = SCN.bx,
+      by = SCN.by + (st === 'bite' ? 10 + Math.sin(ts / 50) * 6 : Math.sin(ts / 500) * 2);
+    sline(TIP.x, TIP.y, (TIP.x + bx) / 2, harbor ? TIP.y + 18 : TIP.y - 6, bx, by, 'rgba(255,255,255,.8)', 1);
     if (st === 'bite' && tc) {
       cx.lineWidth = 2;
       for (let k = 0; k < 3; k++) {
@@ -326,30 +349,38 @@ function draw(ts) {
         cx.strokeStyle = tc;
         cx.globalAlpha = 1 - r / 34;
         cx.beginPath();
-        cx.ellipse(bx, 148, r * 1.3, r * 0.45, 0, 0, 7);
+        cx.ellipse(bx, SCN.by, r * 1.3, r * 0.45, 0, 0, 7);
         cx.stroke();
       }
       cx.globalAlpha = 1;
       cx.lineWidth = 1;
     }
-    cx.fillStyle = '#ff5a4e';
-    cx.beginPath();
-    cx.arc(bx, by, 6, 0, 7);
-    cx.fill();
+    if (!(harbor && harborBuoy(cx, bx, by))) {
+      cx.fillStyle = '#ff5a4e';
+      cx.beginPath();
+      cx.arc(bx, by, 6, 0, 7);
+      cx.fill();
+    }
     if (st === 'bite') {
       cx.fillStyle = tc || '#ffd24a';
       cx.font = `900 ${S.tier ? 52 : 40}px sans-serif`;
       cx.fillText(S.tier >= 2 ? '!!' : '!', bx - (S.tier >= 2 ? 16 : 8), by - 24);
     }
   } else {
-    cx.beginPath();
-    cx.moveTo(TIP.x, TIP.y);
-    cx.lineTo(TIP.x + 4, 150);
-    cx.stroke();
+    sline(
+      TIP.x,
+      TIP.y,
+      TIP.x + 2,
+      (TIP.y + SCN.resY) / 2,
+      TIP.x + SCN.resDx - 14,
+      SCN.resY - 2,
+      'rgba(255,255,255,.8)',
+      1
+    );
     if (st === 'result' && S.ok) {
-      const y = 112 + Math.sin(ts / 200) * 4;
-      if (tc) glow(cx, TIP.x + 46, y, 56, tc, 0.5);
-      drawSp(cx, S.dsp || S.sp, TIP.x + 46, y, 60);
+      const y = SCN.resY + Math.sin(ts / 200) * 4;
+      if (tc) glow(cx, TIP.x + SCN.resDx, y, 56, tc, 0.5);
+      drawSp(cx, S.dsp || S.sp, TIP.x + SCN.resDx, y, 60);
     }
   }
   PT.forEach(q => {
