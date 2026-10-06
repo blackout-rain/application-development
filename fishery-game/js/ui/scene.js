@@ -49,20 +49,24 @@ function person(c, x, y, col, hat, s) {
   c.restore();
 }
 // ---- 主人公：用意した絵（男・女）を使う。足元の中心が (x, y)、高さが 50 * s ----
+// 正面の絵（自宅・決める画面）と、海を向いて竿を持つ横向きの絵（釣り場面）がある
 const HERO_UNIT = 50;
 const HERO_IMG = {};
-function heroImg(sex, h) {
-  const k = sex === 1 ? 'f' : 'm',
-    d = HERO_SPR[k],
-    sz = ['S', 'M', 'L'].find(n => d.img[n].h >= h) || 'L',
-    key = k + sz;
+function heroPart(sex, pose) {
+  const d = HERO_SPR[sex === 1 ? 'f' : 'm'];
+  return pose === 'fish' ? d.fish : d;
+}
+function heroImg(sex, h, pose) {
+  const d = heroPart(sex, pose),
+    sz = ['N', 'L'].find(n => d.img[n].h >= h) || 'L',
+    key = (sex === 1 ? 'f' : 'm') + (pose || '') + sz;
   if (!HERO_IMG[key]) {
     HERO_IMG[key] = new Image();
     HERO_IMG[key].src = d.img[sz].src;
   }
   return HERO_IMG[key];
 }
-[0, 1].forEach(sx => [20, 100, 200].forEach(h => heroImg(sx, h))); // 先に読み込んでおく
+[0, 1].forEach(sx => ['', 'fish'].forEach(po => [20, 400].forEach(h => heroImg(sx, h, po)))); // 先に読み込んでおく
 let HERO_TMP = null;
 // 色をかぶせた絵（夕方・夜に、景色になじませる）。絵の形の内側だけに色が乗る
 function heroTinted(im, W, H, tint) {
@@ -83,14 +87,13 @@ function heroTinted(im, W, H, tint) {
   g.fillRect(0, 0, w, h);
   return t;
 }
-// o: {bob: 上下のゆれ(px), lean: うしろへの傾き(ラジアン), tint: かぶせる色, onload: 画像がまだなら、読み込み後に呼ぶ}
+// o: {pose: 'fish'なら横向き, bob: 上下のゆれ(px), lean: うしろへの傾き(ラジアン), tint: かぶせる色, onload: 画像がまだなら、読み込み後に呼ぶ}
 // 戻り値: 竿の先の位置（そこから、ゲーム側で竿の続きと糸を描く）
 function drawHero(c, x, y, s, sex = heroSex(), o = {}) {
-  const k = sex === 1 ? 'f' : 'm',
-    d = HERO_SPR[k],
+  const d = heroPart(sex, o.pose),
     H = HERO_UNIT * s,
     W = H * d.aspect,
-    im = heroImg(sex, H),
+    im = heroImg(sex, H, o.pose),
     lean = o.lean || 0,
     fy = y + (o.bob || 0);
   c.save();
@@ -419,7 +422,8 @@ function draw(ts) {
   }
   CREW.forEach(cr => drawCrew(cr, ts));
   const dusk = clamp((p - 0.5) / 0.5, 0, 1); // 夕方から夜にかけて、人物にも景色の色を乗せる
-  const rt = drawHero(cx, 46, 120, 1.5, heroSex(), {
+  const rt = drawHero(cx, 44, 120, 1.5, heroSex(), {
+    pose: 'fish',
     tint:
       dusk > 0
         ? dusk < 0.6
@@ -435,13 +439,13 @@ function draw(ts) {
   cx.lineWidth = 2.6;
   cx.beginPath();
   cx.moveTo(rt.x, rt.y);
-  cx.quadraticCurveTo(rt.x + 30, rt.y - 12, TIP.x, TIP.y);
+  cx.quadraticCurveTo(rt.x + 22, rt.y - 14, TIP.x, TIP.y);
   cx.stroke();
   cx.strokeStyle = '#a2704a';
   cx.lineWidth = 1.2;
   cx.beginPath();
   cx.moveTo(rt.x, rt.y);
-  cx.quadraticCurveTo(rt.x + 30, rt.y - 12, TIP.x, TIP.y);
+  cx.quadraticCurveTo(rt.x + 22, rt.y - 14, TIP.x, TIP.y);
   cx.stroke();
   cx.lineCap = 'butt';
   cx.lineWidth = 1;
