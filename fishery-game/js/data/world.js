@@ -718,7 +718,7 @@ const ST = [
     k: 'str',
     n: T('力'),
     d: T('巻き上げの力。魚を寄せるスピードが上がります。'),
-    fx: v => T('巻き上げ速度 +{1}%', [Math.round(SE.reel(v) * 100 - 100)])
+    fx: v => T('巻き上げ力 +{1}%', [Math.round(statFx('reel', v) * 100)])
   },
   {
     k: 'vit',
@@ -741,16 +741,16 @@ const ST = [
     n: T('器用さ'),
     d: T('糸さばきの上手さ。暴れる魚に寄せ戻されにくく、テンションも下がりやすくなります。'),
     fx: v =>
-      T('寄せ戻され -{1}%・テンション回復 +{2}%', [
+      T('寄せ戻され -{1}%・テンション回復力 +{2}%', [
         Math.round((1 - SE.pull(v)) * 100),
-        Math.round(SE.recover(v) * 100 - 100)
+        Math.round(statFx('recover', v) * 100)
       ])
   },
   {
     k: 'luk',
     n: T('運'),
     d: T('レア魚や大物との出会いやすさ。'),
-    fx: v => T('レア魚の出現 +{1}%・大物サイズが出やすい', [Math.round(25 * SE.rare(v))])
+    fx: v => T('レア魚の出会いやすさ +{1}%・大物サイズが出やすい', [Math.round(statFx('rare', v) * 100)])
   },
   {
     k: 'foc',

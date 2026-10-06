@@ -430,6 +430,15 @@ await t('ステータス：体力・器用さ・集中力は、Lv12ごろ（24�
   const r = await ev(p, () => [SE.tension(24) - SE.tension(100), SE.pull(24) - SE.pull(100), SE.struggle(24) - SE.struggle(100), 1 - SE.tension(24)]);
   return r[0] > 0.2 && r[1] > 0.2 && r[2] > 0.1 && r[3] < 0.5 ? true : JSON.stringify(r);
 });
+await t('ステータス：効果の表示の数字は、ポイントがいくつでも2桁以内で、実際の効果の伸びは変わらない（力・テンション回復・レア魚）', 'mid', async p => {
+  const r = await ev(p, () => {
+    const big = [];
+    for (const v of [0, 10, 50, 100, 300, 1000]) ST.forEach(s => { for (const m of s.fx(v).matchAll(/(\d+)(?:\.\d+)?/g)) if (m[1].length > 2) big.push(s.k + v + ':' + m[0]) });
+    return { big, reel: [SE.reel(100), SE.reel(200)], rec: [SE.recover(100), SE.recover(200)], rare: [SE.rare(100), SE.rare(200)] };
+  });
+  const near = (a, b) => Math.abs(a - b) < 0.1;
+  return r.big.length === 0 && near(r.reel[0], 1 + (7.8 * 100) / 146) && near(r.reel[1], 1 + (7.8 * 200) / 246) && near(r.rec[0], 1 + (3.9 * 100) / 146) && near(r.rec[1], 1 + (3.9 * 200) / 246) && near(r.rare[0], (50 * 100) / 160) && near(r.rare[1], (50 * 200) / 260) ? true : JSON.stringify(r);
+});
 await t('ステータス画面：現在の効果の表示に、NaN・undefinedが出ない（ポイント0〜500）', 'mid', async p => {
   const r = await ev(p, () => { const out = []; for (const v of [0, 1, 24, 100, 500]) for (const s of ST) { const t = s.fx(v); if (/NaN|undefined|Infinity/.test(t)) out.push(s.k + v) } return out });
   return eq(r, []);

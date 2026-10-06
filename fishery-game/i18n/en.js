@@ -73,7 +73,6 @@ const EN={
 "むずかしい":"Hard",
 "力":"Strength",
 "巻き上げの力。魚を寄せるスピードが上がります。":"Reeling power. Fish come in faster.",
-"巻き上げ速度 +{1}%":"Reel speed +{1}%",
 "体力":"Stamina",
 "魚の引きに耐える力。テンションが上がりにくくなります。":"Stamina to withstand a fish's pull. Tension rises more slowly.",
 "テンション上昇 -{1}%":"Tension gain -{1}%",
@@ -82,10 +81,8 @@ const EN={
 "アタリまで -{1}%・アワセ猶予 +{2}秒":"Time to bite -{1}% · Hook window +{2}s",
 "器用さ":"Dexterity",
 "糸さばきの上手さ。暴れる魚に寄せ戻されにくく、テンションも下がりやすくなります。":"Skill at handling the line. Thrashing fish pull you back less, and Tension drops faster.",
-"寄せ戻され -{1}%・テンション回復 +{2}%":"Pull-back -{1}% · Tension recovery +{2}%",
 "運":"Luck",
 "レア魚や大物との出会いやすさ。":"Your odds of meeting rare fish and big catches.",
-"レア魚の出現 +{1}%・大物サイズが出やすい":"Rare fish chance +{1}% · Bigger catches more likely",
 "集中力":"Focus",
 "魚が暴れている時間が短くなります。粘り強く寄せられます。":"Fish thrash for a shorter time, so you can keep reeling steadily.",
 "暴れる時間 -{1}%":"Thrashing time -{1}%",
@@ -1004,5 +1001,8 @@ const EN={
 "<div class=\"help\"><button class=\"ghost hback\" id=\"hl\">← 目次</button> <span class=\"hcn\">{1}</span><h3>{2}</h3>{3}<div class=\"row\"><button class=\"ghost\" id=\"hp\" {4}>前へ</button><button class=\"ghost\" id=\"hn\" {5}>次へ</button><button class=\"big\" id=\"hc\" style=\"flex:1;width:auto\">閉じる</button></div><p class=\"dots\">{6} / {7}</p></div>":"<div class=\"help\"><button class=\"ghost hback\" id=\"hl\">← Topics</button> <span class=\"hcn\">{1}</span><h3>{2}</h3>{3}<div class=\"row\"><button class=\"ghost\" id=\"hp\" {4}>Previous</button><button class=\"ghost\" id=\"hn\" {5}>Next</button><button class=\"big\" id=\"hc\" style=\"flex:1;width:auto\">Close</button></div><p class=\"dots\">{6} / {7}</p></div>",
 "<div class=\"card\"><div class=\"kv\"><span>レベル</span><b class=\"num\">Lv.{1}</b><span>経験値</span><b class=\"num\">{2} / {3}</b><span>ボーナスポイント（BP）</span><b class=\"num\" style=\"color:var(--accent)\">{4}</b></div>\n    <div class=\"bar\" style=\"margin-top:8px\"><i style=\"background:var(--good);width:{5}%\"></i></div>\n    <p style=\"color:var(--sub);font-size:.8rem;margin:8px 0 0\">魚を釣ると経験値がもらえます。レベルが上がると、各ステータスが<b>ランダムに0〜3</b>上がり、<b>BPが3</b>もらえます。BPは好きなステータスに振り分けられます。ポイントを入れるほど効果は伸びますが、少しずつ伸び方がゆるやかになります（上限はありません）。</p>{6}</div>\n    <div class=\"list\">{7}</div>\n    <div class=\"row\"><button class=\"ghost\" id=\"stReset\" {8}>BPを振り直す（無料）</button></div>\n    <h2>主への挑戦目安</h2><p style=\"color:var(--sub);font-size:.8rem;margin:0 0 8px\">強い主に、どのステータスがどのくらい必要かを診断します。主に逃げられたときも自動で表示されます。</p>\n    <div class=\"list\">{9}</div>":"<div class=\"card\"><div class=\"kv\"><span>Level</span><b class=\"num\">Lv.{1}</b><span>EXP</span><b class=\"num\">{2} / {3}</b><span>Bonus Points (BP)</span><b class=\"num\" style=\"color:var(--accent)\">{4}</b></div>\n    <div class=\"bar\" style=\"margin-top:8px\"><i style=\"background:var(--good);width:{5}%\"></i></div>\n    <p style=\"color:var(--sub);font-size:.8rem;margin:8px 0 0\">Catch fish to earn EXP. Each level-up raises every stat by <b>0-3 at random</b> and gives you <b>3 BP</b>. You can spend BP on any stat you like. Every point adds effect, but each extra point adds a little less than the last (there is no hard cap).</p>{6}</div>\n    <div class=\"list\">{7}</div>\n    <div class=\"row\"><button class=\"ghost\" id=\"stReset\" {8}>Reset BP (free)</button></div>\n    <h2>Boss Challenge Guide</h2><p style=\"color:var(--sub);font-size:.8rem;margin:0 0 8px\">Shows which stats you need, and how much, to take on a tough Boss. It also appears automatically when a Boss gets away.</p>\n    <div class=\"list\">{9}</div>",
 "<p>魚を釣ると<b>経験値</b>がもらえ、たまると<b>レベル</b>が上がります（ランクとは別です）。</p><ol><li>レベルが上がると、8つのステータスがランダムに上がる（0〜3ずつ）</li><li>同時に<b>BP</b>が3もらえる</li><li><span class=\"k\">ステータス</span>タブで、BPを好きなステータスに振り分ける</li></ol><p><b>力</b>は巻き上げ、<b>体力</b>はテンション、<b>素早さ</b>はアタリ、<b>器用さ</b>は寄せ戻され、<b>運</b>はレア魚に効きます。</p><p>さらに、<b>集中力</b>は魚の暴れる時間を短くし、<b>商才</b>は売値と給料に、<b>統率力</b>は従業員の水揚げと成長に効きます（8つのステータス）。</p><p>どのステータスも、ポイントを入れるほど効果は伸びますが、少しずつ伸び方がゆるやかになります（上限はありません）。いろいろなステータスにバランスよく振ると、効率がよくなります。</p>":"<p>Catching fish earns <b>EXP</b>, and when it builds up your <b>Lv.</b> goes up (separate from Rank).</p><ol><li>When you level up, your 8 Stats go up at random (0 to 3 each)</li><li>You also get <b>3 BP</b></li><li>In the <span class=\"k\">Stats</span> tab, put your BP into any Stat you like</li></ol><p><b>Strength</b> affects reeling, <b>Stamina</b> affects Tension, <b>Agility</b> affects bites, <b>Dexterity</b> affects Reel Progress loss, and <b>Luck</b> affects rare fish.</p><p>On top of that, <b>Focus</b> shortens how long a fish thrashes, <b>Business Sense</b> affects Sale price and Wage, and <b>Leadership</b> affects your Crew's Haul and growth (8 Stats in all).</p><p>For every Stat, more points mean a bigger effect, but each extra point adds a little less (there is no hard cap). Spreading your points across several Stats tends to be more efficient.</p>",
+"巻き上げ力 +{1}%":"Reeling power +{1}%",
+"寄せ戻され -{1}%・テンション回復力 +{2}%":"Reel Progress loss -{1}% · Tension recovery power +{2}%",
+"レア魚の出会いやすさ +{1}%・大物サイズが出やすい":"Rare fish luck +{1}% · Bigger sizes more likely",
 /*EN_END*/
 };
