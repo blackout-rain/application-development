@@ -32,15 +32,17 @@ function drawHeroPreview(id, sex) {
   c.fillStyle = '#bfe3f2';
   c.fillRect(0, 0, cv.width, cv.height);
   c.fillStyle = '#7a5c3a';
-  c.fillRect(0, cv.height - 14, cv.width, 14);
-  drawHero(c, cv.width / 2, cv.height - 14, 2.4, sex);
+  c.fillRect(0, cv.height - 12, cv.width, 12);
+  drawHero(c, cv.width / 2, cv.height - 12, (cv.height - 22) / HERO_UNIT, sex, {
+    onload: () => drawHeroPreview(id, sex)
+  });
 }
 
 // はじめて遊ぶとき：名前と性別を決める。決めたら done() を呼ぶ
 function showHeroSetup(done) {
   let sex = heroSex();
   $('#box').innerHTML = T(
-    '<div class="help"><h3>主人公を決めよう</h3><p class="hint">名前と性別を選んでください。あとから、設定タブでも変えられます。</p><canvas id="heroPrev" width="120" height="100" style="display:block;margin:0 auto 10px;border-radius:10px"></canvas><label class="lbl" for="heroIn">名前（{1}文字まで）</label><input id="heroIn" class="txt" maxlength="{1}" autocomplete="off" placeholder="{2}" value="{3}"><div class="row" id="heroSex"><button class="chip" data-hs="0" aria-pressed="{4}">男</button><button class="chip" data-hs="1" aria-pressed="{5}">女</button></div><div class="row"><button class="big" id="heroOk" style="flex:1;width:auto">これで決定</button></div></div>',
+    '<div class="help"><h3>主人公を決めよう</h3><p class="hint">名前と性別を選んでください。あとから、設定タブでも変えられます。</p><canvas id="heroPrev" width="300" height="320" style="display:block;margin:0 auto 10px;border-radius:10px"></canvas><label class="lbl" for="heroIn">名前（{1}文字まで）</label><input id="heroIn" class="txt" maxlength="{1}" autocomplete="off" placeholder="{2}" value="{3}"><div class="row" id="heroSex"><button class="chip" data-hs="0" aria-pressed="{4}">男</button><button class="chip" data-hs="1" aria-pressed="{5}">女</button></div><div class="row"><button class="big" id="heroOk" style="flex:1;width:auto">これで決定</button></div></div>',
     [HERO_NAME_MAX, esc(T('あなた')), esc(heroName()), sex === 0, sex === 1]
   );
   $('#veil').hidden = false;
@@ -64,7 +66,7 @@ function showHeroSetup(done) {
 function heroCardHtml() {
   const sex = heroSex();
   return T(
-    '<h2>主人公</h2><div class="card"><canvas id="heroPrevS" width="120" height="100" style="display:block;margin:0 auto 10px;border-radius:10px"></canvas><label class="lbl" for="heroInS">名前（{1}文字まで）</label><input id="heroInS" class="txt" maxlength="{1}" autocomplete="off" placeholder="{2}" value="{3}"><div class="row" id="heroSexS"><button class="chip" data-hss="0" aria-pressed="{4}">男</button><button class="chip" data-hss="1" aria-pressed="{5}">女</button></div></div>',
+    '<h2>主人公</h2><div class="card"><canvas id="heroPrevS" width="300" height="320" style="display:block;margin:0 auto 10px;border-radius:10px"></canvas><label class="lbl" for="heroInS">名前（{1}文字まで）</label><input id="heroInS" class="txt" maxlength="{1}" autocomplete="off" placeholder="{2}" value="{3}"><div class="row" id="heroSexS"><button class="chip" data-hss="0" aria-pressed="{4}">男</button><button class="chip" data-hss="1" aria-pressed="{5}">女</button></div></div>',
     [HERO_NAME_MAX, esc(T('あなた')), esc(heroName()), sex === 0, sex === 1]
   );
 }

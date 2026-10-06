@@ -1,74 +1,117 @@
 /* ---------- scene ---------- */
 const cv = $('#cv'),
   cx = cv.getContext('2d');
+// ほかの人（漁師）。主人公と同じ、濃い紺のふち取りで描いて、絵がなじむようにする
 function person(c, x, y, col, hat, s) {
+  const ol = '#12142a',
+    ob = (px, py, w, h, f) => {
+      c.fillStyle = ol;
+      c.fillRect(px - 1, py - 1, w + 2, h + 2);
+      c.fillStyle = f;
+      c.fillRect(px, py, w, h);
+    };
   c.save();
   c.translate(x, y);
-  c.scale(s, s);
-  c.fillStyle = '#2b3a4a';
-  c.fillRect(-3.5, -9, 3, 9);
-  c.fillRect(0.5, -9, 3, 9);
-  c.fillStyle = col;
-  c.fillRect(-5, -24, 10, 15);
-  c.fillStyle = '#f1c9a0';
+  c.scale(s * 1.2, s * 1.2);
+  ob(-4, -10, 3.4, 9, '#44628a');
+  ob(0.6, -10, 3.4, 9, '#3a5578');
+  ob(-4.4, -2, 4, 2, '#eef2f6');
+  ob(0.4, -2, 4, 2, '#eef2f6');
+  ob(-5.5, -25, 11, 16, col);
+  c.fillStyle = 'rgba(10,20,60,.2)';
+  c.fillRect(1.5, -25, 4, 16);
+  c.fillStyle = 'rgba(255,255,255,.35)';
+  c.fillRect(-5.5, -25, 11, 2);
+  c.fillStyle = ol;
   c.beginPath();
-  c.arc(0, -29, 5, 0, 7);
+  c.arc(0, -30, 6.3, 0, 7);
   c.fill();
+  c.fillStyle = '#f4c9a0';
+  c.beginPath();
+  c.arc(0, -30, 5.3, 0, 7);
+  c.fill();
+  c.fillStyle = '#12142a';
+  c.fillRect(-3, -30.4, 1.4, 2);
+  c.fillRect(1.6, -30.4, 1.4, 2);
+  c.fillStyle = 'rgba(255,120,130,.55)';
+  c.fillRect(-4.2, -28, 1.8, 1.2);
+  c.fillRect(2.4, -28, 1.8, 1.2);
+  c.fillStyle = ol;
+  c.beginPath();
+  c.arc(0, -33, 6.1, Math.PI, 0);
+  c.fill();
+  c.fillRect(-7.4, -34, 14.8, 3.4);
   c.fillStyle = hat;
-  c.fillRect(-6.5, -33, 13, 2.5);
   c.beginPath();
-  c.arc(0, -33, 5, Math.PI, 0);
+  c.arc(0, -33, 5.2, Math.PI, 0);
   c.fill();
+  c.fillRect(-6.4, -33, 12.8, 2.2);
   c.restore();
 }
-// 主人公（男・女で、髪型・服・帽子が違う）
-function drawHero(c, x, y, s, sex = heroSex()) {
-  const f = sex === 1;
+// ---- 主人公：用意した絵（男・女）を使う。足元の中心が (x, y)、高さが 50 * s ----
+const HERO_UNIT = 50;
+const HERO_IMG = {};
+function heroImg(sex, h) {
+  const k = sex === 1 ? 'f' : 'm',
+    d = HERO_SPR[k],
+    sz = ['S', 'M', 'L'].find(n => d.img[n].h >= h) || 'L',
+    key = k + sz;
+  if (!HERO_IMG[key]) {
+    HERO_IMG[key] = new Image();
+    HERO_IMG[key].src = d.img[sz].src;
+  }
+  return HERO_IMG[key];
+}
+[0, 1].forEach(sx => [20, 100, 200].forEach(h => heroImg(sx, h))); // 先に読み込んでおく
+let HERO_TMP = null;
+// 色をかぶせた絵（夕方・夜に、景色になじませる）。絵の形の内側だけに色が乗る
+function heroTinted(im, W, H, tint) {
+  const t = HERO_TMP || (HERO_TMP = document.createElement('canvas')),
+    w = Math.ceil(W),
+    h = Math.ceil(H);
+  if (t.width !== w || t.height !== h) {
+    t.width = w;
+    t.height = h;
+  }
+  const g = t.getContext('2d');
+  g.clearRect(0, 0, w, h);
+  g.imageSmoothingQuality = 'high';
+  g.globalCompositeOperation = 'source-over';
+  g.drawImage(im, 0, 0, W, H);
+  g.globalCompositeOperation = 'source-atop';
+  g.fillStyle = tint;
+  g.fillRect(0, 0, w, h);
+  return t;
+}
+// o: {bob: 上下のゆれ(px), lean: うしろへの傾き(ラジアン), tint: かぶせる色, onload: 画像がまだなら、読み込み後に呼ぶ}
+// 戻り値: 竿の先の位置（そこから、ゲーム側で竿の続きと糸を描く）
+function drawHero(c, x, y, s, sex = heroSex(), o = {}) {
+  const k = sex === 1 ? 'f' : 'm',
+    d = HERO_SPR[k],
+    H = HERO_UNIT * s,
+    W = H * d.aspect,
+    im = heroImg(sex, H),
+    lean = o.lean || 0,
+    fy = y + (o.bob || 0);
   c.save();
-  c.translate(x, y);
-  c.scale(s, s);
-  if (f) {
-    c.fillStyle = '#5b3a29'; // 長い髪（体のうしろ）
-    c.fillRect(-6.5, -32, 13, 15);
-  }
-  c.fillStyle = '#2b3a4a';
-  c.fillRect(-3.5, -9, 3, 9);
-  c.fillRect(0.5, -9, 3, 9);
-  if (f) {
-    c.fillStyle = '#e8e2d0'; // スカート
-    c.beginPath();
-    c.moveTo(-5.5, -14);
-    c.lineTo(5.5, -14);
-    c.lineTo(8, -7);
-    c.lineTo(-8, -7);
-    c.fill();
-  }
-  c.fillStyle = f ? '#3fb8a8' : '#ffb454';
-  c.fillRect(-5, -24, 10, f ? 11 : 15);
-  c.fillStyle = '#f1c9a0';
+  c.fillStyle = 'rgba(0,20,40,.28)';
   c.beginPath();
-  c.arc(0, -29, 5, 0, 7);
+  c.ellipse(x, y + 1, W * 0.36, Math.max(2, H * 0.045), 0, 0, 7);
   c.fill();
-  if (f) {
-    c.fillStyle = '#5b3a29'; // 前髪
-    c.beginPath();
-    c.arc(0, -30, 5.2, Math.PI, 0);
-    c.fill();
-    c.fillStyle = '#f2d08a'; // 麦わら帽子
-    c.fillRect(-8, -33.5, 16, 2.2);
-    c.beginPath();
-    c.arc(0, -33.5, 5, Math.PI, 0);
-    c.fill();
-    c.fillStyle = '#ff7aa2';
-    c.fillRect(-5, -35.2, 10, 1.6);
-  } else {
-    c.fillStyle = '#c0392b';
-    c.fillRect(-6.5, -33, 13, 2.5);
-    c.beginPath();
-    c.arc(0, -33, 5, Math.PI, 0);
-    c.fill();
-  }
+  c.translate(x, fy);
+  c.rotate(lean);
+  if (im.complete && im.naturalWidth) {
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(o.tint ? heroTinted(im, W, H, o.tint) : im, -d.foot * H, -H, W, H);
+  } else if (o.onload) im.addEventListener('load', o.onload, {once: true});
   c.restore();
+  const tx = (d.tip[0] - d.foot) * H,
+    ty = (d.tip[1] - 1) * H;
+  return {
+    x: x + tx * Math.cos(lean) - ty * Math.sin(lean),
+    y: fy + tx * Math.sin(lean) + ty * Math.cos(lean)
+  };
 }
 function glow(c, x, y, r, col, a) {
   const g = c.createRadialGradient(x, y, 2, x, y, r);
@@ -375,13 +418,32 @@ function draw(ts) {
     cx.fillRect(0, 132, deckW, 3);
   }
   CREW.forEach(cr => drawCrew(cr, ts));
-  drawHero(cx, 46, 120, 1.25);
-  cx.strokeStyle = '#d9c7a8';
-  cx.lineWidth = 3;
+  const dusk = clamp((p - 0.5) / 0.5, 0, 1); // 夕方から夜にかけて、人物にも景色の色を乗せる
+  const rt = drawHero(cx, 46, 120, 1.5, heroSex(), {
+    tint:
+      dusk > 0
+        ? dusk < 0.6
+          ? `rgba(255,130,60,${(0.22 * dusk) / 0.6})`
+          : `rgba(30,40,100,${0.22 + (0.2 * (dusk - 0.6)) / 0.4})`
+        : '',
+    bob: Math.sin(ts / 520) * 0.5,
+    lean: S.st === 'fight' ? -0.03 - S.f.tens * 0.0004 : 0 // 大物とのやりとりでは、少し体を引く
+  });
+  // 竿の続き：絵の竿の先から、糸の出る位置（TIP）まで、しなる竿を描く
+  cx.lineCap = 'round';
+  cx.strokeStyle = '#4a2f1c';
+  cx.lineWidth = 2.6;
   cx.beginPath();
-  cx.moveTo(54, 97);
-  cx.lineTo(TIP.x, TIP.y);
+  cx.moveTo(rt.x, rt.y);
+  cx.quadraticCurveTo(rt.x + 30, rt.y - 12, TIP.x, TIP.y);
   cx.stroke();
+  cx.strokeStyle = '#a2704a';
+  cx.lineWidth = 1.2;
+  cx.beginPath();
+  cx.moveTo(rt.x, rt.y);
+  cx.quadraticCurveTo(rt.x + 30, rt.y - 12, TIP.x, TIP.y);
+  cx.stroke();
+  cx.lineCap = 'butt';
   cx.lineWidth = 1;
   cx.strokeStyle = 'rgba(255,255,255,.8)';
   const st = S.st,

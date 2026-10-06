@@ -60,3 +60,10 @@ node dev/check-prod.mjs       # 製品版に、管理者機能が混ざってい
 
 ## ステータスのバランスを確認する
 `node dev/build-dev.mjs && node dev/stat-sim.mjs` … 自動プレイ（旧い式）で海域が解放された日の状態（`dev/balance/stat-states.json`）で、ふつうの魚・次の海域・主との勝率を出す。ステータスの効果（`js/core/stat-effects.js`）を変えたときに使う。`--dir <フォルダ>` で、別のバージョン（例：変更前）と比べられる。
+
+## 主人公の絵（男・女）
+主人公の絵は、`dev/art/hero_m.jpg`（男）と `dev/art/hero_f.jpg`（女）が元になる。ゲームに入れる絵は、`python3 dev/make-hero-sprites.py`（要 `pip install pillow numpy scipy`）が、`js/data/hero-sprites.js` として作る。**手で編集しない。**
+- 背景（灰色の格子）を消し、文字と、竿の先からぶら下がる糸・魚を消して、人物と竿だけを切り出す。3つの大きさ（高さ96・160・288px）に縮めて、PNGで埋め込む。
+- 絵を差し替えるとき：元の画像を入れ替えて、スクリプトを実行する。消す位置は、スクリプトの `SRC`（元画像の座標）で決める。
+- 描くのは `js/ui/scene.js` の `drawHero()`。竿の先の位置を返すので、ゲーム側は、そこから竿の続きと糸を描く。夕方・夜は、景色の色を人物にも乗せる。
+

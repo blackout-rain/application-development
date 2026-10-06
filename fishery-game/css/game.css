@@ -785,7 +785,6 @@ textarea {
 }
 #heroPrev,
 #heroPrevS {
-  image-rendering: pixelated;
   width: min(100%, 240px);
   height: auto;
 }
