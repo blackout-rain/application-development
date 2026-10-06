@@ -4,6 +4,7 @@
 ■ 正面の絵（自宅・主人公の決定画面）… 用意された画像 dev/art/hero_m.jpg（男）・hero_f.jpg（女）から作る。
    背景（灰色の格子）を消す → 文字と、ぶら下がった糸・魚を消す → 切り出す →
    男女で、ドットの細かさ（128段）と、色数（くっきり）をそろえる。
+   最後に、斜めの線のギザギザをなめらかにして（Scale2x＋軽いぼかし）、3つの大きさにする。
 ■ 釣り場面の絵（海を向いて竿を持つ横向き）… dev/art/fishing_pose.py で、同じ服・色で描く。
 必要: pip install pillow numpy scipy
 """
@@ -11,7 +12,7 @@ import base64, io, json, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'art'))
 from fishing_pose import draw_fishing
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 from scipy import ndimage as ndi
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -71,12 +72,62 @@ def normalize(big):
     return Image.fromarray(np.dstack([q, (alpha * 255).astype(np.uint8)]), 'RGBA')
 
 
-def pack(im, scales):
-    """元の大きさ N と、整数倍に拡大した絵を、小さい順に持つ（ドットがにじまない）"""
+def scale2x(im):
+    """ドット絵の斜めの線を、なめらかにつなぎながら2倍にする（Scale2x）。色の境目はそのまま、階段状のギザギザだけ減る"""
+    a = np.array(im.convert('RGBA'))
+    a[a[:, :, 3] == 0] = 0  # 透明は、色も0にそろえる
+    v = np.ascontiguousarray(a).view('<u4')[:, :, 0]
+    pad = np.pad(v, 1, mode='edge')
+    P = pad[1:-1, 1:-1]
+    A, B, C, D = pad[:-2, 1:-1], pad[1:-1, 2:], pad[1:-1, :-2], pad[2:, 1:-1]  # 上・右・左・下
+    E0 = np.where((C == A) & (C != D) & (A != B), A, P)
+    E1 = np.where((A == B) & (A != C) & (B != D), B, P)
+    E2 = np.where((D == C) & (D != B) & (C != A), C, P)
+    E3 = np.where((B == D) & (B != A) & (D != C), D, P)
+    h, w = P.shape
+    out = np.empty((h * 2, w * 2), dtype='<u4')
+    out[0::2, 0::2], out[0::2, 1::2], out[1::2, 0::2], out[1::2, 1::2] = E0, E1, E2, E3
+    return Image.fromarray(out.view(np.uint8).reshape(h * 2, w * 2, 4), 'RGBA')
+
+
+def encode_rgba(im):
+    b = io.BytesIO()
+    im.save(b, 'PNG', optimize=True)
+    return 'data:image/png;base64,' + base64.b64encode(b.getvalue()).decode()
+
+
+def smooth_big(im):
+    """ドット絵を4倍にして、輪郭の階段（ギザギザ）をなだらかにする。
+    ① Scale2xを2回（斜めの線をつなぐ） ② 輪郭（透明度）をぼかして、しきい値で切り直す＝直線・曲線がなめらかになり、縁にアンチエイリアスが付く
+    ③ 色は、透明度でかけ算してから軽くぼかす（縁が黒ずまない）"""
+    big = np.array(scale2x(scale2x(im))).astype(np.float32)
+    al = big[:, :, 3] / 255.0
+    rgb = big[:, :, :3]
+    pre = rgb * al[:, :, None]
+
+    def blur(x, sg):
+        return ndi.gaussian_filter(x, sg)
+
+    a1 = blur(al, 1.0)
+    c1 = np.stack([blur(pre[:, :, k], 1.0) for k in range(3)], 2) / np.maximum(a1, 1e-3)[:, :, None]
+    a3 = blur(al, 3.0)
+    c3 = np.stack([blur(pre[:, :, k], 3.0) for k in range(3)], 2) / np.maximum(a3, 1e-3)[:, :, None]
+    w = np.clip(a1 / 0.6, 0, 1)[:, :, None]
+    color = c1 * w + c3 * (1 - w)
+    t = np.clip((blur(al, 2.2) - 0.32) / 0.36, 0, 1)  # 輪郭：ぼかして、しきい値で切り直す
+    alpha = t * t * (3 - 2 * t)
+    out = np.dstack([np.clip(color, 0, 255), alpha * 255]).astype(np.uint8)
+    return Image.fromarray(out, 'RGBA')
+
+
+def pack(im, heights):
+    """なめらかにした絵を、いくつかの高さで持つ（縮小は、透明度をかけ算した状態で行う）"""
+    big = smooth_big(im)
     out = {}
-    for name, k in scales:
-        big = im if k == 1 else im.resize((im.width * k, im.height * k), Image.NEAREST)
-        out[name] = dict(w=big.width, h=big.height, src=encode(big))
+    for name, hh in heights:
+        ww = round(big.width * hh / big.height)
+        small = big.convert('RGBa').resize((ww, hh), Image.LANCZOS).convert('RGBA')
+        out[name] = dict(w=ww, h=hh, src=encode_rgba(small))
     return out
 
 
@@ -94,12 +145,12 @@ def main():
             aspect=an['w'] / an['h'],
             tip=[an['tip'][0] / an['h'], an['tip'][1] / an['h']],
             foot=an['foot'] / an['h'],
-            img=pack(front, [('N', 1), ('L', 2)]),
+            img=pack(front, [('S', 96), ('M', 192), ('L', 320)]),
             fish=dict(
                 aspect=fish.width / fish.height,
                 foot=foot / fish.height,
                 tip=[(xs.max() + 1) / fish.height, float(ys[xs >= xs.max() - 1].mean()) / fish.height],  # 竿の持ち手のはし
-                img=pack(fish, [('N', 1), ('L', 3)]),
+                img=pack(fish, [('S', 96), ('M', 192)]),
             ),
         )
     js = '// 主人公のスプライト（男 m・女 f）。dev/make-hero-sprites.py が作る。手で編集しない。\n'

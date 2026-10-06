@@ -58,7 +58,7 @@ function heroPart(sex, pose) {
 }
 function heroImg(sex, h, pose) {
   const d = heroPart(sex, pose),
-    sz = ['N', 'L'].find(n => d.img[n].h >= h) || 'L',
+    sz = ['S', 'M', 'L'].find(n => d.img[n] && d.img[n].h >= h) || (d.img.L ? 'L' : 'M'),
     key = (sex === 1 ? 'f' : 'm') + (pose || '') + sz;
   if (!HERO_IMG[key]) {
     HERO_IMG[key] = new Image();
@@ -66,7 +66,7 @@ function heroImg(sex, h, pose) {
   }
   return HERO_IMG[key];
 }
-[0, 1].forEach(sx => ['', 'fish'].forEach(po => [20, 400].forEach(h => heroImg(sx, h, po)))); // 先に読み込んでおく
+[0, 1].forEach(sx => ['', 'fish'].forEach(po => [20, 150, 400].forEach(h => heroImg(sx, h, po)))); // 先に読み込んでおく
 let HERO_TMP = null;
 // 色をかぶせた絵（夕方・夜に、景色になじませる）。絵の形の内側だけに色が乗る
 function heroTinted(im, W, H, tint) {
