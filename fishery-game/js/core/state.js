@@ -33,6 +33,7 @@ function fresh() {
     lastUp: '',
     seen: 0,
     tut: 0,
+    hero: {name: '', sex: 0, set: 0},
     nr: {n: 0, pt: 0, tot: 0, lv: {sell: 0, exp: 0, cap: 0, start: 0, luck: 0}},
     leg: {},
     legLap: {},
@@ -108,6 +109,7 @@ function migrate(s) {
   const fs0 = s.fs === undefined ? (s.big ? 1 : 0) : s.fs;
   const rg = s.rankGot === undefined ? RANKS.filter(r => (s.earned || 0) >= r[0]).length - 1 : s.rankGot;
   if (s.tut === undefined) s.tut = 1;
+  s.hero = Object.assign({name: '', sex: 0, set: s.hero ? 0 : 1}, s.hero); // 古いセーブは、名前なし・男・決めたあと（設定タブで変えられる）
   if (s.nr)
     s.nr = Object.assign({n: 0, pt: 0, tot: 0}, s.nr, {
       lv: Object.assign({sell: 0, exp: 0, cap: 0, start: 0, luck: 0}, s.nr.lv)

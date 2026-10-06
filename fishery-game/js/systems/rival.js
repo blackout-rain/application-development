@@ -13,7 +13,7 @@ function rvStep() {
 }
 function rvStandings() {
   return RIVALS.map((n, i) => ({n, s: G.rv.sc[i]}))
-    .concat([{n: T('あなた'), s: weekInc(), me: 1}])
+    .concat([{n: esc(heroLabel()), s: weekInc(), me: 1}])
     .sort((a, b) => b.s - a.s);
 }
 function rvSettle() {

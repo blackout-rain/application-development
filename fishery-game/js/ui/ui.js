@@ -24,6 +24,7 @@ function hud() {
   );
   hint();
   $('#cap').textContent = `${G.fish.length}/${cap()}`;
+  $('#heroname').textContent = heroSet() && heroName() ? heroName() + ' ' : '';
   $('#lv').textContent = G.level;
   $('#xp').style.width = Math.min(100, (G.exp / expNeed(G.level)) * 100) + '%';
   $('#xpv').textContent =

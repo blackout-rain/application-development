@@ -761,3 +761,31 @@ textarea {
     opacity: 1;
   }
 }
+
+.lbl {
+  display: block;
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--sub);
+}
+.txt {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+#heroname {
+  font-weight: 900;
+  margin-right: 0.15em;
+}
+#heroPrev,
+#heroPrevS {
+  image-rendering: pixelated;
+  width: min(100%, 240px);
+  height: auto;
+}

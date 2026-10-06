@@ -37,7 +37,7 @@ function tourSettle() {
   if (!tourIn() || G.tour.done) return null;
   G.tour.done = 1;
   const base = tourBase(),
-    me = {n: T('あなた'), s: G.tour.best, me: 1};
+    me = {n: esc(heroLabel()), s: G.tour.best, me: 1};
   const all = [1.4, 1.9, 2.4, 3.0, 3.8]
     .map((m, i) => ({n: RIVALS[i], s: Math.round(base * m * rnd(0.85, 1.15))}))
     .concat([me])

@@ -63,6 +63,7 @@
     (G.farm || []).forEach(f => { const sp = SP.find(z => z.n === f.n); if (!sp || sp.boss || !(f.sz > 0)) bad.push('養殖 不正 ' + f.n) });
     Object.keys(G.pets || {}).forEach(k => { if (!PETS.find(z => z.k === k)) bad.push('ペット 不明 ' + k) }); if (G.pet && !G.pets[G.pet]) bad.push('連れているペットを持っていない');
     Object.keys(G.deco || {}).forEach(k => { if (!DECOS.find(z => z.k === k)) bad.push('飾り 不明 ' + k) });
+    if (!G.hero || typeof G.hero.name !== 'string' || [...G.hero.name].length > 8 || (G.hero.sex !== 0 && G.hero.sex !== 1)) bad.push('主人公 不正');
     if (!G.nr || !(G.nr.n >= 0) || !(G.nr.pt >= 0)) bad.push('のれん 不正');
     else NR.forEach(n => { const l = G.nr.lv[n.k]; if (!(l >= 0 && l <= n.max)) bad.push('のれん強化 不正 ' + n.k) });
     Object.entries(G.leg || {}).forEach(([k, v]) => { if (!AREAS[k] || !(v >= 1)) bad.push('伝説の主 不正 ' + k) });

@@ -12,8 +12,11 @@ const helpVisible = () => HELP.filter(x => !x.k || feat(x.k));
 
 // 入口：はじめての人は案内（intro）、それ以外は目次
 function showHelp(i = 0) {
-  if (!G.seen) showHelpIntro(i);
-  else showHelpIndex();
+  if (!G.seen) {
+    if (!heroSet())
+      showHeroSetup(() => showHelpIntro(0)); // はじめての人は、先に主人公の名前と性別を決める
+    else showHelpIntro(i);
+  } else showHelpIndex();
 }
 
 function helpFinish(skipped) {
@@ -21,7 +24,11 @@ function helpFinish(skipped) {
   save();
   $('#veil').hidden = true;
   openTab(G.home ? 'home' : 'fish');
-  say(T('「投げる」を押して釣りを始めよう。'));
+  say(
+    heroName()
+      ? T('{1}さん、「投げる」を押して釣りを始めよう。', [heroName()])
+      : T('「投げる」を押して釣りを始めよう。')
+  );
   if (skipped) toast(T('遊び方は、右上の「遊び方」か、設定タブで、いつでも見られます'));
 }
 

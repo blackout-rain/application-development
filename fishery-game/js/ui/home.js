@@ -612,7 +612,7 @@ function drawHome(ts) {
   boatArt(c, ts);
   for (let i = 0; i < G.crew; i++)
     person(c, 24 + i * 22, 294 + Math.sin(ts / 500 + i) * 0.6, COLS[i % 10], HATS[i % 5], 0.8);
-  person(c, 112, 258 + Math.sin(ts / 400) * 0.8, '#ffb454', '#c0392b', 1.1);
+  drawHero(c, 112, 258 + Math.sin(ts / 400) * 0.8, 1.1);
   decoArt(c, ts);
   petArt(c, ts);
   if (night) {

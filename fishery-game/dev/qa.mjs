@@ -412,6 +412,44 @@ await t('[EN] 英語：のれん分け・伝説の主・最初の案内の文が
   return /Spin-off/.test(r.town) && /Goodwill/.test(r.town) && /Lap/.test(r.box) && /Cast/.test(r.tut) && !jp.test(r.town + r.box + r.tut.replace(/案内/g, '')) ? true : JSON.stringify(r).slice(0, 400);
 });
 
+/* ---------- 主人公（名前と性別） ---------- */
+await t('主人公：はじめて遊ぶときに名前と性別を決め、そのあと基本の案内が出る（名前は8文字まで・危険な文字は除く）', 'blank', async p => {
+  const r = await ev(p, () => {
+    G.seen = 0; G.hero = { name: '', sex: 0, set: 0 }; showHelp(0);
+    const setup = !!document.getElementById('heroIn');
+    document.getElementById('heroIn').value = '<b>ハルノスケ太郎さんです'; document.querySelector('#heroSex [data-hs="1"]').click();
+    document.getElementById('heroOk').click();
+    const intro = document.querySelector('#box h3') && document.querySelector('#box h3').textContent;
+    return { setup, hero: G.hero, intro, name: document.getElementById('heroname').textContent };
+  });
+  return r.setup && r.hero.set === 1 && r.hero.sex === 1 && r.hero.name.length <= 8 && !/[<>]/.test(r.hero.name) && r.intro === 'ようこそ！' && r.name.trim() === r.hero.name ? true : JSON.stringify(r);
+});
+await t('主人公：古いセーブは、名前なし・男で、決める画面は出ない。名前がないときの呼び名は「あなた」', 'mid', async p => {
+  const r = await ev(p, () => { const o = migrate({ v: 1, seen: 1, day: 9 }); const n = migrate({ v: 1, seen: 1, hero: { name: 'タロウ', sex: 1, set: 1 } }); G.hero = o.hero; hud(); return { old: o.hero, kept: n.hero, label: heroLabel(), head: document.getElementById('heroname').textContent } });
+  return r.old.set === 1 && r.old.name === '' && r.old.sex === 0 && r.kept.name === 'タロウ' && r.kept.sex === 1 && r.label === 'あなた' && r.head === '' ? true : JSON.stringify(r);
+});
+await t('主人公：設定タブで名前と性別を変えられて、画面の名前・保存データに反映される', 'mid', async p => {
+  const r = await ev(p, () => {
+    openTab('set'); renderAll(); const inp = document.getElementById('heroInS'); inp.value = 'ミナト'; inp.dispatchEvent(new Event('change'));
+    document.querySelector('[data-hss="1"]').click();
+    return { hero: G.hero, head: document.getElementById('heroname').textContent, saved: JSON.parse(localStorage.getItem(KEY)).hero };
+  });
+  return r.hero.name === 'ミナト' && r.hero.sex === 1 && r.head.trim() === 'ミナト' && r.saved.name === 'ミナト' && r.saved.sex === 1 ? true : JSON.stringify(r);
+});
+await t('主人公：男と女で、絵が違う', 'mid', async p => {
+  const r = await ev(p, () => { const c = document.createElement('canvas'); c.width = 80; c.height = 80; const g = c.getContext('2d'); const img = s => { g.clearRect(0, 0, 80, 80); drawHero(g, 40, 70, 1.6, s); return g.getImageData(0, 0, 80, 80).data.join(',') }; const a = img(0), b = img(1); return [a !== b, a.length > 0, /[1-9]/.test(a.replace(/,0/g, ''))] });
+  return r[0] && r[1] ? true : JSON.stringify(r);
+});
+await t('主人公：名前にHTMLを入れても、画面に出ない（ライバル欄・大会の名前など）', 'mid', async p => {
+  const r = await ev(p, () => { setHero('<img src=x onerror=window.__x=1>', 0); G.fu.tour = 1; openTab('town'); renderAll(); return { hero: G.hero.name, x: window.__x, imgs: document.querySelectorAll('#p-town img[src="x"]').length } });
+  return !r.x && r.imgs === 0 && !/[<>]/.test(r.hero) ? true : JSON.stringify(r);
+});
+await t('[EN] 主人公：英語でも、決める画面が出て、日本語が残らない', 'blank', async p => {
+  const r = await ev(p, () => { G.seen = 0; G.hero = { name: '', sex: 0, set: 0 }; showHelp(0); i18nFlush(); const t = document.getElementById('box').innerText; openTab('set'); G.seen = 1; renderAll(); i18nFlush(); const s = document.getElementById('p-set').innerText; return { t, s } });
+  const jp = /[ぁ-んァ-ヶ一-龠]/;
+  return /Create Your Angler/.test(r.t) && /Male/.test(r.t) && /Your Angler/.test(r.s) && !jp.test(r.t) && !jp.test(r.s.replace(/日本語|言語 \/ Language/g, '')) ? true : JSON.stringify(r).slice(0, 300);
+});
+
 /* ---------- ステータスの効果 ---------- */
 await t('ステータス：どの効果も、ポイントをふやすほど増え続け（上限で止まらない）、少しずつ伸びが小さくなる', 'mid', async p => {
   const r = await ev(p, () => {
@@ -447,7 +485,7 @@ await t('ステータス画面：現在の効果の表示に、NaN・undefined�
 /* ---------- 遊び方（分類つきの目次） ---------- */
 await t('遊び方：はじめての人は、基本の4ページだけを順に見て、はじめる', 'blank', async p => {
   const r = await ev(p, () => {
-    G.seen = 0; showHelp(0); const pages = [];
+    G.seen = 0; G.hero = { name: '', sex: 0, set: 1 }; showHelp(0); const pages = [];
     for (let i = 0; i < 10; i++) { const b = document.getElementById('box'); pages.push(b.querySelector('h3').textContent); const hn = document.getElementById('hn'); if (hn.textContent.includes('はじめる')) break; hn.click() }
     const dots = document.querySelector('.dots').textContent; document.getElementById('hn').click();
     return { pages, dots, seen: G.seen, hidden: document.getElementById('veil').hidden }

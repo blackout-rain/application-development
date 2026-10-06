@@ -21,6 +21,55 @@ function person(c, x, y, col, hat, s) {
   c.fill();
   c.restore();
 }
+// 主人公（男・女で、髪型・服・帽子が違う）
+function drawHero(c, x, y, s, sex = heroSex()) {
+  const f = sex === 1;
+  c.save();
+  c.translate(x, y);
+  c.scale(s, s);
+  if (f) {
+    c.fillStyle = '#5b3a29'; // 長い髪（体のうしろ）
+    c.fillRect(-6.5, -32, 13, 15);
+  }
+  c.fillStyle = '#2b3a4a';
+  c.fillRect(-3.5, -9, 3, 9);
+  c.fillRect(0.5, -9, 3, 9);
+  if (f) {
+    c.fillStyle = '#e8e2d0'; // スカート
+    c.beginPath();
+    c.moveTo(-5.5, -14);
+    c.lineTo(5.5, -14);
+    c.lineTo(8, -7);
+    c.lineTo(-8, -7);
+    c.fill();
+  }
+  c.fillStyle = f ? '#3fb8a8' : '#ffb454';
+  c.fillRect(-5, -24, 10, f ? 11 : 15);
+  c.fillStyle = '#f1c9a0';
+  c.beginPath();
+  c.arc(0, -29, 5, 0, 7);
+  c.fill();
+  if (f) {
+    c.fillStyle = '#5b3a29'; // 前髪
+    c.beginPath();
+    c.arc(0, -30, 5.2, Math.PI, 0);
+    c.fill();
+    c.fillStyle = '#f2d08a'; // 麦わら帽子
+    c.fillRect(-8, -33.5, 16, 2.2);
+    c.beginPath();
+    c.arc(0, -33.5, 5, Math.PI, 0);
+    c.fill();
+    c.fillStyle = '#ff7aa2';
+    c.fillRect(-5, -35.2, 10, 1.6);
+  } else {
+    c.fillStyle = '#c0392b';
+    c.fillRect(-6.5, -33, 13, 2.5);
+    c.beginPath();
+    c.arc(0, -33, 5, Math.PI, 0);
+    c.fill();
+  }
+  c.restore();
+}
 function glow(c, x, y, r, col, a) {
   const g = c.createRadialGradient(x, y, 2, x, y, r);
   g.addColorStop(0, col);
@@ -326,7 +375,7 @@ function draw(ts) {
     cx.fillRect(0, 132, deckW, 3);
   }
   CREW.forEach(cr => drawCrew(cr, ts));
-  person(cx, 46, 120, '#ffb454', '#c0392b', 1.25);
+  drawHero(cx, 46, 120, 1.25);
   cx.strokeStyle = '#d9c7a8';
   cx.lineWidth = 3;
   cx.beginPath();
