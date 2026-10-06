@@ -428,13 +428,14 @@ await t('主人公：古いセーブは、名前なし・男で、決める画�
   const r = await ev(p, () => { const o = migrate({ v: 1, seen: 1, day: 9 }); const n = migrate({ v: 1, seen: 1, hero: { name: 'タロウ', sex: 1, set: 1 } }); G.hero = o.hero; hud(); return { old: o.hero, kept: n.hero, label: heroLabel(), head: document.getElementById('heroname').textContent } });
   return r.old.set === 1 && r.old.name === '' && r.old.sex === 0 && r.kept.name === 'タロウ' && r.kept.sex === 1 && r.label === 'あなた' && r.head === '' ? true : JSON.stringify(r);
 });
-await t('主人公：設定タブで名前と性別を変えられて、画面の名前・保存データに反映される', 'mid', async p => {
+await t('主人公：設定タブには、主人公の絵・名前欄・性別の切り替えがない。決める画面には、あとから変えられない旨が出る', 'mid', async p => {
   const r = await ev(p, () => {
-    openTab('set'); renderAll(); const inp = document.getElementById('heroInS'); inp.value = 'ミナト'; inp.dispatchEvent(new Event('change'));
-    document.querySelector('[data-hss="1"]').click();
-    return { hero: G.hero, head: document.getElementById('heroname').textContent, saved: JSON.parse(localStorage.getItem(KEY)).hero };
+    openTab('set'); renderAll();
+    const inSet = !!(document.getElementById('heroPrevS') || document.getElementById('heroInS') || document.querySelector('[data-hss]'));
+    G.seen = 0; G.hero = { name: '', sex: 0, set: 0 }; showHelp(0);
+    return { inSet, note: document.getElementById('box').innerText };
   });
-  return r.hero.name === 'ミナト' && r.hero.sex === 1 && r.head.trim() === 'ミナト' && r.saved.name === 'ミナト' && r.saved.sex === 1 ? true : JSON.stringify(r);
+  return !r.inSet && /あとから変更できません/.test(r.note) ? true : JSON.stringify(r).slice(0, 300);
 });
 await t('主人公：男と女で、絵が違う', 'mid', async p => {
   const r = await ev(p, () => { const c = document.createElement('canvas'); c.width = 80; c.height = 80; const g = c.getContext('2d'); const img = s => { g.clearRect(0, 0, 80, 80); drawHero(g, 40, 70, 1.6, s); return g.getImageData(0, 0, 80, 80).data.join(',') }; const a = img(0), b = img(1); return [a !== b, a.length > 0, /[1-9]/.test(a.replace(/,0/g, ''))] });
@@ -447,7 +448,7 @@ await t('主人公：名前にHTMLを入れても、画面に出ない（ライ�
 await t('[EN] 主人公：英語でも、決める画面が出て、日本語が残らない', 'blank', async p => {
   const r = await ev(p, () => { G.seen = 0; G.hero = { name: '', sex: 0, set: 0 }; showHelp(0); i18nFlush(); const t = document.getElementById('box').innerText; openTab('set'); G.seen = 1; renderAll(); i18nFlush(); const s = document.getElementById('p-set').innerText; return { t, s } });
   const jp = /[ぁ-んァ-ヶ一-龠]/;
-  return /Create Your Angler/.test(r.t) && /Male/.test(r.t) && /Your Angler/.test(r.s) && !jp.test(r.t) && !jp.test(r.s.replace(/日本語|言語 \/ Language/g, '')) ? true : JSON.stringify(r).slice(0, 300);
+  return /Create Your Angler/.test(r.t) && /Male/.test(r.t) && !/Your Angler/.test(r.s) && /cannot be changed later/.test(r.t) && !jp.test(r.t) && !jp.test(r.s.replace(/日本語|言語 \/ Language/g, '')) ? true : JSON.stringify(r).slice(0, 300);
 });
 
 /* ---------- ステータスの効果 ---------- */

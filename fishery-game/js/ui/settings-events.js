@@ -5,8 +5,6 @@ function bindSet(q) {
     `<h2>言語 / Language</h2><div class="row" style="margin-top:0"><button class="chip" data-lang="ja" aria-pressed="${LANG === 'ja'}">日本語</button><button class="chip" data-lang="en" aria-pressed="${LANG === 'en'}">English</button></div>`
   );
   q.querySelectorAll('[data-lang]').forEach(b => (b.onclick = () => setLang(b.dataset.lang)));
-  q.insertAdjacentHTML('afterbegin', heroCardHtml()); // 主人公の名前・性別（言語の上に出す）
-  bindHeroCard(q);
   q.querySelectorAll('[data-tg]').forEach(
     b =>
       (b.onclick = () => {
