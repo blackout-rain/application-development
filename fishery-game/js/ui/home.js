@@ -547,6 +547,7 @@ function boatArt(c, ts) {
   c.fillText(BOATS[b - 1].n, x, y + 24);
 }
 function drawHome(ts) {
+  fitCanvas(hv, hc, 480, 340);
   const c = hc,
     night = !!G.home,
     p = clamp((G.min - 360) / 720, 0, 1);

@@ -3,7 +3,7 @@
   python3 dev/make-hero-sprites.py
 ■ 正面の絵（自宅・主人公の決定画面）… 用意された画像 dev/art/hero_m.jpg（男）・hero_f.jpg（女）から作る。
    背景（灰色の格子）を消す → 文字と、ぶら下がった糸・魚を消す → 切り出す →
-   男女で、ドットの細かさ（128段）と、色数（くっきり）をそろえる。
+   男女で、ドットの細かさ（160段）と、色数（くっきり）をそろえる。
    最後に、斜めの線のギザギザをなめらかにして（Scale2x＋軽いぼかし）、3つの大きさにする。
 ■ 釣り場面の絵（海を向いて竿を持つ横向き）… dev/art/fishing_pose.py で、同じ服・色で描く。
 必要: pip install pillow numpy scipy
@@ -21,7 +21,7 @@ SRC = {
     'm': ('dev/art/hero_m.jpg', [(1268, 300, 1400, 1400)]),
     'f': ('dev/art/hero_f.jpg', [(1203, 262, 1400, 1400)]),
 }
-NATIVE_H = 128   # 正面の絵のドットの段数（男女そろえる。女の絵の細かさに近い）
+NATIVE_H = 160   # 正面の絵のドットの段数（男女そろえる。女の絵の細かさ＝約158段をそのまま生かす）
 QUANT = 56       # 色数（JPEGのにじみを消して、くっきりさせる）
 
 
@@ -63,7 +63,7 @@ def encode(im):
 
 
 def normalize(big):
-    """男女で、ドットの細かさ・色の出方をそろえる：128段に縮め、色数を絞って、輪郭をくっきりさせる"""
+    """男女で、ドットの細かさ・色の出方をそろえる：160段に縮め、色数を絞って、輪郭をくっきりさせる"""
     w = round(big.width * NATIVE_H / big.height)
     sm = big.resize((w, NATIVE_H), Image.LANCZOS)
     a = np.array(sm)
@@ -145,12 +145,12 @@ def main():
             aspect=an['w'] / an['h'],
             tip=[an['tip'][0] / an['h'], an['tip'][1] / an['h']],
             foot=an['foot'] / an['h'],
-            img=pack(front, [('S', 96), ('M', 192), ('L', 320)]),
+            img=pack(front, [('S', 96), ('M', 192), ('L', 384)]),
             fish=dict(
                 aspect=fish.width / fish.height,
                 foot=foot / fish.height,
                 tip=[(xs.max() + 1) / fish.height, float(ys[xs >= xs.max() - 1].mean()) / fish.height],  # 竿の持ち手のはし
-                img=pack(fish, [('S', 96), ('M', 192)]),
+                img=pack(fish, [('S', 96), ('M', 192), ('L', 288)]),
             ),
         )
     js = '// 主人公のスプライト（男 m・女 f）。dev/make-hero-sprites.py が作る。手で編集しない。\n'

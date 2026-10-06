@@ -1,6 +1,16 @@
 /* ---------- scene ---------- */
 const cv = $('#cv'),
   cx = cv.getContext('2d');
+// 画面の細かさに合わせて、キャンバスの解像度を上げる（座標は、いつも 横W×縦H のまま描ける）。スマホでも、絵がぼやけない。
+function fitCanvas(cvs, c, W, H) {
+  const k = clamp(Math.ceil((cvs.clientWidth * (window.devicePixelRatio || 1)) / W - 0.15), 1, 3);
+  if (cvs.width !== W * k) {
+    cvs.width = W * k;
+    cvs.height = H * k;
+  }
+  c.setTransform(k, 0, 0, k, 0, 0);
+  return k;
+}
 // ほかの人（漁師）。主人公と同じ、濃い紺のふち取りで描いて、絵がなじむようにする
 function person(c, x, y, col, hat, s) {
   const ol = '#12142a',
@@ -93,7 +103,7 @@ function drawHero(c, x, y, s, sex = heroSex(), o = {}) {
   const d = heroPart(sex, o.pose),
     H = HERO_UNIT * s,
     W = H * d.aspect,
-    im = heroImg(sex, H, o.pose),
+    im = heroImg(sex, H * (c.getTransform().a || 1), o.pose),
     lean = o.lean || 0,
     fy = y + (o.bob || 0);
   c.save();
@@ -372,6 +382,7 @@ function areaDeco2(a, ts) {
 }
 const fishX = f => 140 + (1 - f.prog / 100) * 270;
 function draw(ts) {
+  fitCanvas(cv, cx, 480, 250);
   cx.save();
   if (FX.shake > 0) cx.translate(rnd(-1, 1) * FX.shake * 8, rnd(-1, 1) * FX.shake * 8);
   const p = clamp((G.min - 360) / 720, 0, 1);
