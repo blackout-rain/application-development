@@ -1,6 +1,7 @@
 let last = performance.now();
 function loop(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000);
+  G.playSec += Math.min(1, (ts - last) / 1000); // プレイ時間（画面を見ている間だけ。長い空白は1秒までにする）
   last = ts;
   if (!veilOpen()) {
     if (S.st === 'wait') {

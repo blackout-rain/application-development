@@ -143,14 +143,37 @@ function setLang(l) {
   save();
   location.reload();
 }
+// プレイ時間の表示（1時間未満は「分」だけ）
+function playTimeText() {
+  const m = Math.floor((G.playSec || 0) / 60);
+  return m >= 60 ? T('{1}時間{2}分', [Math.floor(m / 60), m % 60]) : T('{1}分', [m]);
+}
 function renderSet() {
   const tg = toggleItemsHtml();
   const df = difficultyChipsHtml();
   const got = NORM.filter(s => G.dex[s.n]).length;
   const fz = fontSizeChipsHtml();
   $('#p-set').innerHTML = T(
-    '<h2>文字の大きさ</h2><div class="row" style="margin-top:0">{1}</div><p class="hint">選ぶと、画面全体の文字が大きくなります。</p>\n    <h2>表示と音</h2><div class="list">{2}</div>\n    <h2>難易度</h2><div class="row" style="margin-top:0">{3}</div><p class="hint">釣りのときのテンションの上がりやすさが変わります。（かんたん：×0.8／ふつう：×1／むずかしい：×1.3）</p>\n    <h2>遊び方</h2><button class="ghost" id="setHelp">遊び方をもう一度見る</button>\n    <h2>これまでの記録</h2><div class="card"><div class="kv"><span>プレイ日数</span><b class="num">{4}日</b><span>釣った魚</span><b class="num">{5}匹</b><span>累計売上</span><b class="num">{6}</b><span>図鑑</span><b class="num">{7}/{8}</b><span>レベル</span><b class="num">Lv.{9}</b></div></div>\n    <h2>データの引き継ぎ（機種変更）</h2>{10}\n    <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--sub)">その他の方法（文字列で書き出し・読み込み）</summary>\n      <textarea id="exp" readonly aria-label="書き出したデータ" style="margin-top:8px"></textarea><div class="row"><button class="ghost" id="expCopy">データを書き出してコピー</button></div>\n      <textarea id="imp" placeholder="ここに書き出したデータを貼り付け" aria-label="読み込むデータ" style="margin-top:12px"></textarea><div class="row"><button class="ghost" id="impGo">読み込む</button></div></details>\n    <h2>データ</h2><button class="ghost" id="reset">最初からやり直す</button>',
-    [fz, tg, df, G.day, G.catches, yen(G.earned), got, NORM.length, G.level, cloudSection()]
+    '<h2>文字の大きさ</h2><div class="row" style="margin-top:0">{1}</div><p class="hint">選ぶと、画面全体の文字が大きくなります。</p>\n    <h2>表示と音</h2><div class="list">{2}</div>\n    <h2>難易度</h2><div class="row" style="margin-top:0">{3}</div><p class="hint">釣りのときのテンションの上がりやすさが変わります。（かんたん：×0.8／ふつう：×1／むずかしい：×1.3）</p>\n    <h2>遊び方</h2><button class="ghost" id="setHelp">遊び方をもう一度見る</button>\n    <h2>これまでの記録</h2><div class="card"><div class="kv"><span>プレイ日数</span><b class="num">{4}日</b><span>釣った魚</span><b class="num">{5}匹</b><span>累計売上</span><b class="num">{6}</b><span>図鑑</span><b class="num">{7}/{8}</b><span>レベル</span><b class="num">Lv.{9}</b><span>プレイ時間</span><b class="num">{11}</b>{12}</div></div>\n    <h2>データの引き継ぎ（機種変更）</h2>{10}\n    <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--sub)">その他の方法（文字列で書き出し・読み込み）</summary>\n      <textarea id="exp" readonly aria-label="書き出したデータ" style="margin-top:8px"></textarea><div class="row"><button class="ghost" id="expCopy">データを書き出してコピー</button></div>\n      <textarea id="imp" placeholder="ここに書き出したデータを貼り付け" aria-label="読み込むデータ" style="margin-top:12px"></textarea><div class="row"><button class="ghost" id="impGo">読み込む</button></div></details>\n    <h2>データ</h2><button class="ghost" id="reset">最初からやり直す</button>',
+    [
+      fz,
+      tg,
+      df,
+      G.day,
+      G.catches,
+      yen(G.earned),
+      got,
+      NORM.length,
+      G.level,
+      cloudSection(),
+      playTimeText(),
+      feat('ach')
+        ? T('<span>実績</span><b class="num">{1}/{2}</b>', [
+            achVis().filter(a => G.ach[a.id]).length,
+            achVis().length
+          ])
+        : ''
+    ]
   );
   bindSet($('#p-set'));
 }

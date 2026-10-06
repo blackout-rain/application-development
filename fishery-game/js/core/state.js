@@ -19,6 +19,7 @@ function fresh() {
   return {
     v: 1,
     syncAt: 0,
+    playSec: 0,
     syncSig: '',
     fs: 0,
     nudged: 0,

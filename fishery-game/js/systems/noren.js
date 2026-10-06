@@ -24,6 +24,7 @@ const NR_KEEP = [
   'dailyNo',
   'streak',
   'lastSeen',
+  'playSec',
   'lastUp',
   'seen',
   'tut',

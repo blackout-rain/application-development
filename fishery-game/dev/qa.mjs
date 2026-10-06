@@ -412,6 +412,23 @@ await t('[EN] 英語：のれん分け・伝説の主・最初の案内の文が
   return /Spin-off/.test(r.town) && /Goodwill/.test(r.town) && /Lap/.test(r.box) && /Cast/.test(r.tut) && !jp.test(r.town + r.box + r.tut.replace(/案内/g, '')) ? true : JSON.stringify(r).slice(0, 400);
 });
 
+/* ---------- これまでの記録 ---------- */
+await t('記録：設定タブに、プレイ時間（時間の経過で増える・のれん分けでも残る）と実績の数が出る', 'mid', async p => {
+  const r = await ev(p, async () => {
+    G.playSec = 3725; openTab('set'); renderAll();
+    const a = document.getElementById('p-set').innerText;
+    const before = G.playSec; await new Promise(r => setTimeout(r, 1200));
+    const grew = G.playSec > before;
+    const keep = NR_KEEP.includes('playSec');
+    const got = achVis().filter(x => G.ach[x.id]).length;
+    return { a, grew, keep, got, all: achVis().length, pt: playTimeText() };
+  });
+  return /プレイ時間\s*1時間2分/.test(r.a) && r.grew && r.keep && new RegExp('実績\\s*' + r.got + '/' + r.all).test(r.a) ? true : JSON.stringify(r).slice(0, 300);
+});
+await t('[EN] 記録：プレイ時間と実績が、英語で出る', 'mid', async p => {
+  const r = await ev(p, () => { G.playSec = 125; openTab('set'); renderAll(); i18nFlush(); return document.getElementById('p-set').innerText });
+  return /Play time\s*2m/.test(r) && /Achievements\s*\d+\/\d+/.test(r) && !/[ぁ-んァ-ヶ一-龠]/.test(r.replace(/日本語|言語 \/ Language/g, '')) ? true : r.slice(0, 300);
+});
 /* ---------- 主人公（名前と性別） ---------- */
 await t('主人公：はじめて遊ぶときに名前と性別を決め、そのあと基本の案内が出る（名前は8文字まで・危険な文字は除く）', 'blank', async p => {
   const r = await ev(p, () => {
